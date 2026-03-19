@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter
+mobile/**/build/
+mobile/**/.dart_tool/
+mobile/**/.packages
+mobile/**/.pub/
+mobile/**/pubspec.lock
+mobile/**/*.iml
+
+# Coverage
+htmlcov/
+.coverage

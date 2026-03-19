@@ -1,0 +1,30 @@
+name: parking_flutter
+
+packages:
+  - apps/*
+  - packages/*
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    exec: dart analyze --fatal-infos
+    description: Run dart analyze in all packages
+
+  test:
+    exec: flutter test
+    description: Run tests in all packages
+    packageFilters:
+      dirExists: test
+
+  build_runner:
+    exec: dart run build_runner build --delete-conflicting-outputs
+    description: Run build_runner in packages that depend on it
+    packageFilters:
+      dependsOn: build_runner
+
+  clean:
+    exec: flutter clean
+    description: Clean all packages
