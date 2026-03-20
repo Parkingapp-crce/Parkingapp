@@ -4,7 +4,7 @@
 
 ```
 git clone <repo-url>
-cd park_app
+cd Parkingapp
 ```
 
 ---
