@@ -4,7 +4,7 @@
 
 ```
 git clone <repo-url>
-cd login
+cd park_app
 ```
 
 ---
