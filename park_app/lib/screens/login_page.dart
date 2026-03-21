@@ -18,7 +18,7 @@ class LoginPage extends StatelessWidget {
   final Color fieldBackground = const Color(0xFFF9FAFB);
   final Color borderColor = const Color(0xFFE5E7EB);
 
-  /// 🔥 GOOGLE LOGIN FUNCTION (ADDED ONLY)
+  /// 🔥 GOOGLE LOGIN
   Future<void> signInWithGoogle(BuildContext context) async {
     try {
       final GoogleSignInAccount? user = await GoogleSignIn().signIn();
@@ -30,7 +30,8 @@ class LoginPage extends StatelessWidget {
 
       final response = await ApiService.googleLogin(email, name);
 
-      final token = response["token"];
+      // Django returns tokens.access
+      final token = response["tokens"]?["access"] ?? response["token"];
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("token", token);
@@ -39,7 +40,6 @@ class LoginPage extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
       );
-
     } catch (e) {
       print("Google Login Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -128,7 +128,6 @@ class LoginPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -174,7 +173,6 @@ class LoginPage extends StatelessWidget {
               ),
 
               const SizedBox(height: 8),
-
               TextField(
                 controller: passwordController,
                 obscureText: true,
@@ -186,10 +184,9 @@ class LoginPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              /// 🔥 Sign In Button (UNCHANGED)
+              /// Sign In Button
               ElevatedButton(
                 onPressed: () async {
-
                   final email = emailController.text.trim();
                   final password = passwordController.text.trim();
 
@@ -201,15 +198,12 @@ class LoginPage extends StatelessWidget {
                   }
 
                   try {
+                    final response = await ApiService.loginUser(email, password);
 
-                    final response =
-                        await ApiService.loginUser(email, password);
+                    // ✅ FIX: Django returns tokens.access (not token)
+                    final token = response["tokens"]?["access"];
 
-                    if (response != null &&
-                        response["message"] == "Login successful" &&
-                        response["token"] != null) {
-
-                      final token = response["token"];
+                    if (response["message"] == "Login successful." && token != null) {
 
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.setString("token", token);
@@ -225,12 +219,11 @@ class LoginPage extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            response["message"] ?? "Login failed",
+                            response["error"] ?? response["message"] ?? "Login failed",
                           ),
                         ),
                       );
                     }
-
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Server error")),
@@ -265,7 +258,7 @@ class LoginPage extends StatelessWidget {
 
               const SizedBox(height: 30),
 
-              /// 🔥 ONLY CHANGE HERE (Google button)
+              /// Social buttons
               Row(
                 children: [
                   Expanded(
@@ -273,7 +266,7 @@ class LoginPage extends StatelessWidget {
                       icon: Icons.g_mobiledata,
                       label: 'Google',
                       iconColor: Colors.red,
-                      onTap: () => signInWithGoogle(context), // ✅ UPDATED
+                      onTap: () => signInWithGoogle(context),
                     ),
                   ),
                   const SizedBox(width: 16),

@@ -39,7 +39,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
             /// 🔹 TOP IMAGE
             Image.asset(
-              "assets/images/car.png", // put your image here
+              "assets/images/car.png",
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -114,15 +114,12 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: ElevatedButton(
                       onPressed: () async {
 
-                        final name = nameController.text;
-                        final email = emailController.text;
-                        final password = passwordController.text;
-                        final confirm = confirmPasswordController.text;
+                        final name = nameController.text.trim();
+                        final email = emailController.text.trim();
+                        final password = passwordController.text.trim();
+                        final confirm = confirmPasswordController.text.trim();
 
-                        if (name.isEmpty ||
-                            email.isEmpty ||
-                            password.isEmpty ||
-                            confirm.isEmpty) {
+                        if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
                           _show("Fill all fields");
                           return;
                         }
@@ -137,15 +134,24 @@ class _RegisterPageState extends State<RegisterPage> {
                           return;
                         }
 
-                        final res = await ApiService.registerUser(name, email, password);
+                        try {
+                          final res = await ApiService.registerUser(name, email, password);
 
-                        if (res["message"] == "User registered successfully") {
-                          _show("Registered Successfully");
-                          Navigator.pop(context);
-                        } else {
-                          _show("Registration failed");
+                          // ✅ FIX: Django returns "User registered successfully." (with dot)
+                          if (res["message"] == "User registered successfully.") {
+                            _show("Registered Successfully!");
+                            Navigator.pop(context);
+                          } else {
+                            // Show actual error from Django
+                            final error = res["email"]?[0] ??
+                                res["message"] ??
+                                "Registration failed";
+                            _show(error);
+                          }
+                        } catch (e) {
+                          _show("Server error. Please try again.");
+                          print("REGISTER ERROR: $e");
                         }
-
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
@@ -207,7 +213,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  /// TEXT FIELD
   Widget _buildField(String hint, controller, IconData icon) {
     return TextField(
       controller: controller,
@@ -224,7 +229,6 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  /// PASSWORD FIELD
   Widget _buildPasswordField(String hint, controller) {
     return TextField(
       controller: controller,
@@ -233,9 +237,7 @@ class _RegisterPageState extends State<RegisterPage> {
         hintText: hint,
         prefixIcon: const Icon(Icons.lock),
         suffixIcon: IconButton(
-          icon: Icon(
-            hidePassword ? Icons.visibility : Icons.visibility_off,
-          ),
+          icon: Icon(hidePassword ? Icons.visibility : Icons.visibility_off),
           onPressed: () {
             setState(() {
               hidePassword = !hidePassword;
@@ -252,32 +254,27 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  /// SOCIAL BUTTON
   Widget _socialBtn(String text, String svgPath) {
-  return OutlinedButton(
-    onPressed: () {},
-    style: OutlinedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-      ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SvgPicture.asset(
-          svgPath,
-          height: 20,
+    return OutlinedButton(
+      onPressed: () {},
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
         ),
-        const SizedBox(width: 10),
-        Text(text),
-      ],
-    ),
-  );
-}
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SvgPicture.asset(svgPath, height: 20),
+          const SizedBox(width: 10),
+          Text(text),
+        ],
+      ),
+    );
+  }
 
   void _show(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }

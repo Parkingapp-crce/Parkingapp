@@ -1,7 +1,23 @@
+# 🅿️ ParkWise — Smart Parking App
+
+A full-stack parking management app built with **Flutter** (frontend) and **Django** (backend), connected to **Supabase PostgreSQL**.
+
+---
+
+## 🧱 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Flutter |
+| Backend | Django + Django REST Framework |
+| Auth | JWT (SimpleJWT) |
+| Database | Supabase PostgreSQL |
+
+---
+
 ## ⚙️ Setup Instructions
 
 ### 🔹 1. Clone the repository
-
 ```
 git clone <repo-url>
 cd Parkingapp
@@ -10,73 +26,91 @@ cd Parkingapp
 ---
 
 ### 🔹 2. Backend Setup
-
 ```
-cd backend_node
-npm install
+cd parkwise_backend
+```
+
+Create and activate virtual environment:
+```
+python -m venv venv
+
+venv\Scripts\activate        (Windows)
+source venv/bin/activate     (Mac/Linux)
+```
+
+Install dependencies:
+```
+pip install -r requirements.txt
 ```
 
 Create `.env` file:
-
 ```
-copy .env.example .env   (Windows)
-```
-
-OR
-
-```
-cp .env.example .env     (Mac/Linux)
+copy .env.example .env       (Windows)
+cp .env.example .env         (Mac/Linux)
 ```
 
-Add values:
+Add your Supabase values to `.env`:
+```
+DJANGO_SECRET_KEY=your-secret-key
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,10.0.2.2
 
-```
-DATABASE_URL=your_database_url
-JWT_SECRET=your_secret_key
+DB_NAME=postgres
+DB_USER=postgres.your-project-ref
+DB_PASSWORD=your-supabase-password
+DB_HOST=aws-0-ap-south-1.pooler.supabase.com
+DB_PORT=5432
 ```
 
-Run backend:
+Run migrations:
+```
+python manage.py migrate
+```
 
+Start backend:
 ```
-node server.js
+python manage.py runserver
 ```
+
+Backend runs at: `http://127.0.0.1:8000`
 
 ---
 
-### 🔹 3. Prisma Setup
-
+### 🔹 3. Flutter Setup
 ```
-npx prisma generate
-npx prisma migrate deploy
-```
-
----
-
-### 🔹 4. Flutter Setup
-
-```
-cd ../park_app
+cd park_app
 flutter pub get
 ```
 
 Run app:
-
 ```
 flutter run
 ```
 
 ---
 
-### ⚠️ Important
+## 🔌 API Endpoints
 
-* Use `http://10.0.2.2:3000` for emulator
-* Use your laptop IP for real device
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/register` | Register new user | ❌ |
+| POST | `/login` | Login + get JWT token | ❌ |
+| GET | `/profile` | Get user profile | ✅ Bearer token |
+
+---
+
+## ⚠️ Important
+
+- Use `http://10.0.2.2:8000` for Android emulator
+- Use `http://localhost:8000` for Flutter web
+- Use your laptop's local IP for real device (e.g. `http://192.168.1.x:8000`)
+- Never commit your `.env` file — it's in `.gitignore` ✅
 
 ---
 
 ## 📦 Required Tools
 
-* Node.js (v18+ recommended)
-* Flutter SDK
-* Android Studio / Emulator
-* Git
+- Python 3.10+
+- Flutter SDK
+- Android Studio / Emulator
+- Git
