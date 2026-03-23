@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'reset_password_page.dart';  //Uncomment this when you have the target page ready
+import '../services/api_service.dart';
+import 'otp_page.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
   ForgotPasswordPage({super.key});
 
   final emailController = TextEditingController();
 
-  // Defining brand colors to match the design system
   final Color primaryGreen = const Color(0xFF1E7E34);
   final Color textDark = const Color(0xFF1B2236);
   final Color textGrey = const Color(0xFF6B7280);
-  final Color fieldBackground = Colors.white; 
+  final Color fieldBackground = Colors.white;
   final Color borderColor = const Color(0xFFE5E7EB);
-  final Color backgroundColor = const Color(0xFFF8F9FA); // Off-white app background
+  final Color backgroundColor = const Color(0xFFF8F9FA);
 
   @override
   Widget build(BuildContext context) {
@@ -23,81 +23,53 @@ class ForgotPasswordPage extends StatelessWidget {
           builder: (context, constraints) {
             return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 1. Circular Back Button
+                        // Back Button
                         GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
+                          onTap: () => Navigator.pop(context),
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: const BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.arrow_back_ios_new, 
-                              size: 18, 
-                              color: Colors.black
-                            ),
+                            child: const Icon(Icons.arrow_back_ios_new, size: 18),
                           ),
                         ),
                         const SizedBox(height: 40),
 
-                        // 2. Centered Top Icon
+                        // Icon
                         Center(
                           child: Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: primaryGreen.withOpacity(0.12),
+                              color: const Color(0xFF1E7E34).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Icon(
-                              Icons.lock_reset, // Standard material icon for reset
-                              size: 45,
-                              color: primaryGreen,
-                            ),
+                            child: Icon(Icons.lock_reset, size: 45, color: primaryGreen),
                           ),
                         ),
                         const SizedBox(height: 32),
 
-                        // 3. Titles
-                        Text(
-                          'Forgot Password',
-                          style: TextStyle(
-                            color: textDark,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
+                        // Title
+                        Text('Forgot Password',
+                            style: TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.w800)),
                         const SizedBox(height: 12),
                         Text(
-                          "Enter your email address and we'll send you instructions to reset your password.",
-                          style: TextStyle(
-                            color: textGrey,
-                            fontSize: 15,
-                            height: 1.5,
-                          ),
+                          "Enter your email address and we'll send you a 6-digit code to reset your password.",
+                          style: TextStyle(color: textGrey, fontSize: 15, height: 1.5),
                         ),
                         const SizedBox(height: 32),
 
-                        // 4. Email Input Field
-                        Text(
-                          'Email Address',
-                          style: TextStyle(
-                            color: textDark,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        // Email field
+                        Text('Email Address',
+                            style: TextStyle(color: textDark, fontSize: 14, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: emailController,
@@ -121,62 +93,68 @@ class ForgotPasswordPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // 5. Send Reset Link Button
+                        // Send Reset Code Button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                              context,
-                               MaterialPageRoute(builder: (context) => ResetPasswordPage()),
-                               );
+                            onPressed: () async {
+                              final email = emailController.text.trim();
+
+                              if (email.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Please enter your email")),
+                                );
+                                return;
+                              }
+
+                              try {
+                                final res = await ApiService.forgotPassword(email);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(res["message"] ?? "Reset code sent!")),
+                                );
+
+                                // Always navigate to OTP page (don't reveal if email exists)
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OtpPage(email: email),
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Server error. Please try again.")),
+                                );
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryGreen,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 0,
                             ),
-                            child: const Text(
-                              'Send Reset Link',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: const Text('Send Reset Code',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           ),
                         ),
-                        
-                        // Spacer pushes the footer to the bottom of the screen
+
                         const Spacer(),
 
-                        // 6. Footer Layout
+                        // Footer
                         Padding(
                           padding: const EdgeInsets.only(bottom: 16.0),
                           child: Center(
                             child: Wrap(
                               alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                Text(
-                                  'Remember your password? ',
-                                  style: TextStyle(color: textGrey, fontSize: 14),
-                                ),
+                                Text('Remember your password? ',
+                                    style: TextStyle(color: textGrey, fontSize: 14)),
                                 GestureDetector(
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text(
-                                    'Back to Login',
-                                    style: TextStyle(
-                                      color: primaryGreen,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                                  onTap: () => Navigator.pop(context),
+                                  child: Text('Back to Login',
+                                      style: TextStyle(
+                                          color: primaryGreen, fontSize: 14, fontWeight: FontWeight.w700)),
                                 ),
                               ],
                             ),
