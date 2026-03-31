@@ -2,24 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/landing_page.dart';
 import 'screens/home_page.dart';
-import 'screens/owner_dashboard.dart';
-import 'screens/admin_dashboard.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ParkEasyCustomerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ParkEasyCustomerApp extends StatelessWidget {
+  const ParkEasyCustomerApp({super.key});
 
   Future<Widget> checkLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");
     final role = prefs.getString("role");
 
-    if (token != null && role != null) {
-      if (role == 'owner') return const OwnerDashboard();
-      if (role == 'admin') return const AdminDashboard();
+    // Depending on your backend, you might explicitly check if role == 'customer'
+    if (token != null && (role == 'customer' || role == null)) {
       return const HomePage();
     }
     return const LandingPage();
@@ -29,7 +26,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FutureBuilder(
+      title: 'ParkEasy',
+      home: FutureBuilder<Widget>(
         future: checkLogin(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -40,7 +38,7 @@ class MyApp extends StatelessWidget {
               ),
             );
           }
-          return snapshot.data!;
+          return snapshot.data ?? const LandingPage();
         },
       ),
     );

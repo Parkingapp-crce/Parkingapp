@@ -30,13 +30,16 @@ env/
 .DS_Store
 Thumbs.db
 
-# Flutter
-mobile/**/build/
-mobile/**/.dart_tool/
-mobile/**/.packages
-mobile/**/.pub/
-mobile/**/pubspec.lock
-mobile/**/*.iml
+# Flutter (Updated to cover all your app folders)
+**/build/
+**/.dart_tool/
+**/.packages
+**/.pub/
+**/pubspec.lock
+**/*.iml
+**/ios/.generated/
+**/android/.gradle/
+**/windows/flutter/ephemeral/
 
 # Coverage
 htmlcov/

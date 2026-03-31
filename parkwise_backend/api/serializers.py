@@ -20,8 +20,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         name = validated_data.pop('name')
         email = validated_data['email']
         password = validated_data['password']
+        
         user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
-        UserProfile.objects.create(user=user, role='customer')
+        
+        UserProfile.objects.update_or_create(
+            user=user, 
+            defaults={'role': 'customer'}
+        )
+        
         return user
 
 
@@ -49,7 +55,12 @@ class OwnerRegisterSerializer(serializers.Serializer):
             password=validated_data['password'],
             first_name=validated_data['name'],
         )
-        UserProfile.objects.create(user=user, role='owner')
+        
+        UserProfile.objects.update_or_create(
+            user=user, 
+            defaults={'role': 'owner'}
+        )
+        
         ParkingLot.objects.create(
             owner=user,
             name=validated_data['parking_name'],
@@ -60,6 +71,7 @@ class OwnerRegisterSerializer(serializers.Serializer):
             opening_time=validated_data['opening_time'],
             closing_time=validated_data['closing_time'],
         )
+        
         return user
 
 

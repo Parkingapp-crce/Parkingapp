@@ -18,6 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool hidePassword = true;
   bool agree = false;
+  bool _isLoading = false; // Added loading state
 
   final Color primaryGreen = const Color(0xFF1E7E34);
   final Color textGrey = const Color(0xFF6B7280);
@@ -112,7 +113,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () async {
+                      // Disable button if loading
+                      onPressed: _isLoading ? null : () async {
 
                         final name = nameController.text.trim();
                         final email = emailController.text.trim();
@@ -134,12 +136,21 @@ class _RegisterPageState extends State<RegisterPage> {
                           return;
                         }
 
+                        // Start loading
+                        setState(() {
+                          _isLoading = true;
+                        });
+
                         try {
                           final res = await ApiService.registerUser(name, email, password);
+
+                          // CRITICAL: Check if the widget is still mounted after the async call
+                          if (!mounted) return;
 
                           // ✅ FIX: Django returns "User registered successfully." (with dot)
                           if (res["message"] == "User registered successfully.") {
                             _show("Registered Successfully!");
+                            // Pop back to the login page
                             Navigator.pop(context);
                           } else {
                             // Show actual error from Django
@@ -149,8 +160,16 @@ class _RegisterPageState extends State<RegisterPage> {
                             _show(error);
                           }
                         } catch (e) {
+                          if (!mounted) return;
                           _show("Server error. Please try again.");
                           print("REGISTER ERROR: $e");
+                        } finally {
+                          // Stop loading whether it succeeded or failed
+                          if (mounted) {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -159,8 +178,16 @@ class _RegisterPageState extends State<RegisterPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        // Adjust disabled color if you like
+                        disabledBackgroundColor: primaryGreen.withOpacity(0.6),
                       ),
-                      child: const Text("Create Account"),
+                      child: _isLoading 
+                          ? const SizedBox(
+                              height: 20, 
+                              width: 20, 
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text("Create Account", style: TextStyle(color: Colors.white)),
                     ),
                   ),
 
