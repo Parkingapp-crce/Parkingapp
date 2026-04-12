@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
-// Updated import to point to the Owner Login Page instead of the Landing Page
-import 'owner_login_page.dart'; 
+import 'owner_login_page.dart';
+import 'qr_scanner_page.dart';
+import 'entry_logs_page.dart';
 
 class OwnerDashboard extends StatefulWidget {
   const OwnerDashboard({super.key});
@@ -12,7 +13,6 @@ class OwnerDashboard extends StatefulWidget {
 }
 
 class _OwnerDashboardState extends State<OwnerDashboard> {
-  // 🔵 Blue/Indigo theme for Owner
   final Color primary = const Color(0xFF2563EB);
   final Color primaryLight = const Color(0xFFEFF6FF);
   final Color textDark = const Color(0xFF1B2236);
@@ -41,7 +41,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
         _loading = false;
       });
     } catch (e) {
-      setState(() { _error = 'Failed to load data'; _loading = false; });
+      setState(() {
+        _error = 'Failed to load data';
+        _loading = false;
+      });
     }
   }
 
@@ -49,12 +52,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     if (!mounted) return;
-    
-    // Navigate to the Owner Login Page upon logging out
     Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const OwnerLoginPage()), 
-        (route) => false,
+      context,
+      MaterialPageRoute(builder: (_) => const OwnerLoginPage()),
+      (route) => false,
     );
   }
 
@@ -65,7 +66,26 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: primary))
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline_rounded,
+                          size: 56, color: Colors.red.shade300),
+                      const SizedBox(height: 16),
+                      Text(_error!,
+                          style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: primary),
+                        child: const Text('Retry',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                )
               : SafeArea(
                   child: RefreshIndicator(
                     onRefresh: _loadData,
@@ -74,10 +94,11 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
                         children: [
-                          // 🔵 Blue gradient header
+                          // ── Blue gradient header ──
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                            padding:
+                                const EdgeInsets.fromLTRB(24, 24, 24, 28),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [
@@ -103,31 +124,46 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Owner name + logout
                                 Row(
                                   children: [
                                     Container(
-                                      width: 48, height: 48,
+                                      width: 48,
+                                      height: 48,
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(14),
+                                        color:
+                                            Colors.white.withOpacity(0.2),
+                                        borderRadius:
+                                            BorderRadius.circular(14),
                                       ),
-                                      child: const Icon(Icons.business_rounded,
-                                          color: Colors.white, size: 24),
+                                      child: const Icon(
+                                          Icons.business_rounded,
+                                          color: Colors.white,
+                                          size: 24),
                                     ),
                                     const SizedBox(width: 14),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text('Parking Owner',
-                                              style: TextStyle(
-                                                  color: Colors.white.withOpacity(0.7),
-                                                  fontSize: 12,
-                                                  letterSpacing: 0.5)),
-                                          Text(_profile?['user']?['name'] ?? 'Owner',
-                                              style: const TextStyle(color: Colors.white,
-                                                  fontSize: 22,
-                                                  fontWeight: FontWeight.w800)),
+                                          Text(
+                                            'Parking Owner',
+                                            style: TextStyle(
+                                                color: Colors.white
+                                                    .withOpacity(0.7),
+                                                fontSize: 12,
+                                                letterSpacing: 0.5),
+                                          ),
+                                          Text(
+                                            _profile?['user']?['name'] ??
+                                                'Owner',
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 22,
+                                                fontWeight:
+                                                    FontWeight.w800),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -136,38 +172,54 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                                       child: Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: Colors.white
+                                              .withOpacity(0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                           border: Border.all(
-                                              color: Colors.white.withOpacity(0.2)),
+                                              color: Colors.white
+                                                  .withOpacity(0.2)),
                                         ),
-                                        child: const Icon(Icons.logout_rounded,
-                                            color: Colors.white, size: 18),
+                                        child: const Icon(
+                                            Icons.logout_rounded,
+                                            color: Colors.white,
+                                            size: 18),
                                       ),
                                     ),
                                   ],
                                 ),
+
                                 const SizedBox(height: 28),
-                                // Stats
+
+                                // Stats row
                                 Row(
                                   children: [
                                     _HeaderStat(
                                       label: 'Total Slots',
-                                      value: '${_parkingLot?['total_slots'] ?? 0}',
+                                      value:
+                                          '${_parkingLot?['total_slots'] ?? 0}',
                                       icon: Icons.local_parking_rounded,
                                     ),
-                                    Container(width: 1, height: 40,
-                                        color: Colors.white.withOpacity(0.2)),
+                                    Container(
+                                        width: 1,
+                                        height: 40,
+                                        color:
+                                            Colors.white.withOpacity(0.2)),
                                     _HeaderStat(
                                       label: 'Occupied',
-                                      value: '${(_parkingLot?['total_slots'] ?? 0) - (_parkingLot?['available_slots'] ?? 0)}',
+                                      value:
+                                          '${(_parkingLot?['total_slots'] ?? 0) - (_parkingLot?['available_slots'] ?? 0)}',
                                       icon: Icons.directions_car_rounded,
                                     ),
-                                    Container(width: 1, height: 40,
-                                        color: Colors.white.withOpacity(0.2)),
+                                    Container(
+                                        width: 1,
+                                        height: 40,
+                                        color:
+                                            Colors.white.withOpacity(0.2)),
                                     _HeaderStat(
                                       label: 'Available',
-                                      value: '${_parkingLot?['available_slots'] ?? 0}',
+                                      value:
+                                          '${_parkingLot?['available_slots'] ?? 0}',
                                       icon: Icons.check_circle_rounded,
                                     ),
                                   ],
@@ -181,14 +233,15 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Lot info
+                                // ── Parking lot details ──
                                 Row(
                                   children: [
                                     Icon(Icons.local_parking_rounded,
                                         color: primary, size: 20),
                                     const SizedBox(width: 8),
                                     Text('Parking Lot Details',
-                                        style: TextStyle(color: textDark,
+                                        style: TextStyle(
+                                            color: textDark,
                                             fontSize: 16,
                                             fontWeight: FontWeight.w800)),
                                   ],
@@ -202,57 +255,83 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                                     borderRadius: BorderRadius.circular(16),
                                     boxShadow: [
                                       BoxShadow(
-                                          color: Colors.black.withOpacity(0.06),
+                                          color: Colors.black
+                                              .withOpacity(0.06),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4))
                                     ],
                                   ),
                                   child: Column(
                                     children: [
-                                      _InfoRow(icon: Icons.business_rounded,
+                                      _InfoRow(
+                                          icon: Icons.business_rounded,
                                           label: 'Name',
-                                          value: _parkingLot?['name'] ?? '-',
-                                          primary: primary, textGrey: textGrey,
+                                          value:
+                                              _parkingLot?['name'] ?? '-',
+                                          primary: primary,
+                                          textGrey: textGrey,
                                           textDark: textDark),
-                                      _InfoRow(icon: Icons.location_on_rounded,
+                                      _InfoRow(
+                                          icon: Icons.location_on_rounded,
                                           label: 'Address',
-                                          value: _parkingLot?['address'] ?? '-',
-                                          primary: primary, textGrey: textGrey,
+                                          value: _parkingLot?['address'] ??
+                                              '-',
+                                          primary: primary,
+                                          textGrey: textGrey,
                                           textDark: textDark),
-                                      _InfoRow(icon: Icons.location_city_rounded,
+                                      _InfoRow(
+                                          icon:
+                                              Icons.location_city_rounded,
                                           label: 'City',
-                                          value: _parkingLot?['city'] ?? '-',
-                                          primary: primary, textGrey: textGrey,
+                                          value:
+                                              _parkingLot?['city'] ?? '-',
+                                          primary: primary,
+                                          textGrey: textGrey,
                                           textDark: textDark),
-                                      _InfoRow(icon: Icons.currency_rupee_rounded,
+                                      _InfoRow(
+                                          icon:
+                                              Icons.currency_rupee_rounded,
                                           label: 'Price/hr',
-                                          value: '₹${_parkingLot?['price_per_hour'] ?? 0}',
-                                          primary: primary, textGrey: textGrey,
+                                          value:
+                                              '₹${_parkingLot?['price_per_hour'] ?? 0}',
+                                          primary: primary,
+                                          textGrey: textGrey,
                                           textDark: textDark),
-                                      _InfoRow(icon: Icons.access_time_rounded,
+                                      _InfoRow(
+                                          icon: Icons.access_time_rounded,
                                           label: 'Hours',
-                                          value: '${_parkingLot?['opening_time'] ?? '--'} - ${_parkingLot?['closing_time'] ?? '--'}',
-                                          primary: primary, textGrey: textGrey,
+                                          value:
+                                              '${_parkingLot?['opening_time'] ?? '--'} - ${_parkingLot?['closing_time'] ?? '--'}',
+                                          primary: primary,
+                                          textGrey: textGrey,
                                           textDark: textDark),
-                                      _InfoRow(icon: Icons.circle,
+                                      _InfoRow(
+                                          icon: Icons.circle,
                                           label: 'Status',
-                                          value: (_parkingLot?['is_active'] == true)
-                                              ? 'Active ✅' : 'Inactive ❌',
-                                          primary: primary, textGrey: textGrey,
-                                          textDark: textDark, isLast: true),
+                                          value: (_parkingLot?[
+                                                      'is_active'] ==
+                                                  true)
+                                              ? 'Active ✅'
+                                              : 'Inactive ❌',
+                                          primary: primary,
+                                          textGrey: textGrey,
+                                          textDark: textDark,
+                                          isLast: true),
                                     ],
                                   ),
                                 ),
 
                                 const SizedBox(height: 24),
 
+                                // ── Quick Actions ──
                                 Row(
                                   children: [
                                     Icon(Icons.grid_view_rounded,
                                         color: primary, size: 20),
                                     const SizedBox(width: 8),
                                     Text('Quick Actions',
-                                        style: TextStyle(color: textDark,
+                                        style: TextStyle(
+                                            color: textDark,
                                             fontSize: 16,
                                             fontWeight: FontWeight.w800)),
                                   ],
@@ -260,26 +339,54 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                                 const SizedBox(height: 12),
                                 GridView.count(
                                   shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
+                                  physics:
+                                      const NeverScrollableScrollPhysics(),
                                   crossAxisCount: 2,
                                   mainAxisSpacing: 12,
                                   crossAxisSpacing: 12,
                                   childAspectRatio: 1.5,
                                   children: [
-                                    _ActionCard(icon: Icons.calendar_today_rounded,
-                                        label: 'View Bookings',
-                                        color: primary, onTap: () {}),
-                                    _ActionCard(icon: Icons.edit_rounded,
-                                        label: 'Edit Lot',
-                                        color: const Color(0xFF7C3AED), onTap: () {}),
-                                    _ActionCard(icon: Icons.bar_chart_rounded,
-                                        label: 'Revenue',
-                                        color: const Color(0xFF059669), onTap: () {}),
-                                    _ActionCard(icon: Icons.settings_rounded,
-                                        label: 'Settings',
-                                        color: textGrey, onTap: () {}),
+                                    // ✅ SCAN QR
+                                    _ActionCard(
+                                      icon: Icons.qr_code_scanner_rounded,
+                                      label: 'Scan QR',
+                                      color: primary,
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const QRScannerPage()),
+                                      ),
+                                    ),
+                                    // ✅ ENTRY LOGS
+                                    _ActionCard(
+                                      icon: Icons.history_rounded,
+                                      label: 'Entry Logs',
+                                      color: const Color(0xFF059669),
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const EntryLogsPage()),
+                                      ),
+                                    ),
+                                    // Bookings (future)
+                                    _ActionCard(
+                                      icon: Icons.calendar_today_rounded,
+                                      label: 'Bookings',
+                                      color: const Color(0xFF7C3AED),
+                                      onTap: () {},
+                                    ),
+                                    // Settings (future)
+                                    _ActionCard(
+                                      icon: Icons.settings_rounded,
+                                      label: 'Settings',
+                                      color: textGrey,
+                                      onTap: () {},
+                                    ),
                                   ],
                                 ),
+
                                 const SizedBox(height: 24),
                               ],
                             ),
@@ -293,11 +400,14 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
   }
 }
 
+// ── Subwidgets ──────────────────────────────────────
+
 class _HeaderStat extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  const _HeaderStat({required this.label, required this.value, required this.icon});
+  const _HeaderStat(
+      {required this.label, required this.value, required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -306,10 +416,14 @@ class _HeaderStat extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.white.withOpacity(0.8), size: 18),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(color: Colors.white,
-              fontSize: 24, fontWeight: FontWeight.w800)),
-          Text(label, style: TextStyle(
-              color: Colors.white.withOpacity(0.7), fontSize: 11)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800)),
+          Text(label,
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.7), fontSize: 11)),
         ],
       ),
     );
@@ -325,9 +439,15 @@ class _InfoRow extends StatelessWidget {
   final Color textDark;
   final bool isLast;
 
-  const _InfoRow({required this.icon, required this.label, required this.value,
-      required this.primary, required this.textGrey, required this.textDark,
-      this.isLast = false});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.primary,
+    required this.textGrey,
+    required this.textDark,
+    this.isLast = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -339,10 +459,13 @@ class _InfoRow extends StatelessWidget {
             children: [
               Icon(icon, color: primary, size: 18),
               const SizedBox(width: 12),
-              Text('$label: ', style: TextStyle(color: textGrey, fontSize: 13)),
+              Text('$label: ',
+                  style: TextStyle(color: textGrey, fontSize: 13)),
               Expanded(
                 child: Text(value,
-                    style: TextStyle(color: textDark, fontSize: 13,
+                    style: TextStyle(
+                        color: textDark,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis),
               ),
@@ -361,8 +484,12 @@ class _ActionCard extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionCard({required this.icon, required this.label,
-      required this.color, required this.onTap});
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -380,8 +507,11 @@ class _ActionCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Icon(icon, color: color, size: 22),
-            Text(label, style: TextStyle(color: color,
-                fontSize: 13, fontWeight: FontWeight.w700)),
+            Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
           ],
         ),
       ),

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = "http://localhost:8000";
+  static const String baseUrl = "http://192.168.0.103:8000";
   // Web: http://localhost:8000
   // Emulator: http://10.0.2.2:8000
   // Real device: your PC IP e.g. http://192.168.1.5:8000
@@ -154,6 +154,33 @@ class ApiService {
       Uri.parse("$baseUrl/reset-password"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email, "new_password": newPassword}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// 🔹 VALIDATE QR (owner scans)
+  static Future<Map<String, dynamic>> validateQR(String code) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse("$baseUrl/validate-qr"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({"code": code}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// 🔹 ENTRY LOGS
+  static Future<List<dynamic>> getEntryLogs() async {
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/owner/entry-logs"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
     );
     return jsonDecode(response.body);
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'login_page.dart';
+import 'parking_list_page.dart';
+import 'my_bookings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -496,7 +498,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ParkingListPage()),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryGreen,
                 foregroundColor: Colors.white,
@@ -541,7 +548,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
       child: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
+        onTap: (i) {
+              setState(() => _selectedIndex = i);
+              if (i == 1) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyBookingsPage()),
+                );
+              }
+            },
         selectedItemColor: primaryGreen,
         unselectedItemColor: textGrey,
         backgroundColor: Colors.transparent,

@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from .models import UserProfile, ParkingLot
+from .models import Booking, QRCode, EntryLog
+from django.utils import timezone
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -98,3 +100,31 @@ class ParkingLotSerializer(serializers.ModelSerializer):
         model = ParkingLot
         fields = ('id', 'name', 'address', 'city', 'total_slots', 'available_slots',
                   'price_per_hour', 'opening_time', 'closing_time', 'is_active', 'owner_name')
+        
+class BookingSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.username', read_only=True)
+    parking_lot_name = serializers.CharField(source='parking_lot.name', read_only=True)
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id', 'customer', 'customer_name', 'parking_lot', 'parking_lot_name',
+            'vehicle_number', 'start_time', 'end_time', 'amount', 'status', 'created_at'
+        ]
+        read_only_fields = ['customer', 'amount', 'status', 'created_at']
+
+
+class QRCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QRCode
+        fields = ['id', 'booking', 'code', 'is_used', 'expires_at']
+        read_only_fields = ['code', 'is_used', 'expires_at']
+
+
+class EntryLogSerializer(serializers.ModelSerializer):
+    scanned_by_name = serializers.CharField(source='scanned_by.username', read_only=True)
+
+    class Meta:
+        model = EntryLog
+        fields = ['id', 'qr_code', 'scanned_by', 'scanned_by_name', 'scanned_at', 'entry_status']
+        read_only_fields = ['scanned_by', 'scanned_at']        

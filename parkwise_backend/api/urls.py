@@ -3,6 +3,8 @@ from .views import (
     RegisterView, OwnerRegisterView, LoginView, ProfileView,
     OwnerDashboardView, AdminDashboardView, ParkingLotsView,
     ForgotPasswordView, VerifyOTPView, ResetPasswordView,
+    BookSlotView, MyBookingsView, BookingQRView, CancelBookingView,
+    BookingQRImageView, ValidateQRView, OwnerEntryLogsView,
 )
 
 urlpatterns = [
@@ -23,4 +25,13 @@ urlpatterns = [
 
     # Parking lots
     path('parking-lots', ParkingLotsView.as_view()),
+
+    path('book-slot',                   BookSlotView.as_view(),    name='book-slot'),
+    path('my-bookings',                 MyBookingsView.as_view(),  name='my-bookings'),
+    path('booking/<int:booking_id>/qr', BookingQRView.as_view(),   name='booking-qr'),
+    path('cancel-booking',              CancelBookingView.as_view(), name='cancel-booking'),
+
+    path('booking/<int:booking_id>/qr-image', BookingQRImageView.as_view(), name='booking-qr-image'),
+    path('validate-qr',                        ValidateQRView.as_view(),     name='validate-qr'),
+    path('owner/entry-logs',                   OwnerEntryLogsView.as_view(), name='owner-entry-logs'),
 ]
