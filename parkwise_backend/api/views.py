@@ -231,7 +231,8 @@ class ResetPasswordView(APIView):
             return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
+
+
 # ─── BOOK SLOT ───
 class BookSlotView(APIView):
     permission_classes = [IsAuthenticated]
@@ -337,7 +338,8 @@ class CancelBookingView(APIView):
         except QRCode.DoesNotExist:
             pass
 
-        return Response({'message': 'Booking cancelled successfully.'})   
+        return Response({'message': 'Booking cancelled successfully.'})
+
 
 # ─── GET QR IMAGE (returns actual QR image) ───
 class BookingQRImageView(APIView):
@@ -352,6 +354,28 @@ class BookingQRImageView(APIView):
         except QRCode.DoesNotExist:
             return Response({'error': 'QR not found.'}, status=404)
 
+        # ✅ Check if QR is expired
+        now = timezone.now()
+        if now > qr.expires_at:
+            return Response({
+                'error': 'QR code has expired.',
+                'expired': True,
+            }, status=400)
+
+        # ✅ Check if QR already used
+        if qr.is_used:
+            return Response({
+                'error': 'QR code has already been used.',
+                'expired': True,
+            }, status=400)
+
+        # ✅ Check if booking cancelled
+        if booking.status == 'cancelled':
+            return Response({
+                'error': 'Booking was cancelled.',
+                'expired': True,
+            }, status=400)
+
         # Generate QR image from the UUID code
         qr_image = qrcode.make(str(qr.code))
 
@@ -364,20 +388,21 @@ class BookingQRImageView(APIView):
         return Response({
             'booking_id' : booking.id,
             'qr_code'    : str(qr.code),
-            'qr_image'   : img_base64,       # Flutter will decode this
+            'qr_image'   : img_base64,
             'is_used'    : qr.is_used,
             'expires_at' : qr.expires_at,
         })
 
 
-# ─── VALIDATE QR (owner scans QR) ───
+# ─── VALIDATE QR (owner or guard scans QR) ───
 class ValidateQRView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Only owners can validate
-        if get_user_role(request.user) != 'owner':
-            return Response({'error': 'Access denied. Owners only.'}, status=403)
+        # ✅ Allow both owners and guards
+        role = get_user_role(request.user)
+        if role not in ['owner', 'guard']:
+            return Response({'error': 'Access denied. Owners and guards only.'}, status=403)
 
         code = request.data.get('code')
         if not code:
@@ -386,12 +411,6 @@ class ValidateQRView(APIView):
         try:
             qr = QRCode.objects.select_related('booking__parking_lot').get(code=code)
         except QRCode.DoesNotExist:
-            # Log denied entry
-            EntryLog.objects.create(
-                qr_code=None,
-                scanned_by=request.user,
-                entry_status='denied',
-            ) if False else None  # can't log without qr reference, just return
             return Response({
                 'entry_status' : 'denied',
                 'reason'       : 'Invalid QR code.',
@@ -400,11 +419,14 @@ class ValidateQRView(APIView):
         booking = qr.booking
         now     = timezone.now()
 
-        # Check: belongs to this owner's lot
+        # ✅ Get parking lot based on role
         try:
-            owner_lot = request.user.parking_lot
-        except ParkingLot.DoesNotExist:
-            return Response({'error': 'No parking lot found for this owner.'}, status=404)
+            if role == 'owner':
+                owner_lot = request.user.parking_lot
+            elif role == 'guard':
+                owner_lot = request.user.profile.assigned_lot
+        except (ParkingLot.DoesNotExist, AttributeError):
+            return Response({'error': 'No parking lot assigned.'}, status=404)
 
         if booking.parking_lot != owner_lot:
             EntryLog.objects.create(qr_code=qr, scanned_by=request.user, entry_status='denied')
@@ -474,4 +496,4 @@ class OwnerEntryLogsView(APIView):
             qr_code__booking__parking_lot=owner_lot
         ).order_by('-scanned_at')
 
-        return Response(EntryLogSerializer(logs, many=True).data)         
+        return Response(EntryLogSerializer(logs, many=True).data)
