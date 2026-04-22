@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 
 import '../auth/bloc/auth_bloc.dart';
 import '../auth/token_manager.dart';
@@ -13,7 +14,8 @@ class DioFactory {
   static Dio create({
     required EnvConfig config,
     required TokenManager tokenManager,
-    required AuthBloc authBloc,
+    AuthBloc? authBloc,
+    bool withAuthInterceptor = true,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -34,11 +36,12 @@ class DioFactory {
     );
 
     dio.interceptors.addAll([
-      AuthInterceptor(
-        tokenManager: tokenManager,
-        refreshDio: refreshDio,
-        authBloc: authBloc,
-      ),
+      if (withAuthInterceptor && authBloc != null)
+        AuthInterceptor(
+          tokenManager: tokenManager,
+          refreshDio: refreshDio,
+          authBloc: authBloc,
+        ),
       ErrorInterceptor(),
     ]);
 

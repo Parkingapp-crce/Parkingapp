@@ -4,6 +4,17 @@ from . import views
 
 urlpatterns = [
     path("", views.SocietyListCreateView.as_view(), name="society-list-create"),
+    path(
+        "destinations/autocomplete/",
+        views.DestinationAutocompleteView.as_view(),
+        name="destination-autocomplete",
+    ),
+    path(
+        "destinations/reverse-geocode/",
+        views.DestinationReverseGeocodeView.as_view(),
+        name="destination-reverse-geocode",
+    ),
+    path("search/", views.SocietyAvailabilitySearchView.as_view(), name="society-search"),
     path("<uuid:pk>/", views.SocietyDetailView.as_view(), name="society-detail"),
     path("<uuid:society_id>/slots/", views.SlotListCreateView.as_view(), name="slot-list-create"),
     path(

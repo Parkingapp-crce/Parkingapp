@@ -8,6 +8,10 @@ class SlotsState {
   final String? error;
   final String? filterType;
   final String? filterState;
+  final String? bookingDate;
+  final String? startTime;
+  final String? endTime;
+  final String? vehicleType;
 
   const SlotsState({
     this.isLoading = false,
@@ -16,7 +20,17 @@ class SlotsState {
     this.error,
     this.filterType,
     this.filterState,
+    this.bookingDate,
+    this.startTime,
+    this.endTime,
+    this.vehicleType,
   });
+
+  bool get hasAvailabilityContext =>
+      bookingDate != null &&
+      startTime != null &&
+      endTime != null &&
+      vehicleType != null;
 
   SlotsState copyWith({
     bool? isLoading,
@@ -25,23 +39,40 @@ class SlotsState {
     String? error,
     String? filterType,
     String? filterState,
+    String? bookingDate,
+    String? startTime,
+    String? endTime,
+    String? vehicleType,
     bool clearFilterType = false,
     bool clearFilterState = false,
+    bool clearError = false,
   }) {
     return SlotsState(
       isLoading: isLoading ?? this.isLoading,
       society: society ?? this.society,
       slots: slots ?? this.slots,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
       filterType: clearFilterType ? null : (filterType ?? this.filterType),
       filterState: clearFilterState ? null : (filterState ?? this.filterState),
+      bookingDate: bookingDate ?? this.bookingDate,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      vehicleType: vehicleType ?? this.vehicleType,
     );
   }
 
   List<SlotModel> get filteredSlots {
-    return slots.where((s) {
-      if (filterType != null && s.slotType != filterType) return false;
-      if (filterState != null && s.state != filterState) return false;
+    if (hasAvailabilityContext) {
+      return slots;
+    }
+
+    return slots.where((slot) {
+      if (filterType != null && slot.slotType != filterType) {
+        return false;
+      }
+      if (filterState != null && slot.state != filterState) {
+        return false;
+      }
       return true;
     }).toList();
   }
@@ -52,8 +83,15 @@ class SlotsCubit extends Cubit<SlotsState> {
 
   SlotsCubit(this._apiClient) : super(const SlotsState());
 
-  Future<void> loadSocietyDetail(String societyId) async {
-    emit(state.copyWith(isLoading: true, error: null));
+  Future<void> loadSocietyDetail(
+    String societyId, {
+    String? bookingDate,
+    String? startTime,
+    String? endTime,
+    String? vehicleType,
+  }) async {
+    emit(state.copyWith(isLoading: true, clearError: true));
+
     try {
       final societyResponse = await _apiClient.get(
         ApiEndpoints.society(societyId),
@@ -62,8 +100,25 @@ class SlotsCubit extends Cubit<SlotsState> {
         societyResponse.data as Map<String, dynamic>,
       );
 
+      final queryParameters = <String, dynamic>{};
+      final hasAvailabilityContext =
+          bookingDate != null &&
+          startTime != null &&
+          endTime != null &&
+          vehicleType != null;
+
+      if (hasAvailabilityContext) {
+        queryParameters.addAll({
+          'booking_date': bookingDate,
+          'start_time': startTime,
+          'end_time': endTime,
+          'vehicle_type': vehicleType,
+        });
+      }
+
       final slotsResponse = await _apiClient.get(
         ApiEndpoints.societySlots(societyId),
+        queryParameters: queryParameters.isEmpty ? null : queryParameters,
       );
       final data = slotsResponse.data as Map<String, dynamic>;
       final apiResponse = ApiResponse<SlotModel>.fromJson(
@@ -71,11 +126,20 @@ class SlotsCubit extends Cubit<SlotsState> {
         (json) => SlotModel.fromJson(json),
       );
 
-      emit(state.copyWith(
-        isLoading: false,
-        society: society,
-        slots: apiResponse.results,
-      ));
+      emit(
+        state.copyWith(
+          isLoading: false,
+          society: society,
+          slots: apiResponse.results,
+          bookingDate: bookingDate,
+          startTime: startTime,
+          endTime: endTime,
+          vehicleType: vehicleType,
+          clearFilterType: hasAvailabilityContext,
+          clearFilterState: hasAvailabilityContext,
+          clearError: true,
+        ),
+      );
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
     } catch (e) {

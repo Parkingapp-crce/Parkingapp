@@ -83,6 +83,7 @@ class _VehiclesContent extends StatelessWidget {
   }
 
   void _showAddVehicleDialog(BuildContext context) {
+    final vehiclesCubit = context.read<VehiclesCubit>();
     final regController = TextEditingController();
     final makeController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -95,91 +96,94 @@ class _VehiclesContent extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (sheetContext, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                24,
-                24,
-                24 + MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Add Vehicle',
-                      style: Theme.of(sheetContext)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedType,
-                      decoration: const InputDecoration(
-                        labelText: 'Vehicle Type',
-                        prefixIcon: Icon(Icons.category),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'car', child: Text('Car')),
-                        DropdownMenuItem(value: 'bike', child: Text('Bike')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setSheetState(() => selectedType = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: regController,
-                      label: 'Registration Number',
-                      hint: 'e.g., MH01AB1234',
-                      prefixIcon: Icons.confirmation_number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Registration number is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: makeController,
-                      label: 'Make & Model',
-                      hint: 'e.g., Honda City',
-                      prefixIcon: Icons.info_outline,
-                    ),
-                    const SizedBox(height: 24),
-                    BlocBuilder<VehiclesCubit, VehiclesState>(
-                      builder: (_, vState) {
-                        return PrimaryButton(
-                          label: 'Add Vehicle',
-                          isLoading: vState.isAdding,
-                          onPressed: () {
-                            if (!formKey.currentState!.validate()) return;
-                            context.read<VehiclesCubit>().addVehicle(
-                                  vehicleType: selectedType,
-                                  registrationNo:
-                                      regController.text.trim(),
-                                  makeModel:
-                                      makeController.text.trim(),
-                                );
-                            Navigator.of(sheetContext).pop();
-                          },
-                          icon: Icons.add,
-                        );
-                      },
-                    ),
-                  ],
+        return BlocProvider.value(
+          value: vehiclesCubit,
+          child: StatefulBuilder(
+            builder: (sheetContext, setSheetState) {
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  24,
+                  24,
+                  24 + MediaQuery.of(sheetContext).viewInsets.bottom,
                 ),
-              ),
-            );
-          },
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Add Vehicle',
+                        style: Theme.of(sheetContext)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        decoration: const InputDecoration(
+                          labelText: 'Vehicle Type',
+                          prefixIcon: Icon(Icons.category),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'car', child: Text('Car')),
+                          DropdownMenuItem(value: 'bike', child: Text('Bike')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setSheetState(() => selectedType = value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        controller: regController,
+                        label: 'Registration Number',
+                        hint: 'e.g., MH01AB1234',
+                        prefixIcon: Icons.confirmation_number,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Registration number is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        controller: makeController,
+                        label: 'Make & Model',
+                        hint: 'e.g., Honda City',
+                        prefixIcon: Icons.info_outline,
+                      ),
+                      const SizedBox(height: 24),
+                      BlocBuilder<VehiclesCubit, VehiclesState>(
+                        builder: (_, vState) {
+                          return PrimaryButton(
+                            label: 'Add Vehicle',
+                            isLoading: vState.isAdding,
+                            onPressed: () {
+                              if (!formKey.currentState!.validate()) return;
+                              sheetContext.read<VehiclesCubit>().addVehicle(
+                                    vehicleType: selectedType,
+                                    registrationNo:
+                                        regController.text.trim(),
+                                    makeModel:
+                                        makeController.text.trim(),
+                                  );
+                              Navigator.of(sheetContext).pop();
+                            },
+                            icon: Icons.add,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         );
       },
     );

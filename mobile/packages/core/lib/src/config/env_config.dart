@@ -13,7 +13,7 @@ class EnvConfig {
 
   static const dev = EnvConfig._(
     environment: Environment.dev,
-    apiBaseUrl: 'http://10.0.2.2:8000', // Android emulator localhost
+    apiBaseUrl: 'http://localhost:8000', // Web/Chrome localhost
   );
 
   static const staging = EnvConfig._(

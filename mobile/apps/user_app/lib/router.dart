@@ -24,7 +24,8 @@ GoRouter createRouter(AuthBloc authBloc) {
     redirect: (context, state) {
       final authState = authBloc.state;
       final isAuth = authState is Authenticated;
-      final isAuthRoute = state.matchedLocation == '/login' ||
+      final isAuthRoute =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       if (authState is AuthInitial || authState is AuthLoading) {
@@ -42,10 +43,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
@@ -56,21 +54,18 @@ GoRouter createRouter(AuthBloc authBloc) {
         routes: [
           GoRoute(
             path: '/home',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/bookings',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: BookingListScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: BookingListScreen()),
           ),
           GoRoute(
             path: '/profile',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ProfileScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ProfileScreen()),
           ),
         ],
       ),
@@ -79,7 +74,13 @@ GoRouter createRouter(AuthBloc authBloc) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return SocietyDetailScreen(societyId: id);
+          return SocietyDetailScreen(
+            societyId: id,
+            bookingDate: state.uri.queryParameters['bookingDate'],
+            startTime: state.uri.queryParameters['startTime'],
+            endTime: state.uri.queryParameters['endTime'],
+            vehicleType: state.uri.queryParameters['vehicleType'],
+          );
         },
       ),
       GoRoute(
@@ -91,6 +92,9 @@ GoRouter createRouter(AuthBloc authBloc) {
           return BookingCreateScreen(
             societyId: societyId,
             slotId: slotId,
+            bookingDate: state.uri.queryParameters['bookingDate'],
+            startTime: state.uri.queryParameters['startTime'],
+            endTime: state.uri.queryParameters['endTime'],
           );
         },
       ),

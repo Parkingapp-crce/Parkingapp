@@ -174,6 +174,7 @@ class BookingCreateState {
   final DateTime? startDate;
   final DateTime? startTime;
   final DateTime? endTime;
+  final bool hasPresetWindow;
   final String? error;
   final bool isCreating;
   final BookingModel? createdBooking;
@@ -187,6 +188,7 @@ class BookingCreateState {
     this.startDate,
     this.startTime,
     this.endTime,
+    this.hasPresetWindow = false,
     this.error,
     this.isCreating = false,
     this.createdBooking,
@@ -201,6 +203,7 @@ class BookingCreateState {
     DateTime? startDate,
     DateTime? startTime,
     DateTime? endTime,
+    bool? hasPresetWindow,
     String? error,
     bool? isCreating,
     BookingModel? createdBooking,
@@ -214,6 +217,7 @@ class BookingCreateState {
       startDate: startDate ?? this.startDate,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
+      hasPresetWindow: hasPresetWindow ?? this.hasPresetWindow,
       error: error,
       isCreating: isCreating ?? this.isCreating,
       createdBooking: createdBooking ?? this.createdBooking,
@@ -238,6 +242,9 @@ class BookingCreateCubit extends Cubit<BookingCreateState> {
   Future<void> initialize({
     required String societyId,
     required String slotId,
+    String? bookingDate,
+    String? startTime,
+    String? endTime,
   }) async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
@@ -271,16 +278,36 @@ class BookingCreateCubit extends Cubit<BookingCreateState> {
             .toList();
       }
 
+      final activeVehicles = vehicles
+          .where(
+            (vehicle) =>
+                vehicle.isActive && vehicle.vehicleType == slot.slotType,
+          )
+          .toList();
+      final presetStart = _parsePresetDateTime(bookingDate, startTime);
+      final presetEnd = _parsePresetDateTime(bookingDate, endTime);
       final now = DateTime.now();
-      emit(state.copyWith(
-        isLoading: false,
-        slot: slot,
-        society: society,
-        vehicles: vehicles.where((v) => v.isActive).toList(),
-        startDate: DateTime(now.year, now.month, now.day),
-        startTime: DateTime(now.year, now.month, now.day, now.hour + 1),
-        endTime: DateTime(now.year, now.month, now.day, now.hour + 2),
-      ));
+      final defaultDate = DateTime(now.year, now.month, now.day);
+      final defaultStart = DateTime(now.year, now.month, now.day, now.hour + 1);
+      final defaultEnd = DateTime(now.year, now.month, now.day, now.hour + 2);
+
+      emit(
+        state.copyWith(
+          isLoading: false,
+          slot: slot,
+          society: society,
+          vehicles: activeVehicles,
+          selectedVehicleId: activeVehicles.isNotEmpty
+              ? activeVehicles.first.id
+              : null,
+          startDate: presetStart != null
+              ? DateTime(presetStart.year, presetStart.month, presetStart.day)
+              : defaultDate,
+          startTime: presetStart ?? defaultStart,
+          endTime: presetEnd ?? defaultEnd,
+          hasPresetWindow: presetStart != null && presetEnd != null,
+        ),
+      );
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
     } catch (e) {
@@ -356,5 +383,14 @@ class BookingCreateCubit extends Cubit<BookingCreateState> {
     } catch (e) {
       emit(state.copyWith(isCreating: false, error: e.toString()));
     }
+  }
+
+  DateTime? _parsePresetDateTime(String? date, String? time) {
+    if (date == null || time == null) {
+      return null;
+    }
+
+    final normalizedTime = time.length == 5 ? '$time:00' : time;
+    return DateTime.tryParse('${date}T$normalizedTime');
   }
 }

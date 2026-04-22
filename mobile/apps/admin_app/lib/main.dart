@@ -12,7 +12,7 @@ void main() {
   final storage = SecureStorageService();
   final tokenManager = TokenManager(storage);
 
-  // Create a bootstrap Dio for AuthService (used before auth is established)
+  // Bootstrap Dio for AuthService (used before auth is established)
   final bootstrapDio = Dio(BaseOptions(
     baseUrl: EnvConfig.dev.apiBaseUrl,
     connectTimeout: AppConstants.connectionTimeout,
@@ -35,6 +35,9 @@ void main() {
   );
 
   final apiClient = ApiClient(dio);
+  
+  // Now set the apiClient on authBloc
+  authBloc.setApiClient(apiClient);
 
   // Check existing auth state
   authBloc.add(const AuthCheckRequested());

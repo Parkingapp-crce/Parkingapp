@@ -18,6 +18,11 @@ MIN_DURATION_MINUTES = 30
 MAX_DURATION_HOURS = 24
 MAX_ADVANCE_HOURS = 24
 LOCK_DURATION_SECONDS = 120  # 2 minutes
+ACTIVE_BOOKING_STATUSES = [
+    Booking.Status.PENDING_PAYMENT,
+    Booking.Status.CONFIRMED,
+    Booking.Status.ACTIVE,
+]
 
 
 def _generate_booking_number():
@@ -26,10 +31,9 @@ def _generate_booking_number():
     return f"BK-{date_part}-{random_part}"
 
 
-def create_booking(user, slot_id, vehicle, start_time, end_time):
+def validate_booking_window(start_time, end_time):
     now = timezone.now()
 
-    # Validate timing constraints
     if start_time < now:
         raise ValidationError("Start time cannot be in the past.")
 
@@ -43,100 +47,151 @@ def create_booking(user, slot_id, vehicle, start_time, end_time):
     if duration > timedelta(hours=MAX_DURATION_HOURS):
         raise ValidationError(f"Maximum booking duration is {MAX_DURATION_HOURS} hours.")
 
+    return duration
+
+
+def _slot_windows(slot, day_of_week):
+    prefetched = getattr(slot, "_prefetched_objects_cache", {})
+    if "availability_windows" in prefetched:
+        return [
+            window
+            for window in prefetched["availability_windows"]
+            if window.is_active and window.day_of_week == day_of_week
+        ]
+
+    return SlotAvailabilityWindow.objects.filter(
+        slot=slot,
+        day_of_week=day_of_week,
+        is_active=True,
+    )
+
+
+def slot_is_available(slot, vehicle_type, start_time, end_time):
+    if slot.state == ParkingSlot.SlotState.BLOCKED:
+        return False
+
+    if slot.slot_type != vehicle_type:
+        return False
+
+    if slot.ownership_type == ParkingSlot.OwnershipType.RESIDENT:
+        day_of_week = start_time.weekday()
+        windows = _slot_windows(slot, day_of_week)
+        if not windows:
+            return False
+
+        in_window = any(
+            window.start_time <= start_time.time() and window.end_time >= end_time.time()
+            for window in windows
+        )
+        if not in_window:
+            return False
+
+    buffer = timedelta(minutes=BUFFER_MINUTES)
+    overlapping = Booking.objects.filter(
+        slot=slot,
+        status__in=ACTIVE_BOOKING_STATUSES,
+    ).filter(
+        Q(start_time__lt=end_time + buffer) & Q(end_time__gt=start_time - buffer)
+    )
+    return not overlapping.exists()
+
+
+def get_available_slots(*, society_id, vehicle_type, start_time, end_time, for_update=False):
+    queryset = ParkingSlot.objects.filter(
+        society_id=society_id,
+        is_active=True,
+        slot_type=vehicle_type,
+    ).exclude(state=ParkingSlot.SlotState.BLOCKED)
+
+    if for_update:
+        queryset = queryset.select_for_update()
+
+    slots = list(
+        queryset.select_related("society").prefetch_related("availability_windows")
+    )
+    valid_slots = [
+        slot
+        for slot in slots
+        if slot_is_available(slot, vehicle_type, start_time, end_time)
+    ]
+    valid_slots.sort(key=lambda slot: (slot.hourly_rate, slot.slot_number))
+    return valid_slots
+
+
+def _build_pending_booking(user, slot, vehicle, start_time, end_time):
+    duration = end_time - start_time
+    duration_hours = math.ceil(duration.total_seconds() / 3600)
+    amount = slot.hourly_rate * duration_hours
+    booking_number = _generate_booking_number()
+    now = timezone.now()
+
+    booking = Booking(
+        booking_number=booking_number,
+        user=user,
+        vehicle=vehicle,
+        slot=slot,
+        start_time=start_time,
+        end_time=end_time,
+        status=Booking.Status.PENDING_PAYMENT,
+        amount=amount,
+        qr_code_token="placeholder",
+        lock_expires_at=now + timedelta(seconds=LOCK_DURATION_SECONDS),
+    )
+    booking.save()
+    booking.qr_code_token = generate_qr_token(booking)
+    booking.save(update_fields=["qr_code_token"])
+
+    from .tasks import expire_booking_lock
+
+    expire_booking_lock.apply_async(
+        args=[str(booking.id)],
+        countdown=LOCK_DURATION_SECONDS,
+    )
+
+    return booking
+
+
+def create_booking(user, slot_id, vehicle, start_time, end_time):
+    validate_booking_window(start_time, end_time)
+
     with transaction.atomic():
-        # Lock the slot row to prevent race conditions
         try:
-            slot = ParkingSlot.objects.select_for_update().get(
-                id=slot_id, is_active=True
+            slot = (
+                ParkingSlot.objects.select_for_update()
+                .select_related("society")
+                .prefetch_related("availability_windows")
+                .get(id=slot_id, is_active=True)
             )
         except ParkingSlot.DoesNotExist:
             raise ValidationError("Slot not found or inactive.")
 
-        # Validate slot state
-        if slot.state == ParkingSlot.SlotState.BLOCKED:
-            raise ValidationError("Slot is currently blocked.")
+        if not slot_is_available(slot, vehicle.vehicle_type, start_time, end_time):
+            raise ValidationError("Slot is not available for the requested time range.")
 
-        # Validate vehicle type matches slot type
-        if vehicle.vehicle_type != slot.slot_type:
-            raise ValidationError(
-                f"Vehicle type '{vehicle.vehicle_type}' does not match "
-                f"slot type '{slot.slot_type}'."
-            )
+        return _build_pending_booking(user, slot, vehicle, start_time, end_time)
 
-        # Check resident-owned slot availability windows
-        if slot.ownership_type == ParkingSlot.OwnershipType.RESIDENT:
-            day_of_week = start_time.weekday()
-            windows = SlotAvailabilityWindow.objects.filter(
-                slot=slot,
-                day_of_week=day_of_week,
-                is_active=True,
-            )
-            if not windows.exists():
-                raise ValidationError("Slot is not available on this day.")
 
-            in_window = any(
-                w.start_time <= start_time.time() and w.end_time >= end_time.time()
-                for w in windows
-            )
-            if not in_window:
-                raise ValidationError(
-                    "Booking time falls outside the slot's availability window."
-                )
+def create_booking_for_society(user, society_id, vehicle, start_time, end_time):
+    validate_booking_window(start_time, end_time)
 
-        # Check for overlapping bookings (with 10-min buffer)
-        buffer = timedelta(minutes=BUFFER_MINUTES)
-        overlapping = Booking.objects.filter(
-            slot=slot,
-            status__in=[
-                Booking.Status.PENDING_PAYMENT,
-                Booking.Status.CONFIRMED,
-                Booking.Status.ACTIVE,
-            ],
-        ).filter(
-            Q(start_time__lt=end_time + buffer) & Q(end_time__gt=start_time - buffer)
-        )
-
-        if overlapping.exists():
-            raise ValidationError(
-                "Slot is not available for the requested time range "
-                "(including 10-minute buffer between bookings)."
-            )
-
-        # Calculate amount
-        duration_hours = math.ceil(duration.total_seconds() / 3600)
-        amount = slot.hourly_rate * duration_hours
-
-        # Generate booking number and QR token
-        booking_number = _generate_booking_number()
-
-        # Create booking
-        booking = Booking(
-            booking_number=booking_number,
-            user=user,
-            vehicle=vehicle,
-            slot=slot,
+    with transaction.atomic():
+        valid_slots = get_available_slots(
+            society_id=society_id,
+            vehicle_type=vehicle.vehicle_type,
             start_time=start_time,
             end_time=end_time,
-            status=Booking.Status.PENDING_PAYMENT,
-            amount=amount,
-            qr_code_token="placeholder",  # will be updated after save
-            lock_expires_at=now + timedelta(seconds=LOCK_DURATION_SECONDS),
+            for_update=True,
         )
-        booking.save()
+        if not valid_slots:
+            raise ValidationError("No available slots found for the selected society.")
 
-        # Generate QR token with booking data
-        booking.qr_code_token = generate_qr_token(booking)
-        booking.save(update_fields=["qr_code_token"])
-
-        # Schedule lock expiry via Celery
-        from .tasks import expire_booking_lock
-
-        expire_booking_lock.apply_async(
-            args=[str(booking.id)],
-            countdown=LOCK_DURATION_SECONDS,
+        return _build_pending_booking(
+            user=user,
+            slot=valid_slots[0],
+            vehicle=vehicle,
+            start_time=start_time,
+            end_time=end_time,
         )
-
-        return booking
 
 
 def cancel_booking(booking, user):

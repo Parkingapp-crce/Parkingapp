@@ -35,6 +35,9 @@ void main() {
   );
 
   final apiClient = ApiClient(dio);
+  
+  // Now set the apiClient on authBloc
+  authBloc.setApiClient(apiClient);
 
   // Check existing auth state
   authBloc.add(const AuthCheckRequested());

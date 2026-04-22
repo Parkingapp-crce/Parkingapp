@@ -4,6 +4,41 @@ import 'package:dio/dio.dart';
 
 import '../api_exceptions.dart';
 
+String? _extractErrorMessage(dynamic data) {
+  if (data is String) {
+    final trimmed = data.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  if (data is List) {
+    for (final item in data) {
+      final message = _extractErrorMessage(item);
+      if (message != null) {
+        return message;
+      }
+    }
+    return null;
+  }
+
+  if (data is Map<String, dynamic>) {
+    for (final key in const ['error', 'detail', 'message', 'non_field_errors']) {
+      final message = _extractErrorMessage(data[key]);
+      if (message != null) {
+        return message;
+      }
+    }
+
+    for (final entry in data.entries) {
+      final message = _extractErrorMessage(entry.value);
+      if (message != null) {
+        return '${entry.key}: $message';
+      }
+    }
+  }
+
+  return null;
+}
+
 class ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
@@ -16,15 +51,7 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.badResponse:
         final statusCode = err.response?.statusCode;
         final data = err.response?.data;
-        String message = 'Something went wrong.';
-
-        if (data is Map<String, dynamic>) {
-          message = data['error'] ??
-              data['detail'] ??
-              data['message'] ??
-              (data['non_field_errors'] as List?)?.first ??
-              message;
-        }
+        final message = _extractErrorMessage(data) ?? 'Something went wrong.';
 
         throw ApiException(
           message: message,

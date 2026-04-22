@@ -4,13 +4,23 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsSocietyAdmin, IsSuperAdmin
+from apps.bookings.services import get_available_slots, validate_booking_window
 
 from .models import ParkingSlot, SlotAvailabilityWindow, Society
 from .serializers import (
+    DestinationAutocompleteSerializer,
     ParkingSlotSerializer,
+    ReverseGeocodeSerializer,
     SlotAvailabilityWindowSerializer,
+    SlotAvailabilityFilterSerializer,
+    SocietyAvailabilitySearchSerializer,
     SocietyCreateSerializer,
     SocietySerializer,
+)
+from .services import (
+    autocomplete_destinations,
+    reverse_geocode_destination,
+    search_societies_by_availability,
 )
 
 
@@ -56,6 +66,64 @@ class SocietyDetailView(generics.RetrieveUpdateAPIView):
         )
 
 
+class DestinationAutocompleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = DestinationAutocompleteSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(
+            {
+                "results": autocomplete_destinations(
+                    serializer.validated_data["q"],
+                    limit=serializer.validated_data.get("limit"),
+                )
+            }
+        )
+
+
+class DestinationReverseGeocodeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = ReverseGeocodeSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            reverse_geocode_destination(
+                serializer.validated_data["latitude"],
+                serializer.validated_data["longitude"],
+            )
+        )
+
+
+class SocietyAvailabilitySearchView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = SocietyAvailabilitySearchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        validate_booking_window(
+            serializer.validated_data["start_datetime"],
+            serializer.validated_data["end_datetime"],
+        )
+
+        results = search_societies_by_availability(
+            destination_lat=serializer.validated_data["destination_lat"],
+            destination_lng=serializer.validated_data["destination_lng"],
+            destination_text=serializer.validated_data.get("destination_text", ""),
+            destination_place_id=serializer.validated_data.get(
+                "destination_place_id", ""
+            ),
+            start_time=serializer.validated_data["start_datetime"],
+            end_time=serializer.validated_data["end_datetime"],
+            vehicle_type=serializer.validated_data["vehicle_type"],
+            search_radius_km=serializer.validated_data.get("search_radius_km"),
+        )
+        return Response(results)
+
+
 class SlotListCreateView(generics.ListCreateAPIView):
     serializer_class = ParkingSlotSerializer
 
@@ -68,15 +136,40 @@ class SlotListCreateView(generics.ListCreateAPIView):
         society_id = self.kwargs["society_id"]
         qs = ParkingSlot.objects.filter(society_id=society_id, is_active=True)
 
-        # Filter by slot_type
-        slot_type = self.request.query_params.get("slot_type")
-        if slot_type:
-            qs = qs.filter(slot_type=slot_type)
+        params = self.request.query_params
+        if {
+            "booking_date",
+            "start_time",
+            "vehicle_type",
+        }.issubset(params.keys()) and (
+            "end_time" in params or "duration_minutes" in params
+        ):
+            filter_serializer = SlotAvailabilityFilterSerializer(data=params)
+            filter_serializer.is_valid(raise_exception=True)
 
-        # Filter by state
-        state = self.request.query_params.get("state")
-        if state:
-            qs = qs.filter(state=state)
+            validate_booking_window(
+                filter_serializer.validated_data["start_datetime"],
+                filter_serializer.validated_data["end_datetime"],
+            )
+
+            valid_slot_ids = [
+                slot.id
+                for slot in get_available_slots(
+                    society_id=society_id,
+                    vehicle_type=filter_serializer.validated_data["vehicle_type"],
+                    start_time=filter_serializer.validated_data["start_datetime"],
+                    end_time=filter_serializer.validated_data["end_datetime"],
+                )
+            ]
+            qs = qs.filter(id__in=valid_slot_ids)
+        else:
+            slot_type = self.request.query_params.get("slot_type")
+            if slot_type:
+                qs = qs.filter(slot_type=slot_type)
+
+            state = self.request.query_params.get("state")
+            if state:
+                qs = qs.filter(state=state)
 
         return qs
 
@@ -90,9 +183,13 @@ class SlotListCreateView(generics.ListCreateAPIView):
         serializer.save(society=society)
 
 
-class SlotUpdateView(generics.UpdateAPIView):
+class SlotUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = ParkingSlotSerializer
-    permission_classes = [IsSocietyAdmin]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [permissions.IsAuthenticated()]
+        return [IsSocietyAdmin()]
 
     def get_queryset(self):
         society_id = self.kwargs["society_id"]

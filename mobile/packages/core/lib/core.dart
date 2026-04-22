@@ -3,6 +3,7 @@ export 'src/network/api_client.dart';
 export 'src/network/api_endpoints.dart';
 export 'src/network/api_exceptions.dart';
 export 'src/network/dio_factory.dart';
+export 'src/network/interceptors/auth_interceptor.dart';
 
 // Auth
 export 'src/auth/bloc/auth_bloc.dart';
@@ -14,7 +15,9 @@ export 'src/auth/token_manager.dart';
 // Models
 export 'src/models/user_model.dart';
 export 'src/models/vehicle_model.dart';
+export 'src/models/location_suggestion_model.dart';
 export 'src/models/society_model.dart';
+export 'src/models/society_search_result_model.dart';
 export 'src/models/slot_model.dart';
 export 'src/models/booking_model.dart';
 export 'src/models/payment_model.dart';

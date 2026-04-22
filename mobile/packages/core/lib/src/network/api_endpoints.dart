@@ -11,6 +11,11 @@ class ApiEndpoints {
 
   // Societies
   static const societies = '/api/v1/societies/';
+  static const destinationAutocomplete =
+      '/api/v1/societies/destinations/autocomplete/';
+  static const destinationReverseGeocode =
+      '/api/v1/societies/destinations/reverse-geocode/';
+  static const societySearch = '/api/v1/societies/search/';
   static String society(String id) => '/api/v1/societies/$id/';
   static String societySlots(String societyId) =>
       '/api/v1/societies/$societyId/slots/';

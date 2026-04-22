@@ -130,6 +130,26 @@ RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
+# Geocoding / search
+GEOCODING_BASE_URL = env(
+    "GEOCODING_BASE_URL",
+    default="https://nominatim.openstreetmap.org/search",
+)
+REVERSE_GEOCODING_BASE_URL = env(
+    "REVERSE_GEOCODING_BASE_URL",
+    default="https://nominatim.openstreetmap.org/reverse",
+)
+GEOCODING_USER_AGENT = env(
+    "GEOCODING_USER_AGENT",
+    default="ParkEase/1.0 (local-development)",
+)
+GEOCODING_TIMEOUT_SECONDS = env.int("GEOCODING_TIMEOUT_SECONDS", default=8)
+LOCATION_AUTOCOMPLETE_LIMIT = env.int("LOCATION_AUTOCOMPLETE_LIMIT", default=5)
+DEFAULT_SOCIETY_SEARCH_RADIUS_KM = env.float(
+    "DEFAULT_SOCIETY_SEARCH_RADIUS_KM",
+    default=10.0,
+)
+
 # Celery
 CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")

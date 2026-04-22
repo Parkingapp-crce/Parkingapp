@@ -157,4 +157,37 @@ class SocietiesCubit extends Cubit<SocietiesState> {
       return null;
     }
   }
+
+  Future<List<LocationSuggestionModel>> searchLocations(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.length < 2) {
+      return const [];
+    }
+
+    final response = await _apiClient.get(
+      ApiEndpoints.destinationAutocomplete,
+      queryParameters: {'q': trimmed},
+    );
+    final payload = response.data as Map<String, dynamic>;
+    final rawResults = payload['results'] as List<dynamic>? ?? const [];
+    return rawResults
+        .map(
+          (item) =>
+              LocationSuggestionModel.fromJson(item as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<LocationSuggestionModel?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.destinationReverseGeocode,
+      queryParameters: {'latitude': latitude, 'longitude': longitude},
+    );
+    return LocationSuggestionModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
 }

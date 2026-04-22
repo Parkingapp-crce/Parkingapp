@@ -1,39 +1,71 @@
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import 'package:core/core.dart';
+import 'package:intl/intl.dart';
 
 import '../cubits/slots_cubit.dart';
 
 class SocietyDetailScreen extends StatelessWidget {
   final String societyId;
+  final String? bookingDate;
+  final String? startTime;
+  final String? endTime;
+  final String? vehicleType;
 
-  const SocietyDetailScreen({super.key, required this.societyId});
+  const SocietyDetailScreen({
+    super.key,
+    required this.societyId,
+    this.bookingDate,
+    this.startTime,
+    this.endTime,
+    this.vehicleType,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          SlotsCubit(GetIt.instance<ApiClient>())..loadSocietyDetail(societyId),
-      child: _SocietyDetailContent(societyId: societyId),
+      create: (_) => SlotsCubit(GetIt.instance<ApiClient>())
+        ..loadSocietyDetail(
+          societyId,
+          bookingDate: bookingDate,
+          startTime: startTime,
+          endTime: endTime,
+          vehicleType: vehicleType,
+        ),
+      child: _SocietyDetailContent(
+        societyId: societyId,
+        bookingDate: bookingDate,
+        startTime: startTime,
+        endTime: endTime,
+        vehicleType: vehicleType,
+      ),
     );
   }
 }
 
 class _SocietyDetailContent extends StatelessWidget {
   final String societyId;
+  final String? bookingDate;
+  final String? startTime;
+  final String? endTime;
+  final String? vehicleType;
 
-  const _SocietyDetailContent({required this.societyId});
+  const _SocietyDetailContent({
+    required this.societyId,
+    this.bookingDate,
+    this.startTime,
+    this.endTime,
+    this.vehicleType,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SlotsCubit, SlotsState>(
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(
-            title: Text(state.society?.name ?? 'Society Details'),
-          ),
+          appBar: AppBar(title: Text(state.society?.name ?? 'Society Details')),
           body: _buildBody(context, state),
         );
       },
@@ -48,28 +80,50 @@ class _SocietyDetailContent extends StatelessWidget {
     if (state.error != null) {
       return AppErrorWidget(
         message: state.error!,
-        onRetry: () =>
-            context.read<SlotsCubit>().loadSocietyDetail(societyId),
+        onRetry: () => context.read<SlotsCubit>().loadSocietyDetail(
+          societyId,
+          bookingDate: bookingDate,
+          startTime: startTime,
+          endTime: endTime,
+          vehicleType: vehicleType,
+        ),
       );
     }
 
     final society = state.society;
     if (society == null) {
-      return const EmptyStateWidget(
-        title: 'Society not found',
-      );
+      return const EmptyStateWidget(title: 'Society not found');
     }
 
     return RefreshIndicator(
-      onRefresh: () => context.read<SlotsCubit>().loadSocietyDetail(societyId),
+      onRefresh: () => context.read<SlotsCubit>().loadSocietyDetail(
+        societyId,
+        bookingDate: bookingDate,
+        startTime: startTime,
+        endTime: endTime,
+        vehicleType: vehicleType,
+      ),
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: _SocietyHeader(society: society),
+            child: _SocietyHeader(
+              society: society,
+              matchingSlots: state.hasAvailabilityContext
+                  ? state.slots.length
+                  : null,
+            ),
           ),
-          SliverToBoxAdapter(
-            child: _FilterBar(),
-          ),
+          if (state.hasAvailabilityContext)
+            SliverToBoxAdapter(
+              child: _AvailabilitySummaryCard(
+                bookingDate: state.bookingDate!,
+                startTime: state.startTime!,
+                endTime: state.endTime!,
+                vehicleType: state.vehicleType!,
+              ),
+            )
+          else
+            const SliverToBoxAdapter(child: _FilterBar()),
           _buildSlotsList(context, state),
         ],
       ),
@@ -80,11 +134,13 @@ class _SocietyDetailContent extends StatelessWidget {
     final slots = state.filteredSlots;
 
     if (slots.isEmpty) {
-      return const SliverFillRemaining(
+      return SliverFillRemaining(
         child: EmptyStateWidget(
           icon: Icons.grid_view_outlined,
           title: 'No slots found',
-          subtitle: 'Try adjusting your filters',
+          subtitle: state.hasAvailabilityContext
+              ? 'This society does not have a valid slot for the selected time window anymore.'
+              : 'Try adjusting your filters.',
         ),
       );
     }
@@ -93,20 +149,20 @@ class _SocietyDetailContent extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 1.0,
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.15,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            return _SlotTile(
-              slot: slots[index],
-              societyId: societyId,
-            );
-          },
-          childCount: slots.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          return _SlotTile(
+            slot: slots[index],
+            societyId: societyId,
+            bookingDate: state.bookingDate,
+            startTime: state.startTime,
+            endTime: state.endTime,
+          );
+        }, childCount: slots.length),
       ),
     );
   }
@@ -114,8 +170,9 @@ class _SocietyDetailContent extends StatelessWidget {
 
 class _SocietyHeader extends StatelessWidget {
   final SocietyModel society;
+  final int? matchingSlots;
 
-  const _SocietyHeader({required this.society});
+  const _SocietyHeader({required this.society, this.matchingSlots});
 
   @override
   Widget build(BuildContext context) {
@@ -131,16 +188,20 @@ class _SocietyHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on_outlined,
-                  size: 18, color: AppColors.textSecondary),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   '${society.address}, ${society.city}, ${society.state} - ${society.pincode}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -148,41 +209,52 @@ class _SocietyHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.phone_outlined,
-                  size: 18, color: AppColors.textSecondary),
+              const Icon(
+                Icons.phone_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
               Text(
                 society.contactPhone,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.email_outlined,
-                  size: 18, color: AppColors.textSecondary),
+              const Icon(
+                Icons.email_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
-              Text(
-                society.contactEmail,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+              Expanded(
+                child: Text(
+                  society.contactEmail,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _InfoChip(
                 label: 'Total: ${society.totalSlots ?? 0}',
                 color: AppColors.primary,
               ),
-              const SizedBox(width: 8),
               _InfoChip(
-                label: 'Available: ${society.availableSlots ?? 0}',
+                label: matchingSlots != null
+                    ? 'Matching: $matchingSlots'
+                    : 'Available: ${society.availableSlots ?? 0}',
                 color: AppColors.success,
               ),
             ],
@@ -190,6 +262,74 @@ class _SocietyHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _AvailabilitySummaryCard extends StatelessWidget {
+  final String bookingDate;
+  final String startTime;
+  final String endTime;
+  final String vehicleType;
+
+  const _AvailabilitySummaryCard({
+    required this.bookingDate,
+    required this.startTime,
+    required this.endTime,
+    required this.vehicleType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final date = DateTime.tryParse(bookingDate);
+    final startDateTime = _parseDateTime(bookingDate, startTime);
+    final endDateTime = _parseDateTime(bookingDate, endTime);
+    final dateLabel = date != null
+        ? DateFormat('EEE, MMM d, yyyy').format(date)
+        : bookingDate;
+    final timeLabel = startDateTime != null && endDateTime != null
+        ? '${DateFormat('hh:mm a').format(startDateTime)} - ${DateFormat('hh:mm a').format(endDateTime)}'
+        : '$startTime - $endTime';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Showing slots for your selected booking window',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _InfoChip(label: dateLabel, color: AppColors.primary),
+              _InfoChip(label: timeLabel, color: AppColors.primary),
+              _InfoChip(
+                label: vehicleType.toUpperCase(),
+                color: AppColors.success,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  DateTime? _parseDateTime(String date, String time) {
+    return DateTime.tryParse('${date}T${_normalizeTime(time)}');
+  }
+
+  String _normalizeTime(String value) {
+    return value.length == 5 ? '$value:00' : value;
   }
 }
 
@@ -210,15 +350,17 @@ class _InfoChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 }
 
 class _FilterBar extends StatelessWidget {
+  const _FilterBar();
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SlotsCubit, SlotsState>(
@@ -228,10 +370,13 @@ class _FilterBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              const Text('Type: ',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary)),
+              const Text(
+                'Type: ',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
               const SizedBox(width: 4),
               _FilterChip(
                 label: 'All',
@@ -251,10 +396,13 @@ class _FilterBar extends StatelessWidget {
                 onTap: () => context.read<SlotsCubit>().setFilterType('bike'),
               ),
               const SizedBox(width: 16),
-              const Text('State: ',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary)),
+              const Text(
+                'State: ',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
               const SizedBox(width: 4),
               _FilterChip(
                 label: 'All',
@@ -330,8 +478,17 @@ class _FilterChip extends StatelessWidget {
 class _SlotTile extends StatelessWidget {
   final SlotModel slot;
   final String societyId;
+  final String? bookingDate;
+  final String? startTime;
+  final String? endTime;
 
-  const _SlotTile({required this.slot, required this.societyId});
+  const _SlotTile({
+    required this.slot,
+    required this.societyId,
+    this.bookingDate,
+    this.startTime,
+    this.endTime,
+  });
 
   Color get _stateColor {
     switch (slot.state) {
@@ -349,9 +506,7 @@ class _SlotTile extends StatelessWidget {
   }
 
   IconData get _typeIcon {
-    return slot.slotType == 'bike'
-        ? Icons.two_wheeler
-        : Icons.directions_car;
+    return slot.slotType == 'bike' ? Icons.two_wheeler : Icons.directions_car;
   }
 
   @override
@@ -359,45 +514,63 @@ class _SlotTile extends StatelessWidget {
     return GestureDetector(
       onTap: slot.isAvailable
           ? () {
-              context.push(
-                '/booking/create?societyId=$societyId&slotId=${slot.id}',
+              final uri = Uri(
+                path: '/booking/create',
+                queryParameters: {
+                  'societyId': societyId,
+                  'slotId': slot.id,
+                  ...?bookingDate == null ? null : {'bookingDate': bookingDate},
+                  ...?startTime == null ? null : {'startTime': startTime},
+                  ...?endTime == null ? null : {'endTime': endTime},
+                },
               );
+              context.push(uri.toString());
             }
           : null,
       child: Container(
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: _stateColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _stateColor, width: 1.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(_typeIcon, color: _stateColor, size: 24),
-            const SizedBox(height: 4),
+            Icon(_typeIcon, color: _stateColor, size: 26),
+            const SizedBox(height: 8),
             Text(
               slot.slotNumber,
               style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
                 color: _stateColor,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               slot.state.toUpperCase(),
               style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: _stateColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '\u20B9${slot.hourlyRate}/hr',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
                 color: _stateColor,
               ),
             ),
             if (slot.floor.isNotEmpty) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
-                'F${slot.floor}',
+                'Floor ${slot.floor}',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   color: _stateColor.withValues(alpha: 0.7),
                 ),
               ),

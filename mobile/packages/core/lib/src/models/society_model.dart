@@ -1,8 +1,3 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'society_model.g.dart';
-
-@JsonSerializable()
 class SocietyModel {
   final String id;
   final String name;
@@ -12,17 +7,11 @@ class SocietyModel {
   final String pincode;
   final double? latitude;
   final double? longitude;
-  @JsonKey(name: 'contact_email')
   final String contactEmail;
-  @JsonKey(name: 'contact_phone')
   final String contactPhone;
-  @JsonKey(name: 'is_active')
   final bool isActive;
-  @JsonKey(name: 'total_slots')
   final int? totalSlots;
-  @JsonKey(name: 'available_slots')
   final int? availableSlots;
-  @JsonKey(name: 'created_at')
   final String createdAt;
 
   const SocietyModel({
@@ -42,8 +31,59 @@ class SocietyModel {
     required this.createdAt,
   });
 
-  factory SocietyModel.fromJson(Map<String, dynamic> json) =>
-      _$SocietyModelFromJson(json);
+  factory SocietyModel.fromJson(Map<String, dynamic> json) {
+    return SocietyModel(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      address: json['address'] as String? ?? '',
+      city: json['city'] as String? ?? '',
+      state: json['state'] as String? ?? '',
+      pincode: json['pincode'] as String? ?? '',
+      latitude: _asNullableDouble(json['latitude']),
+      longitude: _asNullableDouble(json['longitude']),
+      contactEmail: json['contact_email'] as String? ?? '',
+      contactPhone: json['contact_phone'] as String? ?? '',
+      isActive: json['is_active'] as bool? ?? true,
+      totalSlots: _asNullableInt(json['total_slots']),
+      availableSlots: _asNullableInt(json['available_slots']),
+      createdAt: json['created_at'] as String? ?? '',
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$SocietyModelToJson(this);
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'address': address,
+    'city': city,
+    'state': state,
+    'pincode': pincode,
+    'latitude': latitude,
+    'longitude': longitude,
+    'contact_email': contactEmail,
+    'contact_phone': contactPhone,
+    'is_active': isActive,
+    'total_slots': totalSlots,
+    'available_slots': availableSlots,
+    'created_at': createdAt,
+  };
+}
+
+double? _asNullableDouble(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value.toString());
+}
+
+int? _asNullableInt(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return int.tryParse(value.toString());
 }
