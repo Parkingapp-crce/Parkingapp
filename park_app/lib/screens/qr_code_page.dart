@@ -33,6 +33,8 @@ class QRCodePage extends StatelessWidget {
     final code = qrCode['code']?.toString() ?? '';
     final status = booking['status']?.toString().toUpperCase() ?? '-';
     final isActive = booking['status'] == 'active';
+    final vehicleType = booking['vehicle_type']?.toString() ?? '4-wheeler';
+    final is2Wheeler = vehicleType == '2-wheeler';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F9F5),
@@ -180,8 +182,15 @@ class QRCodePage extends StatelessWidget {
                   ),
                   _detailRow(
                     Icons.directions_car_rounded,
-                    'Vehicle',
+                    'Vehicle No.',
                     booking['vehicle_number'] ?? '-',
+                  ),
+                  _detailRow(
+                    is2Wheeler
+                        ? Icons.two_wheeler_rounded
+                        : Icons.directions_car_filled_rounded,
+                    'Vehicle Type',
+                    is2Wheeler ? '2-Wheeler' : '4-Wheeler',
                   ),
                   _detailRow(
                     Icons.play_arrow_rounded,
@@ -198,8 +207,7 @@ class QRCodePage extends StatelessWidget {
                     'Base Amount',
                     formatMoney(booking['amount']),
                   ),
-                  if ((double.tryParse('${booking['penalty_amount']}') ?? 0) >
-                      0)
+                  if ((double.tryParse('${booking['penalty_amount']}') ?? 0) > 0)
                     _detailRow(
                       Icons.warning_amber_rounded,
                       'Penalty',

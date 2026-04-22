@@ -402,12 +402,20 @@ class BookSlotView(APIView):
     def post(self, request):
         parking_lot_id = request.data.get('parking_lot_id')
         vehicle_number = request.data.get('vehicle_number')
+        vehicle_type = request.data.get('vehicle_type', '4-wheeler')
         start_time = request.data.get('start_time')
         end_time = request.data.get('end_time')
 
         if not all([parking_lot_id, vehicle_number, start_time, end_time]):
             return Response(
                 {'error': 'parking_lot_id, vehicle_number, start_time, end_time are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        valid_vehicle_types = ['2-wheeler', '4-wheeler']
+        if vehicle_type not in valid_vehicle_types:
+            return Response(
+                {'error': 'vehicle_type must be 2-wheeler or 4-wheeler.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -444,6 +452,7 @@ class BookSlotView(APIView):
             customer=request.user,
             parking_lot=parking_lot,
             vehicle_number=vehicle_number,
+            vehicle_type=vehicle_type,
             start_time=start_dt,
             end_time=end_dt,
             amount=amount,
@@ -553,6 +562,8 @@ class BookingQRImageView(APIView):
             'is_used': qr.is_used,
             'expires_at': qr.expires_at,
             'status': booking.status,
+            'vehicle_number': booking.vehicle_number,
+            'vehicle_type': booking.vehicle_type,
             'checked_in_at': booking.checked_in_at,
             'checked_out_at': booking.checked_out_at,
         })
@@ -574,7 +585,9 @@ class ValidateQRView(APIView):
             return Response({'error': 'QR code is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            qr = QRCode.objects.select_related('booking__parking_lot', 'booking__customer').get(code=code)
+            qr = QRCode.objects.select_related(
+                'booking__parking_lot', 'booking__customer'
+            ).get(code=str(code).lower().strip())
         except QRCode.DoesNotExist:
             return Response({
                 'entry_status': 'denied',
@@ -589,6 +602,11 @@ class ValidateQRView(APIView):
                 owner_lot = request.user.parking_lot
             else:
                 owner_lot = request.user.profile.assigned_lot
+                if owner_lot is None:
+                    return Response(
+                        {'error': 'No parking lot assigned to this guard.'},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
         except (ParkingLot.DoesNotExist, AttributeError):
             return Response({'error': 'No parking lot assigned.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -631,6 +649,7 @@ class ValidateQRView(APIView):
                 'scan_action': 'entry',
                 'message': 'Entry allowed. Scan the same QR again during exit.',
                 'vehicle_number': booking.vehicle_number,
+                'vehicle_type': booking.vehicle_type,
                 'customer': booking.customer.first_name,
                 'parking_lot': booking.parking_lot.name,
                 'start_time': booking.start_time,
@@ -667,6 +686,7 @@ class ValidateQRView(APIView):
                 'scan_action': 'exit',
                 'message': f'Exit recorded successfully.{penalty_note}'.strip(),
                 'vehicle_number': booking.vehicle_number,
+                'vehicle_type': booking.vehicle_type,
                 'customer': booking.customer.first_name,
                 'parking_lot': booking.parking_lot.name,
                 'start_time': booking.start_time,

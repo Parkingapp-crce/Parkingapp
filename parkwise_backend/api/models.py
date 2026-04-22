@@ -20,6 +20,13 @@ class UserProfile(models.Model):
         related_name='profile',
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
+    assigned_lot = models.ForeignKey(
+        'ParkingLot',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='guards',
+    )
 
     def __str__(self):
         return f'{self.user.email} - {self.role}'
@@ -64,6 +71,11 @@ class Booking(models.Model):
         ('cancelled', 'Cancelled'),
     ]
 
+    VEHICLE_TYPE_CHOICES = [
+        ('2-wheeler', '2-Wheeler'),
+        ('4-wheeler', '4-Wheeler'),
+    ]
+
     customer = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -75,6 +87,11 @@ class Booking(models.Model):
         related_name='bookings',
     )
     vehicle_number = models.CharField(max_length=20)
+    vehicle_type = models.CharField(
+        max_length=20,
+        choices=VEHICLE_TYPE_CHOICES,
+        default='4-wheeler',
+    )
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     amount = models.DecimalField(max_digits=8, decimal_places=2)

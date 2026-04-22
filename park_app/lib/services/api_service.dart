@@ -159,29 +159,30 @@ class ApiService {
   }
 
   /// 🔹 BOOK SLOT
-  static Future<Map<String, dynamic>> bookSlot({
-    required int parkingLotId,
-    required String vehicleNumber,
-    required String startTime,
-    required String endTime,
-  }) async {
-    final token = await _getToken();
-    final response = await http.post(
-      Uri.parse("$baseUrl/book-slot"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-      body: jsonEncode({
-        "parking_lot_id": parkingLotId,
-        "vehicle_number": vehicleNumber,
-        "start_time": startTime,
-        "end_time": endTime,
-      }),
-    );
-    return jsonDecode(response.body);
-  }
-
+ static Future<Map<String, dynamic>> bookSlot({
+  required int parkingLotId,
+  required String vehicleNumber,
+  required String vehicleType,
+  required String startTime,
+  required String endTime,
+}) async {
+  final token = await _getToken();
+  final response = await http.post(
+    Uri.parse("$baseUrl/book-slot"),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    },
+    body: jsonEncode({
+      "parking_lot_id": parkingLotId,
+      "vehicle_number": vehicleNumber,
+      "vehicle_type": vehicleType,
+      "start_time": startTime,
+      "end_time": endTime,
+    }),
+  );
+  return jsonDecode(response.body);
+}
   /// 🔹 MY BOOKINGS
   static Future<List<dynamic>> getMyBookings() async {
     final token = await _getToken();

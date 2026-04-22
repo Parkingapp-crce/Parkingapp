@@ -4,6 +4,8 @@ import '../services/api_service.dart';
 import 'login_page.dart';
 import 'parking_list_page.dart';
 import 'my_bookings_page.dart';
+import 'wallet_page.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -117,87 +119,99 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Scaffold(
       extendBodyBehindAppBar: true,
       bottomNavigationBar: _buildBottomNav(),
-      body: Stack(
+      body: IndexedStack(
+        index: _selectedIndex,
         children: [
-          // 🌿 Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFF5F9F5),
-                  Color(0xFFE3F0E3),
-                  Color(0xFFC8DFC8),
-                  Color(0xFFA8CCA8),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-
-          // 🗺️ Decorative map grid lines
-          CustomPaint(
-            size: Size.infinite,
-            painter: _MapGridPainter(),
-          ),
-
-          // 📍 Parking markers
-          _buildMarker(
-            top: 280,
-            left: 60,
-            label: "\$4/hr",
-            name: "Street Parking",
-            price: 4.0,
-            distance: "0.6 km away",
-            slots: 5,
-            isActive: selectedParking == "Street Parking",
-          ),
-          _buildMarker(
-            top: 340,
-            left: 200,
-            label: "\$6/hr",
-            name: "Grand Central Park",
-            price: 6.0,
-            distance: "0.3 km away",
-            slots: 12,
-            isActive: selectedParking == "Grand Central Park",
-          ),
-          _buildMarker(
-            top: 420,
-            left: 100,
-            label: "\$3/hr",
-            name: "West Side Lot",
-            price: 3.0,
-            distance: "0.9 km away",
-            slots: 3,
-            isActive: selectedParking == "West Side Lot",
-          ),
-
-          // 🔝 Top UI
-          SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 16),
-                _buildSearchBar(),
-                const SizedBox(height: 12),
-                _buildQuickStats(),
-              ],
-            ),
-          ),
-
-          // 📦 Bottom card
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: SlideTransition(
-              position: _cardAnimation,
-              child: _buildParkingCard(),
-            ),
-          ),
+          _buildMainBody(),
+          const MyBookingsPage(),
+          const WalletPage(),
+          const ProfilePage(),
         ],
       ),
+    );
+  }
+
+  Widget _buildMainBody() {
+    return Stack(
+      children: [
+        // 🌿 Background gradient
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFF5F9F5),
+                Color(0xFFE3F0E3),
+                Color(0xFFC8DFC8),
+                Color(0xFFA8CCA8),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+
+        // 🗺️ Decorative map grid lines
+        CustomPaint(
+          size: Size.infinite,
+          painter: _MapGridPainter(),
+        ),
+
+        // 📍 Parking markers
+        _buildMarker(
+          top: 280,
+          left: 60,
+          label: "\$4/hr",
+          name: "Street Parking",
+          price: 4.0,
+          distance: "0.6 km away",
+          slots: 5,
+          isActive: selectedParking == "Street Parking",
+        ),
+        _buildMarker(
+          top: 340,
+          left: 200,
+          label: "\$6/hr",
+          name: "Grand Central Park",
+          price: 6.0,
+          distance: "0.3 km away",
+          slots: 12,
+          isActive: selectedParking == "Grand Central Park",
+        ),
+        _buildMarker(
+          top: 420,
+          left: 100,
+          label: "\$3/hr",
+          name: "West Side Lot",
+          price: 3.0,
+          distance: "0.9 km away",
+          slots: 3,
+          isActive: selectedParking == "West Side Lot",
+        ),
+
+        // 🔝 Top UI
+        SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 16),
+              _buildSearchBar(),
+              const SizedBox(height: 12),
+              _buildQuickStats(),
+            ],
+          ),
+        ),
+
+        // 📦 Bottom card
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: SlideTransition(
+            position: _cardAnimation,
+            child: _buildParkingCard(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -423,7 +437,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
           Row(
             children: [
-              // Parking icon box
               Container(
                 width: 64,
                 height: 64,
@@ -469,7 +482,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Price badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
@@ -489,12 +501,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
 
           const SizedBox(height: 16),
-
-          // Divider
           Divider(color: Colors.grey[100], height: 1),
           const SizedBox(height: 16),
 
-          // Book button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -549,14 +558,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       child: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) {
-              setState(() => _selectedIndex = i);
-              if (i == 1) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MyBookingsPage()),
-                );
-              }
-            },
+          setState(() => _selectedIndex = i);
+        },
         selectedItemColor: primaryGreen,
         unselectedItemColor: textGrey,
         backgroundColor: Colors.transparent,

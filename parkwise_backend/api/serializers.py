@@ -133,6 +133,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'parking_lot',
             'parking_lot_name',
             'vehicle_number',
+            'vehicle_type',
             'start_time',
             'end_time',
             'amount',

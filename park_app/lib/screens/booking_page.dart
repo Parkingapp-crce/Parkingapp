@@ -20,6 +20,7 @@ class _BookingPageState extends State<BookingPage> {
   DateTime? startTime;
   DateTime? endTime;
   bool isLoading = false;
+  String selectedVehicleType = '4-wheeler';
 
   double get totalAmount {
     if (startTime == null || endTime == null) return 0;
@@ -87,6 +88,7 @@ class _BookingPageState extends State<BookingPage> {
       final response = await ApiService.bookSlot(
         parkingLotId: widget.lot['id'],
         vehicleNumber: vehicleController.text.trim(),
+        vehicleType: selectedVehicleType,
         startTime: startTime!.toUtc().toIso8601String(),
         endTime: endTime!.toUtc().toIso8601String(),
       );
@@ -167,8 +169,7 @@ class _BookingPageState extends State<BookingPage> {
                         const SizedBox(height: 4),
                         Text(
                             '${widget.lot['address']}, ${widget.lot['city']}',
-                            style:
-                                TextStyle(color: textGrey, fontSize: 13)),
+                            style: TextStyle(color: textGrey, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -183,6 +184,29 @@ class _BookingPageState extends State<BookingPage> {
 
             const SizedBox(height: 20),
 
+            // Vehicle type selector
+            _label('Vehicle Type'),
+            const SizedBox(height: 8),
+            _sectionCard(
+              child: Row(
+                children: [
+                  _vehicleTypeOption(
+                    label: '2-Wheeler',
+                    icon: Icons.two_wheeler_rounded,
+                    value: '2-wheeler',
+                  ),
+                  const SizedBox(width: 12),
+                  _vehicleTypeOption(
+                    label: '4-Wheeler',
+                    icon: Icons.directions_car_rounded,
+                    value: '4-wheeler',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             // Vehicle number
             _label('Vehicle Number'),
             const SizedBox(height: 8),
@@ -191,10 +215,16 @@ class _BookingPageState extends State<BookingPage> {
                 controller: vehicleController,
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
-                  hintText: 'e.g. MH04AB1234',
+                  hintText: selectedVehicleType == '2-wheeler'
+                      ? 'e.g. MH04AB1234'
+                      : 'e.g. MH04AB1234',
                   hintStyle: TextStyle(color: textGrey),
-                  prefixIcon: Icon(Icons.directions_car_rounded,
-                      color: primaryGreen),
+                  prefixIcon: Icon(
+                    selectedVehicleType == '2-wheeler'
+                        ? Icons.two_wheeler_rounded
+                        : Icons.directions_car_rounded,
+                    color: primaryGreen,
+                  ),
                   border: InputBorder.none,
                 ),
               ),
@@ -232,8 +262,7 @@ class _BookingPageState extends State<BookingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Duration',
-                            style:
-                                TextStyle(color: textGrey, fontSize: 13)),
+                            style: TextStyle(color: textGrey, fontSize: 13)),
                         const SizedBox(height: 4),
                         Text(
                           '${endTime!.difference(startTime!).inMinutes ~/ 60}h '
@@ -249,8 +278,7 @@ class _BookingPageState extends State<BookingPage> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('Total Amount',
-                            style:
-                                TextStyle(color: textGrey, fontSize: 13)),
+                            style: TextStyle(color: textGrey, fontSize: 13)),
                         const SizedBox(height: 4),
                         Text(
                           '₹${totalAmount.toStringAsFixed(2)}',
@@ -291,7 +319,51 @@ class _BookingPageState extends State<BookingPage> {
                             fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ),
+
+            const SizedBox(height: 20),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _vehicleTypeOption({
+    required String label,
+    required IconData icon,
+    required String value,
+  }) {
+    final isSelected = selectedVehicleType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => selectedVehicleType = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? primaryGreen : const Color(0xFFF5F9F5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? primaryGreen : Colors.grey.shade200,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : textGrey,
+                size: 26,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : textGrey,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
