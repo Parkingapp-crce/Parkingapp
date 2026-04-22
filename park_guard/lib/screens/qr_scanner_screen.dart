@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../services/api_service.dart';
+
 import '../screens/login_screen.dart';
+import '../services/api_service.dart';
 
 class GuardScannerPage extends StatefulWidget {
   final String guardName;
@@ -13,10 +14,6 @@ class GuardScannerPage extends StatefulWidget {
 }
 
 class _GuardScannerPageState extends State<GuardScannerPage> {
-  final Color primaryGreen = const Color(0xFF1E7E34);
-  final Color textDark = const Color(0xFF0D1B0F);
-  final Color textGrey = const Color(0xFF6B7280);
-
   final MobileScannerController _controller = MobileScannerController();
   bool isProcessing = false;
   bool hasResult = false;
@@ -29,12 +26,14 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
 
     try {
       final response = await ApiService.validateQR(code);
+      if (!mounted) return;
       setState(() {
         result = response;
         hasResult = true;
         isProcessing = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         result = {'entry_status': 'denied', 'reason': 'Server error.'};
         hasResult = true;
@@ -70,16 +69,22 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Guard Scanner',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18)),
-              Text('👮 ${widget.guardName}',
-                  style: const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400)),
+              const Text(
+                'Guard Scanner',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+              Text(
+                '👮 ${widget.guardName}',
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
             ],
           ),
           actions: [
@@ -88,7 +93,10 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
               onPressed: () => _controller.toggleTorch(),
             ),
             IconButton(
-              icon: const Icon(Icons.flip_camera_ios_rounded, color: Colors.white),
+              icon: const Icon(
+                Icons.flip_camera_ios_rounded,
+                color: Colors.white,
+              ),
               onPressed: () => _controller.switchCamera(),
             ),
             IconButton(
@@ -110,8 +118,9 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -141,12 +150,7 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
             if (code != null) onQRDetected(code);
           },
         ),
-
-        CustomPaint(
-          size: Size.infinite,
-          painter: _ScannerOverlayPainter(),
-        ),
-
+        CustomPaint(size: Size.infinite, painter: _ScannerOverlayPainter()),
         Positioned(
           bottom: 60,
           left: 0,
@@ -158,7 +162,9 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
               else
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 12),
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(30),
@@ -166,9 +172,10 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
                   child: const Text(
                     'Point camera at customer\'s QR code',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
             ],
@@ -181,10 +188,14 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
   Widget _buildResult() {
     final entryStatus = result?['entry_status'] ?? 'denied';
     final isAllowed = entryStatus == 'allowed';
+    final scanAction = result?['scan_action'] as String? ?? 'entry';
     final vehicleNumber = result?['vehicle_number'] as String? ?? 'Unknown';
+    final message =
+        result?['message'] as String? ?? 'Vehicle is authorized to enter';
     final reason = result?['reason'] as String? ?? 'Invalid or fake QR code';
+    final totalAmount = result?['total_amount']?.toString() ?? '';
+    final overstayMinutes = result?['overstay_minutes']?.toString() ?? '0';
 
-    // Auto return to scanner after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) resetScanner();
     });
@@ -195,7 +206,6 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Big animated icon
             Container(
               width: 130,
               height: 130,
@@ -206,39 +216,29 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isAllowed
-                    ? Icons.check_circle_rounded
-                    : Icons.cancel_rounded,
+                isAllowed ? Icons.check_circle_rounded : Icons.cancel_rounded,
                 size: 90,
                 color: isAllowed ? const Color(0xFF1E7E34) : Colors.red,
               ),
             ),
-
             const SizedBox(height: 28),
-
-            // Title
             Text(
-              isAllowed ? 'QR Scanned Successfully' : 'Entry Denied',
+              isAllowed
+                  ? (scanAction == 'exit' ? 'Exit Recorded' : 'Entry Allowed')
+                  : 'Entry Denied',
               style: TextStyle(
                 color: isAllowed ? const Color(0xFF1E7E34) : Colors.red,
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
-              isAllowed ? 'Vehicle is authorized to enter' : 'This QR code is invalid or fake',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 14,
-              ),
+              isAllowed ? message : reason,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
             ),
-
             const SizedBox(height: 28),
-
-            // Vehicle number or denial reason card
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 40),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
@@ -258,27 +258,44 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
                 children: [
                   Icon(
                     isAllowed
-                        ? Icons.directions_car_rounded
+                        ? (scanAction == 'exit'
+                              ? Icons.logout_rounded
+                              : Icons.directions_car_rounded)
                         : Icons.error_outline_rounded,
                     color: isAllowed ? const Color(0xFF1E7E34) : Colors.red,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    isAllowed ? vehicleNumber : reason,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0D1B0F),
+                  Flexible(
+                    child: Text(
+                      isAllowed
+                          ? scanAction == 'exit' && totalAmount.isNotEmpty
+                                ? '$vehicleNumber | ₹$totalAmount'
+                                : vehicleNumber
+                          : reason,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0D1B0F),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-
+            if (isAllowed && scanAction == 'exit') ...[
+              const SizedBox(height: 16),
+              Text(
+                'Overstay: $overstayMinutes min',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             const SizedBox(height: 48),
-
-            // Countdown bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 60),
               child: _CountdownBar(
@@ -286,15 +303,10 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
                 color: isAllowed ? const Color(0xFF1E7E34) : Colors.red,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Text(
               'Returning to scanner in 3 seconds...',
-              style: TextStyle(
-                color: Colors.grey.shade400,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
             ),
           ],
         ),
@@ -303,7 +315,6 @@ class _GuardScannerPageState extends State<GuardScannerPage> {
   }
 }
 
-// ─── Countdown Bar Widget ───
 class _CountdownBar extends StatefulWidget {
   final Duration duration;
   final Color color;
@@ -321,10 +332,8 @@ class _CountdownBarState extends State<_CountdownBar>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    )..forward();
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..forward();
   }
 
   @override
@@ -350,7 +359,6 @@ class _CountdownBarState extends State<_CountdownBar>
   }
 }
 
-// ─── Scanner Overlay Painter ───
 class _ScannerOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -378,14 +386,46 @@ class _ScannerOverlayPainter extends CustomPainter {
     const cornerLen = 28.0;
     final r = frameRect;
 
-    canvas.drawLine(r.topLeft, r.topLeft + const Offset(cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.topLeft, r.topLeft + const Offset(0, cornerLen), cornerPaint);
-    canvas.drawLine(r.topRight, r.topRight + const Offset(-cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.topRight, r.topRight + const Offset(0, cornerLen), cornerPaint);
-    canvas.drawLine(r.bottomLeft, r.bottomLeft + const Offset(cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.bottomLeft, r.bottomLeft + const Offset(0, -cornerLen), cornerPaint);
-    canvas.drawLine(r.bottomRight, r.bottomRight + const Offset(-cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.bottomRight, r.bottomRight + const Offset(0, -cornerLen), cornerPaint);
+    canvas.drawLine(
+      r.topLeft,
+      r.topLeft + const Offset(cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.topLeft,
+      r.topLeft + const Offset(0, cornerLen),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.topRight,
+      r.topRight + const Offset(-cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.topRight,
+      r.topRight + const Offset(0, cornerLen),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomLeft,
+      r.bottomLeft + const Offset(cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomLeft,
+      r.bottomLeft + const Offset(0, -cornerLen),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomRight,
+      r.bottomRight + const Offset(-cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomRight,
+      r.bottomRight + const Offset(0, -cornerLen),
+      cornerPaint,
+    );
   }
 
   @override

@@ -1,33 +1,36 @@
 import uuid
-from django.db import models
+
 from django.contrib.auth.models import User
+from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
-# ─────────────────────────────────────────────
-# USER PROFILE — adds role to every user
-# ─────────────────────────────────────────────
 class UserProfile(models.Model):
     ROLE_CHOICES = [
-    ('customer', 'Customer'),
-    ('owner', 'Owner'),
-    ('admin', 'Admin'),
-    ('guard', 'Guard'),  # ← add this
-]
+        ('customer', 'Customer'),
+        ('owner', 'Owner'),
+        ('admin', 'Admin'),
+        ('guard', 'Guard'),
+    ]
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile',
+    )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
 
     def __str__(self):
-        return f"{self.user.email} — {self.role}"
+        return f'{self.user.email} - {self.role}'
 
 
-# ─────────────────────────────────────────────
-# PARKING LOT — owned by an owner
-# ─────────────────────────────────────────────
 class ParkingLot(models.Model):
-    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name='parking_lot')
+    owner = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='parking_lot',
+    )
     name = models.CharField(max_length=255)
     address = models.TextField()
     city = models.CharField(max_length=100)
@@ -39,74 +42,107 @@ class ParkingLot(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.name} — {self.city}"
+        return f'{self.name} - {self.city}'
 
     @property
     def available_slots(self):
         from django.utils import timezone
+
         booked = self.bookings.filter(
-            status='confirmed',
-            end_time__gt=timezone.now()
+            status__in=['confirmed', 'active'],
+            end_time__gt=timezone.now(),
         ).count()
         return self.total_slots - booked
 
-# ─────────────────────────────────────────────
-# BOOKING — customer books a parking slot
-# ─────────────────────────────────────────────
+
 class Booking(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
+        ('active', 'Active'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
 
-    customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
-    parking_lot = models.ForeignKey(ParkingLot, on_delete=models.CASCADE, related_name='bookings')
+    customer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='bookings',
+    )
+    parking_lot = models.ForeignKey(
+        ParkingLot,
+        on_delete=models.CASCADE,
+        related_name='bookings',
+    )
     vehicle_number = models.CharField(max_length=20)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True)
+    overstay_minutes = models.PositiveIntegerField(default=0)
+    penalty_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Booking #{self.id} — {self.customer.username} @ {self.parking_lot.name}"
+        return f'Booking #{self.id} - {self.customer.username} @ {self.parking_lot.name}'
+
+    @property
+    def total_charge(self):
+        return self.amount + self.penalty_amount
+
+    @property
+    def is_overstayed(self):
+        from django.utils import timezone
+
+        return bool(
+            self.overstay_minutes > 0 or (
+                self.checked_in_at and
+                not self.checked_out_at and
+                timezone.now() > self.end_time
+            )
+        )
 
 
-# ─────────────────────────────────────────────
-# QR CODE — generated after booking confirmed
-# ─────────────────────────────────────────────
 class QRCode(models.Model):
-    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='qr_code')
+    booking = models.OneToOneField(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name='qr_code',
+    )
     code = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
 
     def __str__(self):
-        return f"QR #{self.booking.id} — {'Used' if self.is_used else 'Active'}"
+        return f"QR #{self.booking.id} - {'Used' if self.is_used else 'Active'}"
 
 
-# ─────────────────────────────────────────────
-# ENTRY LOG — recorded when owner scans QR
-# ─────────────────────────────────────────────
 class EntryLog(models.Model):
     ENTRY_STATUS_CHOICES = [
         ('allowed', 'Allowed'),
         ('denied', 'Denied'),
     ]
 
-    qr_code = models.ForeignKey(QRCode, on_delete=models.CASCADE, related_name='entry_logs')
-    scanned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='scanned_logs')
+    qr_code = models.ForeignKey(
+        QRCode,
+        on_delete=models.CASCADE,
+        related_name='entry_logs',
+    )
+    scanned_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='scanned_logs',
+    )
     scanned_at = models.DateTimeField(auto_now_add=True)
     entry_status = models.CharField(max_length=10, choices=ENTRY_STATUS_CHOICES)
 
     def __str__(self):
-        return f"EntryLog — {self.entry_status} at {self.scanned_at}"
+        return f'EntryLog - {self.entry_status} at {self.scanned_at}'
 
-# ─────────────────────────────────────────────
-# SIGNAL — auto create UserProfile on user creation
-# ─────────────────────────────────────────────
+
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+
 import 'my_bookings_page.dart';
 
 class QRCodePage extends StatelessWidget {
@@ -22,9 +23,16 @@ class QRCodePage extends StatelessWidget {
     }
   }
 
+  String formatMoney(dynamic value) {
+    final amount = double.tryParse('$value') ?? 0;
+    return '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final code = qrCode['code'] ?? '';
+    final code = qrCode['code']?.toString() ?? '';
+    final status = booking['status']?.toString().toUpperCase() ?? '-';
+    final isActive = booking['status'] == 'active';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F9F5),
@@ -32,26 +40,34 @@ class QRCodePage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text('Your QR Code',
-            style: TextStyle(
-                color: textDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 20)),
+        title: Text(
+          'Your QR Code',
+          style: TextStyle(
+            color: textDark,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const MyBookingsPage())),
-            child: Text('My Bookings',
-                style: TextStyle(
-                    color: primaryGreen, fontWeight: FontWeight.w700)),
-          )
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const MyBookingsPage()),
+            ),
+            child: Text(
+              'My Bookings',
+              style: TextStyle(
+                color: primaryGreen,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Success banner
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -61,31 +77,33 @@ class QRCodePage extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.check_circle_rounded,
-                      color: primaryGreen, size: 28),
+                  Icon(Icons.qr_code_rounded, color: primaryGreen, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Booking Confirmed!',
-                            style: TextStyle(
-                                color: primaryGreen,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16)),
-                        Text('Show this QR at the parking lot',
-                            style:
-                                TextStyle(color: textGrey, fontSize: 13)),
+                        Text(
+                          isActive ? 'Use This For Exit' : 'Booking Confirmed',
+                          style: TextStyle(
+                            color: primaryGreen,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          isActive
+                              ? 'Show the same QR while leaving so the system can calculate any overstay.'
+                              : 'Show this QR at entry and again at exit.',
+                          style: TextStyle(color: textGrey, fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // QR Code
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -93,9 +111,10 @@ class QRCodePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6))
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
                 ],
               ),
               child: Column(
@@ -116,20 +135,18 @@ class QRCodePage extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     code.length > 8
-                        ? code.substring(0, 8).toUpperCase() + '...'
+                        ? '${code.substring(0, 8).toUpperCase()}...'
                         : code,
                     style: TextStyle(
-                        color: textGrey,
-                        fontSize: 13,
-                        letterSpacing: 2),
+                      color: textGrey,
+                      fontSize: 13,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // Booking details
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -138,59 +155,93 @@ class QRCodePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4))
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Booking Details',
-                      style: TextStyle(
-                          color: textDark,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16)),
+                  Text(
+                    'Booking Details',
+                    style: TextStyle(
+                      color: textDark,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  _detailRow(Icons.local_parking_rounded, 'Parking Lot',
-                      booking['parking_lot_name'] ?? '-'),
-                  _detailRow(Icons.directions_car_rounded, 'Vehicle',
-                      booking['vehicle_number'] ?? '-'),
-                  _detailRow(Icons.play_arrow_rounded, 'Start',
-                      formatTime(booking['start_time'] ?? '')),
-                  _detailRow(Icons.stop_rounded, 'End',
-                      formatTime(booking['end_time'] ?? '')),
-                  _detailRow(Icons.currency_rupee_rounded, 'Amount',
-                      '₹${booking['amount']}'),
+                  _detailRow(
+                    Icons.local_parking_rounded,
+                    'Parking Lot',
+                    booking['parking_lot_name'] ?? '-',
+                  ),
+                  _detailRow(
+                    Icons.directions_car_rounded,
+                    'Vehicle',
+                    booking['vehicle_number'] ?? '-',
+                  ),
+                  _detailRow(
+                    Icons.play_arrow_rounded,
+                    'Start',
+                    formatTime(booking['start_time'] ?? ''),
+                  ),
+                  _detailRow(
+                    Icons.stop_rounded,
+                    'End',
+                    formatTime(booking['end_time'] ?? ''),
+                  ),
+                  _detailRow(
+                    Icons.currency_rupee_rounded,
+                    'Base Amount',
+                    formatMoney(booking['amount']),
+                  ),
+                  if ((double.tryParse('${booking['penalty_amount']}') ?? 0) >
+                      0)
+                    _detailRow(
+                      Icons.warning_amber_rounded,
+                      'Penalty',
+                      formatMoney(booking['penalty_amount']),
+                      valueColor: Colors.red,
+                    ),
+                  if (booking['total_charge'] != null)
+                    _detailRow(
+                      Icons.receipt_long_rounded,
+                      'Total',
+                      formatMoney(booking['total_charge']),
+                    ),
                   _detailRow(
                     Icons.info_outline_rounded,
                     'Status',
-                    booking['status']?.toString().toUpperCase() ?? '-',
-                    valueColor: primaryGreen,
+                    status,
+                    valueColor: isActive
+                        ? const Color(0xFF2563EB)
+                        : primaryGreen,
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // Go home button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.of(context)
-                    .popUntil((route) => route.isFirst),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('Back to Home',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
+                child: const Text(
+                  'Back to Home',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
               ),
             ),
           ],
@@ -199,23 +250,34 @@ class QRCodePage extends StatelessWidget {
     );
   }
 
-  Widget _detailRow(IconData icon, String label, String value,
-      {Color? valueColor}) {
+  Widget _detailRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
           Icon(icon, size: 18, color: const Color(0xFF1E7E34)),
           const SizedBox(width: 12),
-          Text(label,
-              style: const TextStyle(
-                  color: Color(0xFF6B7280), fontSize: 13)),
+          Text(
+            label,
+            style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+          ),
           const Spacer(),
-          Text(value,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
               style: TextStyle(
-                  color: valueColor ?? const Color(0xFF0D1B0F),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14)),
+                color: valueColor ?? const Color(0xFF0D1B0F),
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ),
         ],
       ),
     );

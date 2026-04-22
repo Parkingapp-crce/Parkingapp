@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../services/api_service.dart';
 import 'qr_code_page.dart';
 
@@ -30,17 +31,19 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   Future<void> fetchBookings() async {
     try {
       final data = await ApiService.getMyBookings();
+      if (!mounted) return;
       setState(() {
         allBookings = data;
         isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
 
   List<dynamic> get activeBookings => allBookings
-      .where((b) => ['pending', 'confirmed'].contains(b['status']))
+      .where((b) => ['pending', 'confirmed', 'active'].contains(b['status']))
       .toList();
 
   List<dynamic> get pastBookings => allBookings
@@ -52,18 +55,23 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cancel Booking',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Cancel Booking',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text('Are you sure you want to cancel this booking?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('No')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Yes, Cancel',
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Yes, Cancel',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -72,11 +80,52 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     if (confirm != true) return;
 
     final response = await ApiService.cancelBooking(bookingId);
+    if (!mounted) return;
+
     if (response['message'] != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking cancelled successfully')));
+        const SnackBar(content: Text('Booking cancelled successfully')),
+      );
       fetchBookings();
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(response['error'] ?? 'Unable to cancel booking')),
+    );
+  }
+
+  Future<void> openQr(Map<String, dynamic> booking) async {
+    final cachedCode = booking['qr_code_value']?.toString();
+    if (cachedCode != null && cachedCode.isNotEmpty) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              QRCodePage(booking: booking, qrCode: {'code': cachedCode}),
+        ),
+      );
+      return;
+    }
+
+    final response = await ApiService.getBookingQR(booking['id']);
+    if (!mounted) return;
+
+    final qrCode = response['qr_code']?.toString();
+    if (qrCode == null || qrCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['error'] ?? 'Unable to load QR code')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QRCodePage(booking: booking, qrCode: {'code': qrCode}),
+      ),
+    );
   }
 
   String formatTime(String iso) {
@@ -88,6 +137,11 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     }
   }
 
+  String formatMoney(dynamic value) {
+    final amount = double.tryParse('$value') ?? 0;
+    return '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,19 +149,24 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text('My Bookings',
-            style: TextStyle(
-                color: textDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 20)),
+        title: Text(
+          'My Bookings',
+          style: TextStyle(
+            color: textDark,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+          ),
+        ),
         iconTheme: IconThemeData(color: textDark),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: primaryGreen,
           labelColor: primaryGreen,
           unselectedLabelColor: textGrey,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
           tabs: [
             Tab(text: 'Active (${activeBookings.length})'),
             Tab(text: 'Past (${pastBookings.length})'),
@@ -137,9 +196,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             Text(
               isActive ? 'No active bookings' : 'No past bookings',
               style: TextStyle(
-                  color: textGrey,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600),
+                color: textGrey,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -152,21 +212,35 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: bookings.length,
-        itemBuilder: (context, index) =>
-            _buildBookingCard(bookings[index], isActive: isActive),
+        itemBuilder: (context, index) => _buildBookingCard(
+          bookings[index] as Map<String, dynamic>,
+          isActive: isActive,
+        ),
       ),
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking,
-      {required bool isActive}) {
-    final status = booking['status'] ?? '';
-    final statusColor = {
-      'confirmed': primaryGreen,
-      'pending': Colors.orange,
-      'completed': Colors.blue,
-      'cancelled': Colors.red,
-    }[status] ?? textGrey;
+  Widget _buildBookingCard(
+    Map<String, dynamic> booking, {
+    required bool isActive,
+  }) {
+    final status = booking['status']?.toString() ?? '';
+    final isOverstayed = booking['is_overstayed'] == true;
+    final canCancel = status != 'active';
+    final statusColor =
+        {
+          'confirmed': primaryGreen,
+          'active': const Color(0xFF2563EB),
+          'pending': Colors.orange,
+          'completed': Colors.blue,
+          'cancelled': Colors.red,
+        }[status] ??
+        textGrey;
+    final statusLabel = (status == 'active' && isOverstayed)
+        ? 'OVERSTAY'
+        : status.toUpperCase();
+    final overstayMinutes = int.tryParse('${booking['overstay_minutes']}') ?? 0;
+    final penaltyAmount = double.tryParse('${booking['penalty_amount']}') ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -175,9 +249,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4))
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Padding(
@@ -188,82 +263,105 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(booking['parking_lot_name'] ?? '-',
+                Expanded(
+                  child: Text(
+                    booking['parking_lot_name'] ?? '-',
                     style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        color: textDark)),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: textDark,
+                    ),
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    status.toUpperCase(),
+                    statusLabel,
                     style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11),
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            _row(Icons.directions_car_rounded,
-                booking['vehicle_number'] ?? '-'),
-            const SizedBox(height: 6),
-            _row(Icons.play_arrow_rounded,
-                formatTime(booking['start_time'] ?? '')),
+            _row(
+              Icons.directions_car_rounded,
+              booking['vehicle_number'] ?? '-',
+            ),
             const SizedBox(height: 6),
             _row(
-                Icons.stop_rounded, formatTime(booking['end_time'] ?? '')),
+              Icons.play_arrow_rounded,
+              formatTime(booking['start_time'] ?? ''),
+            ),
             const SizedBox(height: 6),
-            _row(Icons.currency_rupee_rounded,
-                '₹${booking['amount']}'),
+            _row(Icons.stop_rounded, formatTime(booking['end_time'] ?? '')),
+            const SizedBox(height: 6),
+            _row(Icons.currency_rupee_rounded, formatMoney(booking['amount'])),
+            if (penaltyAmount > 0 || overstayMinutes > 0) ...[
+              const SizedBox(height: 6),
+              _row(
+                Icons.warning_amber_rounded,
+                'Penalty ${formatMoney(booking['penalty_amount'])} | $overstayMinutes min late',
+              ),
+            ],
+            if (booking['total_charge'] != null &&
+                '${booking['total_charge']}' != '${booking['amount']}') ...[
+              const SizedBox(height: 6),
+              _row(
+                Icons.receipt_long_rounded,
+                'Total ${formatMoney(booking['total_charge'])}',
+              ),
+            ],
             if (isActive) ...[
               const SizedBox(height: 14),
               Divider(color: Colors.grey[100]),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => cancelBooking(booking['id']),
-                      icon: const Icon(Icons.cancel_outlined,
-                          size: 16, color: Colors.red),
-                      label: const Text('Cancel',
-                          style: TextStyle(color: Colors.red)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                  if (canCancel)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => cancelBooking(booking['id'] as int),
+                        icon: const Icon(
+                          Icons.cancel_outlined,
+                          size: 16,
+                          color: Colors.red,
+                        ),
+                        label: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
+                  if (canCancel) const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => QRCodePage(
-                              booking: booking,
-                              qrCode: {'code': booking['id'].toString()},
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: () => openQr(booking),
                       icon: const Icon(Icons.qr_code_rounded, size: 16),
-                      label: const Text('View QR'),
+                      label: Text(status == 'active' ? 'Exit QR' : 'View QR'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -277,11 +375,12 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   }
 
   Widget _row(IconData icon, String value) => Row(
-        children: [
-          Icon(icon, size: 15, color: textGrey),
-          const SizedBox(width: 8),
-          Text(value,
-              style: TextStyle(color: textGrey, fontSize: 13)),
-        ],
-      );
+    children: [
+      Icon(icon, size: 15, color: textGrey),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(value, style: TextStyle(color: textGrey, fontSize: 13)),
+      ),
+    ],
+  );
 }

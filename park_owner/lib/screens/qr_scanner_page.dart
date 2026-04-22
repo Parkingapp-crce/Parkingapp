@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+
 import '../services/api_service.dart';
 
 class QRScannerPage extends StatefulWidget {
@@ -26,12 +27,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
 
     try {
       final response = await ApiService.validateQR(code);
+      if (!mounted) return;
       setState(() {
         result = response;
         hasResult = true;
         isProcessing = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         result = {'entry_status': 'denied', 'reason': 'Server error.'};
         hasResult = true;
@@ -62,11 +65,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Scan QR Code',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 20)),
+        title: const Text(
+          'Scan QR Code',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on_rounded, color: Colors.white),
@@ -89,12 +95,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
             if (code != null) onQRDetected(code);
           },
         ),
-
-        CustomPaint(
-          size: Size.infinite,
-          painter: _ScannerOverlayPainter(),
-        ),
-
+        CustomPaint(size: Size.infinite, painter: _ScannerOverlayPainter()),
         Positioned(
           bottom: 60,
           left: 0,
@@ -106,7 +107,9 @@ class _QRScannerPageState extends State<QRScannerPage> {
               else
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 12),
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(30),
@@ -114,9 +117,10 @@ class _QRScannerPageState extends State<QRScannerPage> {
                   child: const Text(
                     'Point camera at customer\'s QR code',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
             ],
@@ -127,9 +131,9 @@ class _QRScannerPageState extends State<QRScannerPage> {
   }
 
   Widget _buildResult() {
-    // ✅ FIX: Extract values first to avoid ternary + null-aware conflict
     final entryStatus = result?['entry_status'] ?? 'denied';
     final isAllowed = entryStatus == 'allowed';
+    final scanAction = result?['scan_action'] as String? ?? 'entry';
     final message = result?['message'] as String? ?? '';
     final reason = result?['reason'] as String? ?? 'Access denied';
     final customer = result?['customer'] as String? ?? '-';
@@ -137,6 +141,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
     final parkingLot = result?['parking_lot'] as String? ?? '-';
     final startTime = result?['start_time'] as String? ?? '';
     final endTime = result?['end_time'] as String? ?? '';
+    final overstayMinutes = result?['overstay_minutes']?.toString() ?? '0';
+    final penaltyAmount = result?['penalty_amount']?.toString() ?? '0';
+    final totalAmount = result?['total_amount']?.toString() ?? '';
+    final heading = !isAllowed
+        ? 'ENTRY DENIED'
+        : scanAction == 'exit'
+        ? 'EXIT RECORDED'
+        : 'ENTRY ALLOWED';
 
     return Container(
       color: const Color(0xFFF5F9F5),
@@ -145,8 +157,6 @@ class _QRScannerPageState extends State<QRScannerPage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-
-            // Status icon
             Container(
               width: 100,
               height: 100,
@@ -157,19 +167,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isAllowed
-                    ? Icons.check_circle_rounded
-                    : Icons.cancel_rounded,
+                isAllowed ? Icons.check_circle_rounded : Icons.cancel_rounded,
                 size: 60,
                 color: isAllowed ? primaryGreen : Colors.red,
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Status text
             Text(
-              isAllowed ? 'ENTRY ALLOWED ✅' : 'ENTRY DENIED ❌',
+              isAllowed ? '$heading ✅' : '$heading ❌',
               style: TextStyle(
                 color: isAllowed ? primaryGreen : Colors.red,
                 fontSize: 22,
@@ -177,19 +182,14 @@ class _QRScannerPageState extends State<QRScannerPage> {
                 letterSpacing: 1,
               ),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               isAllowed ? message : reason,
               textAlign: TextAlign.center,
               style: TextStyle(color: textGrey, fontSize: 15),
             ),
-
             const SizedBox(height: 30),
-
-            // Details card (only if allowed)
-            if (isAllowed) ...[
+            if (isAllowed)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -198,47 +198,84 @@ class _QRScannerPageState extends State<QRScannerPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4))
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Entry Details',
-                        style: TextStyle(
-                            color: textDark,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16)),
+                    Text(
+                      scanAction == 'exit' ? 'Exit Details' : 'Entry Details',
+                      style: TextStyle(
+                        color: textDark,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _detailRow(Icons.person_rounded, 'Customer', customer),
-                    _detailRow(Icons.directions_car_rounded, 'Vehicle', vehicleNumber),
-                    _detailRow(Icons.local_parking_rounded, 'Parking Lot', parkingLot),
-                    _detailRow(Icons.play_arrow_rounded, 'Start', _formatTime(startTime)),
+                    _detailRow(
+                      Icons.directions_car_rounded,
+                      'Vehicle',
+                      vehicleNumber,
+                    ),
+                    _detailRow(
+                      Icons.local_parking_rounded,
+                      'Parking Lot',
+                      parkingLot,
+                    ),
+                    _detailRow(
+                      Icons.swap_horiz_rounded,
+                      'Scan',
+                      scanAction.toUpperCase(),
+                    ),
+                    _detailRow(
+                      Icons.play_arrow_rounded,
+                      'Start',
+                      _formatTime(startTime),
+                    ),
                     _detailRow(Icons.stop_rounded, 'End', _formatTime(endTime)),
+                    if (scanAction == 'exit') ...[
+                      _detailRow(
+                        Icons.warning_amber_rounded,
+                        'Overstay',
+                        '$overstayMinutes min',
+                      ),
+                      _detailRow(
+                        Icons.currency_rupee_rounded,
+                        'Penalty',
+                        '₹$penaltyAmount',
+                      ),
+                    ],
+                    if (totalAmount.isNotEmpty)
+                      _detailRow(
+                        Icons.receipt_long_rounded,
+                        'Total',
+                        '₹$totalAmount',
+                      ),
                   ],
                 ),
               ),
-            ],
-
             const SizedBox(height: 30),
-
-            // Scan again button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: resetScanner,
                 icon: const Icon(Icons.qr_code_scanner_rounded),
-                label: const Text('Scan Another QR',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 16)),
+                label: const Text(
+                  'Scan Another QR',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -258,11 +295,17 @@ class _QRScannerPageState extends State<QRScannerPage> {
           const SizedBox(width: 12),
           Text(label, style: TextStyle(color: textGrey, fontSize: 13)),
           const Spacer(),
-          Text(value,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
               style: TextStyle(
-                  color: textDark,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14)),
+                color: textDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -305,14 +348,46 @@ class _ScannerOverlayPainter extends CustomPainter {
     const cornerLen = 28.0;
     final r = frameRect;
 
-    canvas.drawLine(r.topLeft, r.topLeft + const Offset(cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.topLeft, r.topLeft + const Offset(0, cornerLen), cornerPaint);
-    canvas.drawLine(r.topRight, r.topRight + const Offset(-cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.topRight, r.topRight + const Offset(0, cornerLen), cornerPaint);
-    canvas.drawLine(r.bottomLeft, r.bottomLeft + const Offset(cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.bottomLeft, r.bottomLeft + const Offset(0, -cornerLen), cornerPaint);
-    canvas.drawLine(r.bottomRight, r.bottomRight + const Offset(-cornerLen, 0), cornerPaint);
-    canvas.drawLine(r.bottomRight, r.bottomRight + const Offset(0, -cornerLen), cornerPaint);
+    canvas.drawLine(
+      r.topLeft,
+      r.topLeft + const Offset(cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.topLeft,
+      r.topLeft + const Offset(0, cornerLen),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.topRight,
+      r.topRight + const Offset(-cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.topRight,
+      r.topRight + const Offset(0, cornerLen),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomLeft,
+      r.bottomLeft + const Offset(cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomLeft,
+      r.bottomLeft + const Offset(0, -cornerLen),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomRight,
+      r.bottomRight + const Offset(-cornerLen, 0),
+      cornerPaint,
+    );
+    canvas.drawLine(
+      r.bottomRight,
+      r.bottomRight + const Offset(0, -cornerLen),
+      cornerPaint,
+    );
   }
 
   @override
