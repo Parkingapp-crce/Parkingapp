@@ -27,11 +27,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<AuthBloc>().add(
-          AuthLoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          ),
-        );
+      AuthLoginRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
   }
 
   @override
@@ -40,6 +40,18 @@ class _LoginScreenState extends State<LoginScreen> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
+            if (state.user.role != 'guard') {
+              context.read<AuthBloc>().add(const AuthLoggedOut());
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'This app can only be used with approved guard accounts.',
+                  ),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
             context.go('/home');
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -61,16 +73,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // App icon
-                    Icon(
-                      Icons.security,
-                      size: 80,
-                      color: AppColors.primary,
-                    ),
+                    Icon(Icons.security, size: 80, color: AppColors.primary),
                     const SizedBox(height: 16),
                     Text(
                       'Guard App',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
@@ -80,8 +89,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Parking Security Scanner',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 48),
 
@@ -143,6 +152,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           icon: Icons.login,
                         );
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => context.go('/apply'),
+                      child: const Text('Apply for guard access'),
                     ),
                   ],
                 ),

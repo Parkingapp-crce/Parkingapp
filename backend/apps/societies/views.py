@@ -45,6 +45,20 @@ class SocietyListCreateView(generics.ListCreateAPIView):
         )
 
 
+class PublicSocietyListView(generics.ListAPIView):
+    serializer_class = SocietySerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return Society.objects.filter(is_active=True).annotate(
+            total_slots=Count("slots", filter=Q(slots__is_active=True)),
+            available_slots=Count(
+                "slots",
+                filter=Q(slots__is_active=True, slots__state="available"),
+            ),
+        )
+
+
 class SocietyDetailView(generics.RetrieveUpdateAPIView):
     def get_serializer_class(self):
         if self.request.method in ("PUT", "PATCH"):

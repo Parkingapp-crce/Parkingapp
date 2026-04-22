@@ -4,6 +4,7 @@ class ApiEndpoints {
   // Auth
   static const login = '/api/v1/auth/login/';
   static const register = '/api/v1/auth/register/';
+  static const guardRegister = '/api/v1/auth/guard/register/';
   static const tokenRefresh = '/api/v1/auth/token/refresh/';
   static const profile = '/api/v1/auth/profile/';
   static const vehicles = '/api/v1/auth/vehicles/';
@@ -11,6 +12,7 @@ class ApiEndpoints {
 
   // Societies
   static const societies = '/api/v1/societies/';
+  static const publicSocieties = '/api/v1/societies/public/';
   static const destinationAutocomplete =
       '/api/v1/societies/destinations/autocomplete/';
   static const destinationReverseGeocode =
@@ -49,6 +51,12 @@ class ApiEndpoints {
 
   // Admin
   static const adminDashboard = '/api/v1/admin/dashboard/';
+  static const societyAdminDashboard = '/api/v1/admin/society/dashboard/';
+  static const societyGuards = '/api/v1/admin/society/guards/';
+  static String societyGuardApprove(String guardId) =>
+      '/api/v1/admin/society/guards/$guardId/approve/';
+  static String societyGuardReject(String guardId) =>
+      '/api/v1/admin/society/guards/$guardId/reject/';
   static String adminSocietyStats(String id) =>
       '/api/v1/admin/societies/$id/stats/';
 }

@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import Vehicle
 from .serializers import (
     CustomTokenObtainPairSerializer,
+    GuardRegistrationSerializer,
     RegisterSerializer,
     UserProfileSerializer,
     VehicleSerializer,
@@ -36,6 +37,23 @@ class RegisterView(generics.CreateAPIView):
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class GuardRegisterView(generics.CreateAPIView):
+    serializer_class = GuardRegistrationSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        guard = serializer.save()
+        return Response(
+            {
+                "message": "Guard access request submitted successfully.",
+                "guard": UserProfileSerializer(guard).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):

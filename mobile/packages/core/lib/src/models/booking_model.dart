@@ -16,6 +16,12 @@ class BookingModel {
   final String? slotNumber;
   @JsonKey(name: 'society_name')
   final String? societyName;
+  @JsonKey(name: 'owner_name')
+  final String? ownerName;
+  @JsonKey(name: 'owner_email')
+  final String? ownerEmail;
+  @JsonKey(name: 'owner_phone')
+  final String? ownerPhone;
   @JsonKey(name: 'start_time')
   final String startTime;
   @JsonKey(name: 'end_time')
@@ -26,6 +32,8 @@ class BookingModel {
   final String? actualExit;
   final String status;
   final String amount;
+  @JsonKey(name: 'payment_status')
+  final String? paymentStatus;
   @JsonKey(name: 'lock_expires_at')
   final String? lockExpiresAt;
   @JsonKey(name: 'created_at')
@@ -39,12 +47,16 @@ class BookingModel {
     required this.slot,
     this.slotNumber,
     this.societyName,
+    this.ownerName,
+    this.ownerEmail,
+    this.ownerPhone,
     required this.startTime,
     required this.endTime,
     this.actualEntry,
     this.actualExit,
     required this.status,
     required this.amount,
+    this.paymentStatus,
     this.lockExpiresAt,
     required this.createdAt,
   });

@@ -1,9 +1,11 @@
 from django.http import HttpResponse
+from django.db.models import Prefetch
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.models import Vehicle
+from apps.accounts.models import User, Vehicle
+from apps.payments.models import Payment
 from utils.qr import generate_qr_image
 
 from .models import Booking
@@ -45,9 +47,21 @@ class BookingListView(generics.ListAPIView):
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        qs = Booking.objects.filter(user=self.request.user).select_related(
-            "vehicle", "slot", "slot__society"
+        qs = Booking.objects.select_related(
+            "user", "vehicle", "slot", "slot__society"
+        ).prefetch_related(
+            Prefetch(
+                "payments",
+                queryset=Payment.objects.order_by("-created_at"),
+                to_attr="prefetched_payments",
+            )
         )
+
+        if self.request.user.role in (User.Role.SOCIETY_ADMIN, User.Role.GUARD):
+            qs = qs.filter(slot__society_id=self.request.user.society_id)
+        else:
+            qs = qs.filter(user=self.request.user)
+
         status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -58,9 +72,18 @@ class BookingDetailView(generics.RetrieveAPIView):
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        return Booking.objects.filter(user=self.request.user).select_related(
-            "vehicle", "slot", "slot__society"
+        qs = Booking.objects.select_related(
+            "user", "vehicle", "slot", "slot__society"
+        ).prefetch_related(
+            Prefetch(
+                "payments",
+                queryset=Payment.objects.order_by("-created_at"),
+                to_attr="prefetched_payments",
+            )
         )
+        if self.request.user.role in (User.Role.SOCIETY_ADMIN, User.Role.GUARD):
+            return qs.filter(slot__society_id=self.request.user.society_id)
+        return qs.filter(user=self.request.user)
 
 
 class BookingCancelView(APIView):

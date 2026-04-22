@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'screens/home_screen.dart';
+import 'screens/guard_application_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/scan_result_screen.dart';
 import 'screens/scan_screen.dart';
@@ -13,28 +14,30 @@ GoRouter createRouter() {
     initialLocation: '/home',
     redirect: (BuildContext context, GoRouterState state) {
       final authState = context.read<AuthBloc>().state;
-      final isAuthenticated = authState is Authenticated;
+      final isAuthenticated =
+          authState is Authenticated &&
+          authState.user.role == 'guard' &&
+          authState.user.society != null;
       final isLoginRoute = state.matchedLocation == '/login';
+      final isApplyRoute = state.matchedLocation == '/apply';
 
-      if (!isAuthenticated && !isLoginRoute) {
+      if (!isAuthenticated && !isLoginRoute && !isApplyRoute) {
         return '/login';
       }
 
-      if (isAuthenticated && isLoginRoute) {
+      if (isAuthenticated && (isLoginRoute || isApplyRoute)) {
         return '/home';
       }
 
       return null;
     },
     routes: [
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        path: '/apply',
+        builder: (context, state) => const GuardApplicationScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const HomeScreen(),
-      ),
+      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(
         path: '/scan/entry',
         builder: (context, state) => const ScanScreen(isEntry: true),

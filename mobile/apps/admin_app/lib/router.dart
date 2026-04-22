@@ -7,12 +7,15 @@ import 'package:core/core.dart';
 
 import 'cubits/slots_cubit.dart';
 import 'cubits/bookings_cubit.dart';
+import 'cubits/dashboard_cubit.dart';
+import 'cubits/guards_cubit.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/slot_list_screen.dart';
 import 'screens/slot_form_screen.dart';
 import 'screens/slot_detail_screen.dart';
 import 'screens/booking_list_screen.dart';
+import 'screens/guards_screen.dart';
 
 GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
   return GoRouter(
@@ -33,10 +36,7 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       ShellRoute(
         builder: (context, state, child) {
           return AdminShell(apiClient: apiClient, child: child);
@@ -76,6 +76,10 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
             path: '/bookings',
             builder: (context, state) => const BookingListScreen(),
           ),
+          GoRoute(
+            path: '/guards',
+            builder: (context, state) => const GuardsScreen(),
+          ),
         ],
       ),
     ],
@@ -86,36 +90,35 @@ class AdminShell extends StatefulWidget {
   final ApiClient apiClient;
   final Widget child;
 
-  const AdminShell({
-    super.key,
-    required this.apiClient,
-    required this.child,
-  });
+  const AdminShell({super.key, required this.apiClient, required this.child});
 
   @override
   State<AdminShell> createState() => _AdminShellState();
 }
 
 class _AdminShellState extends State<AdminShell> {
-  int _currentIndex = 0;
-
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    final currentIndex = switch (location) {
+      final path when path.startsWith('/slots') => 1,
+      final path when path.startsWith('/bookings') => 2,
+      final path when path.startsWith('/guards') => 3,
+      _ => 0,
+    };
+
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: (_) => SlotsCubit(widget.apiClient),
-        ),
-        BlocProvider(
-          create: (_) => BookingsCubit(widget.apiClient),
-        ),
+        BlocProvider(create: (_) => SlotsCubit(widget.apiClient)),
+        BlocProvider(create: (_) => BookingsCubit(widget.apiClient)),
+        BlocProvider(create: (_) => DashboardCubit(widget.apiClient)),
+        BlocProvider(create: (_) => GuardsCubit(widget.apiClient)),
       ],
       child: Scaffold(
         body: widget.child,
         bottomNavigationBar: NavigationBar(
-          selectedIndex: _currentIndex,
+          selectedIndex: currentIndex,
           onDestinationSelected: (index) {
-            setState(() => _currentIndex = index);
             switch (index) {
               case 0:
                 context.go('/dashboard');
@@ -123,6 +126,8 @@ class _AdminShellState extends State<AdminShell> {
                 context.go('/slots');
               case 2:
                 context.go('/bookings');
+              case 3:
+                context.go('/guards');
             }
           },
           destinations: const [
@@ -140,6 +145,11 @@ class _AdminShellState extends State<AdminShell> {
               icon: Icon(Icons.book_online_outlined),
               selectedIcon: Icon(Icons.book_online),
               label: 'Bookings',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.security_outlined),
+              selectedIcon: Icon(Icons.security),
+              label: 'Guards',
             ),
           ],
         ),

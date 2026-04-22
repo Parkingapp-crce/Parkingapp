@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("", views.SocietyListCreateView.as_view(), name="society-list-create"),
+    path("public/", views.PublicSocietyListView.as_view(), name="society-public-list"),
     path(
         "destinations/autocomplete/",
         views.DestinationAutocompleteView.as_view(),

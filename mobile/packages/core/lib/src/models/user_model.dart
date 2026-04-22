@@ -10,7 +10,15 @@ class UserModel {
   @JsonKey(name: 'full_name')
   final String fullName;
   final String role;
+  @JsonKey(name: 'approval_status')
+  final String approvalStatus;
+  @JsonKey(name: 'approval_notes')
+  final String approvalNotes;
+  @JsonKey(name: 'approved_at')
+  final String? approvedAt;
   final String? society;
+  @JsonKey(name: 'society_name')
+  final String? societyName;
   @JsonKey(name: 'created_at')
   final String createdAt;
 
@@ -20,7 +28,11 @@ class UserModel {
     required this.phone,
     required this.fullName,
     required this.role,
+    this.approvalStatus = 'approved',
+    this.approvalNotes = '',
+    this.approvedAt,
     this.society,
+    this.societyName,
     required this.createdAt,
   });
 
@@ -28,4 +40,8 @@ class UserModel {
       _$UserModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
+
+  bool get isApproved => approvalStatus == 'approved';
+  bool get isPendingApproval => approvalStatus == 'pending';
+  bool get isRejected => approvalStatus == 'rejected';
 }

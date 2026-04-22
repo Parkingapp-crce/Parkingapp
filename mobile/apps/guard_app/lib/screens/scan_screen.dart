@@ -76,23 +76,29 @@ class _ScanScreenState extends State<ScanScreen> {
       bloc: _scanCubit,
       listener: (context, state) {
         if (state is ScanSuccess) {
-          context.push('/result', extra: {
-            'isSuccess': true,
-            'data': state.data,
-            'errorMessage': null,
-            'isEntry': widget.isEntry,
-          });
+          context.push(
+            '/result',
+            extra: {
+              'isSuccess': true,
+              'data': state.data,
+              'errorMessage': null,
+              'isEntry': widget.isEntry,
+            },
+          );
           // Reset scanner when coming back
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) _resetScanner();
           });
         } else if (state is ScanError) {
-          context.push('/result', extra: {
-            'isSuccess': false,
-            'data': null,
-            'errorMessage': state.message,
-            'isEntry': widget.isEntry,
-          });
+          context.push(
+            '/result',
+            extra: {
+              'isSuccess': false,
+              'data': null,
+              'errorMessage': state.message,
+              'isEntry': widget.isEntry,
+            },
+          );
           Future.delayed(const Duration(milliseconds: 500), () {
             if (mounted) _resetScanner();
           });
@@ -125,10 +131,7 @@ class _ScanScreenState extends State<ScanScreen> {
         body: Stack(
           children: [
             // Camera preview
-            MobileScanner(
-              controller: _scannerController,
-              onDetect: _onDetect,
-            ),
+            MobileScanner(controller: _scannerController, onDetect: _onDetect),
 
             // Scan overlay
             _ScanOverlay(scanType: scanType),
@@ -187,19 +190,12 @@ class _ScanOverlay extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black.withOpacity(0.7),
-              ],
+              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
             ),
           ),
           child: Column(
             children: [
-              const Icon(
-                Icons.qr_code_scanner,
-                color: Colors.white,
-                size: 32,
-              ),
+              const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
               const SizedBox(height: 8),
               Text(
                 'Point camera at $scanType QR code',

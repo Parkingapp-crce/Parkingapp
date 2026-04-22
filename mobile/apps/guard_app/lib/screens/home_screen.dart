@@ -60,11 +60,11 @@ class HomeScreen extends StatelessWidget {
                         : 'Guard';
                     return Text(
                       'Welcome, $name',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                     );
                   },
                 ),
@@ -72,8 +72,8 @@ class HomeScreen extends StatelessWidget {
                 Text(
                   'Select a scan mode to begin',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 48),
 
@@ -129,9 +129,7 @@ class _ScanOptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -143,30 +141,26 @@ class _ScanOptionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  size: 48,
-                  color: color,
-                ),
+                child: Icon(icon, size: 48, color: color),
               ),
               const SizedBox(height: 20),
               Text(
                 title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),

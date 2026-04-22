@@ -13,11 +13,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         GUARD = "guard", "Guard"
         SUPER_ADMIN = "super_admin", "Super Admin"
 
+    class ApprovalStatus(models.TextChoices):
+        APPROVED = "approved", "Approved"
+        PENDING = "pending", "Pending"
+        REJECTED = "rejected", "Rejected"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, unique=True)
     full_name = models.CharField(max_length=150)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.APPROVED,
+    )
+    approval_notes = models.CharField(max_length=255, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
     society = models.ForeignKey(
         "societies.Society",
         null=True,

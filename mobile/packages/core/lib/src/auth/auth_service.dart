@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/society_model.dart';
 import '../models/user_model.dart';
 import '../network/api_endpoints.dart';
 
@@ -32,6 +33,42 @@ class AuthService {
         'phone': phone,
         'full_name': fullName,
         'password': password,
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<List<SocietyModel>> getPublicSocieties() async {
+    final response = await _dio.get(ApiEndpoints.publicSocieties);
+    final data = response.data;
+    if (data is List) {
+      return data
+          .map((item) => SocietyModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    if (data is Map<String, dynamic> && data['results'] is List) {
+      return (data['results'] as List)
+          .map((item) => SocietyModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    }
+    return const [];
+  }
+
+  Future<Map<String, dynamic>> applyForGuardAccess({
+    required String email,
+    required String phone,
+    required String fullName,
+    required String password,
+    required String societyId,
+  }) async {
+    final response = await _dio.post(
+      ApiEndpoints.guardRegister,
+      data: {
+        'email': email,
+        'phone': phone,
+        'full_name': fullName,
+        'password': password,
+        'society_id': societyId,
       },
     );
     return response.data as Map<String, dynamic>;

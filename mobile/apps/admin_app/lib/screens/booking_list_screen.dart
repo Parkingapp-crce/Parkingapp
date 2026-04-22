@@ -22,8 +22,8 @@ class _BookingListScreenState extends State<BookingListScreen> {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       context.read<BookingsCubit>().loadBookings(
-            societyId: authState.user.society,
-          );
+        societyId: authState.user.society,
+      );
     }
   }
 
@@ -59,10 +59,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
       appBar: AppBar(
         title: const Text('Bookings'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadBookings,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadBookings),
         ],
       ),
       body: BlocBuilder<BookingsCubit, BookingsState>(
@@ -118,14 +115,16 @@ class _BookingListScreenState extends State<BookingListScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.1),
+                                color: statusColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: statusColor.withOpacity(0.3),
+                                  color: statusColor.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Text(
-                                booking.status.replaceAll('_', ' ').toUpperCase(),
+                                booking.status
+                                    .replaceAll('_', ' ')
+                                    .toUpperCase(),
                                 style: TextStyle(
                                   color: statusColor,
                                   fontSize: 11,
@@ -142,6 +141,16 @@ class _BookingListScreenState extends State<BookingListScreen> {
                             text:
                                 '${booking.vehicle!.registrationNo} (${booking.vehicle!.vehicleType})',
                           ),
+                        if (booking.ownerName != null)
+                          _BookingInfoRow(
+                            icon: Icons.person_outline,
+                            text: 'Owner: ${booking.ownerName}',
+                          ),
+                        if (booking.ownerPhone != null)
+                          _BookingInfoRow(
+                            icon: Icons.phone_outlined,
+                            text: 'Phone: ${booking.ownerPhone}',
+                          ),
                         if (booking.slotNumber != null)
                           _BookingInfoRow(
                             icon: Icons.local_parking,
@@ -154,8 +163,21 @@ class _BookingListScreenState extends State<BookingListScreen> {
                         ),
                         _BookingInfoRow(
                           icon: Icons.currency_rupee,
-                          text: '\u20B9${booking.amount}',
+                          text:
+                              '\u20B9${booking.amount} (${(booking.paymentStatus ?? "unknown").replaceAll('_', ' ')})',
                         ),
+                        if (booking.actualEntry != null)
+                          _BookingInfoRow(
+                            icon: Icons.login,
+                            text:
+                                'Entry: ${_formatDateTime(booking.actualEntry!)}',
+                          ),
+                        if (booking.actualExit != null)
+                          _BookingInfoRow(
+                            icon: Icons.logout,
+                            text:
+                                'Exit: ${_formatDateTime(booking.actualExit!)}',
+                          ),
                       ],
                     ),
                   ),
@@ -186,10 +208,7 @@ class _BookingInfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
           ),
         ],

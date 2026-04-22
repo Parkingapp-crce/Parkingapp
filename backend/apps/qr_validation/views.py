@@ -14,7 +14,7 @@ class EntryValidationView(APIView):
         serializer = QRScanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        result = validate_entry(serializer.validated_data["qr_token"])
+        result = validate_entry(serializer.validated_data["qr_token"], request.user)
         return Response(result)
 
 
@@ -25,5 +25,5 @@ class ExitValidationView(APIView):
         serializer = QRScanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        result = validate_exit(serializer.validated_data["qr_token"])
+        result = validate_exit(serializer.validated_data["qr_token"], request.user)
         return Response(result)

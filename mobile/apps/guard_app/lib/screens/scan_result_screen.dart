@@ -37,7 +37,7 @@ class ScanResultScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: (isSuccess ? AppColors.success : AppColors.error)
-                      .withOpacity(0.1),
+                      .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -52,9 +52,9 @@ class ScanResultScreen extends StatelessWidget {
               Text(
                 isSuccess ? '$scanType Approved' : '$scanType Denied',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isSuccess ? AppColors.success : AppColors.error,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: isSuccess ? AppColors.success : AppColors.error,
+                ),
               ),
               const SizedBox(height: 32),
 
@@ -123,18 +123,18 @@ class _SuccessDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bookingNumber = data['booking_number']?.toString() ?? '-';
-    final vehicleNumber = data['vehicle_number']?.toString() ??
-        data['vehicle']?.toString() ??
-        '-';
-    final slotLabel =
-        data['slot_label']?.toString() ?? data['slot']?.toString() ?? '-';
-    final time = data['time']?.toString() ??
-        data['entry_time']?.toString() ??
-        data['exit_time']?.toString() ??
-        '-';
-    final penaltyAmount = data['penalty_amount']?.toString();
-    final hasPenalty =
-        penaltyAmount != null && penaltyAmount != '0' && penaltyAmount != '0.0';
+    final vehicleNumber = data['vehicle_number']?.toString() ?? '-';
+    final slotLabel = data['slot_number']?.toString() ?? '-';
+    final ownerName = data['owner_name']?.toString() ?? '-';
+    final ownerPhone = data['owner_phone']?.toString() ?? '-';
+    final ownerEmail = data['owner_email']?.toString() ?? '-';
+    final paymentStatus = data['payment_status']?.toString() ?? '-';
+    final entryTime = data['entry_time']?.toString();
+    final exitTime = data['exit_time']?.toString();
+    final processedAt = data['processed_at']?.toString() ?? '-';
+    final penaltyMap = data['penalty'] as Map<String, dynamic>?;
+    final penaltyAmount = penaltyMap?['amount']?.toString();
+    final hasPenalty = penaltyAmount != null && penaltyAmount != '0';
 
     return Container(
       width: double.infinity,
@@ -150,9 +150,27 @@ class _SuccessDetails extends StatelessWidget {
           const Divider(height: 24),
           _DetailRow(label: 'Vehicle', value: vehicleNumber),
           const Divider(height: 24),
+          _DetailRow(label: 'Owner', value: ownerName),
+          const Divider(height: 24),
+          _DetailRow(label: 'Phone', value: ownerPhone),
+          const Divider(height: 24),
+          _DetailRow(label: 'Email', value: ownerEmail),
+          const Divider(height: 24),
           _DetailRow(label: 'Slot', value: slotLabel),
           const Divider(height: 24),
-          _DetailRow(label: 'Time', value: time),
+          _DetailRow(
+            label: 'Payment',
+            value: paymentStatus.replaceAll('_', ' '),
+          ),
+          const Divider(height: 24),
+          _DetailRow(
+            label: isEntry ? 'Entry Time' : 'Exit Time',
+            value: (isEntry ? entryTime : exitTime) ?? processedAt,
+          ),
+          if (!isEntry && entryTime != null) ...[
+            const Divider(height: 24),
+            _DetailRow(label: 'Recorded Entry', value: entryTime),
+          ],
           if (hasPenalty && !isEntry) ...[
             const Divider(height: 24),
             _DetailRow(
@@ -178,25 +196,21 @@ class _ErrorDetails extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.05),
+        color: AppColors.error.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.info_outline,
-            color: AppColors.error,
-            size: 28,
-          ),
+          const Icon(Icons.info_outline, color: AppColors.error, size: 28),
           const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.w500,
-                ),
+              color: AppColors.error,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -209,11 +223,7 @@ class _DetailRow extends StatelessWidget {
   final String value;
   final Color? valueColor;
 
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
+  const _DetailRow({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -222,18 +232,18 @@ class _DetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
         ),
         Flexible(
           child: Text(
             value,
             textAlign: TextAlign.end,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColors.textPrimary,
-                ),
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? AppColors.textPrimary,
+            ),
           ),
         ),
       ],
