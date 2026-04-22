@@ -63,8 +63,14 @@ def calculate_overstay_penalty(booking, checkout_at):
 
     extra_seconds = (checkout_at - booking.end_time).total_seconds()
     overstay_minutes = max(1, math.ceil(extra_seconds / 60))
-    extra_hours = Decimal((overstay_minutes + 59) // 60)
-    penalty_amount = quantize_money(booking.parking_lot.price_per_hour * extra_hours)
+    extra_hours = (overstay_minutes + 59) // 60
+    penalty_multiplier = sum(
+        Decimal(hour_index * 5) / Decimal('100')
+        for hour_index in range(1, extra_hours + 1)
+    )
+    penalty_amount = quantize_money(
+        booking.parking_lot.price_per_hour * penalty_multiplier
+    )
     return overstay_minutes, penalty_amount
 
 
@@ -262,7 +268,7 @@ class AdminDashboardView(APIView):
             },
             'penalty_policy': {
                 'enabled': True,
-                'rule': 'Overstay is charged at one extra hourly rate for every started extra hour.',
+                'rule': 'Overstay is charged on the hourly rate: 5% for the first extra hour, 10% for the second, 15% for the third, and so on.',
                 'exit_scan_required': True,
             },
             'parking_lots': build_lot_summaries(bookings, lots, month_start, now),
