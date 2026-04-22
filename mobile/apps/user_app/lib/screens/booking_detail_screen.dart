@@ -1,8 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:core/core.dart';
 
@@ -58,7 +59,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment failed: ${response.message ?? "Unknown error"}'),
+          content: Text(
+            'Payment failed: ${response.message ?? "Unknown error"}',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -106,12 +109,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => BookingDetailCubit(GetIt.instance<ApiClient>())
-        ..loadBooking(widget.bookingId),
+      create: (_) =>
+          BookingDetailCubit(GetIt.instance<ApiClient>())
+            ..loadBooking(widget.bookingId),
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Booking Details'),
-        ),
+        appBar: AppBar(title: const Text('Booking Details')),
         body: BlocBuilder<BookingDetailCubit, BookingDetailState>(
           builder: (context, state) {
             if (state.isLoading) {
@@ -121,9 +123,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             if (state.error != null && state.booking == null) {
               return AppErrorWidget(
                 message: state.error!,
-                onRetry: () => context
-                    .read<BookingDetailCubit>()
-                    .loadBooking(widget.bookingId),
+                onRetry: () => context.read<BookingDetailCubit>().loadBooking(
+                  widget.bookingId,
+                ),
               );
             }
 
@@ -133,9 +135,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             }
 
             return RefreshIndicator(
-              onRefresh: () => context
-                  .read<BookingDetailCubit>()
-                  .loadBooking(widget.bookingId),
+              onRefresh: () => context.read<BookingDetailCubit>().loadBooking(
+                widget.bookingId,
+              ),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -144,7 +146,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   children: [
                     _StatusHeader(booking: booking),
                     const SizedBox(height: 16),
-                    _QrSection(booking: booking),
+                    _QrSection(
+                      booking: booking,
+                      qrImageBytes: state.qrImageBytes,
+                      isLoadingQr: state.isLoadingQr,
+                    ),
                     const SizedBox(height: 16),
                     _BookingInfoCard(booking: booking),
                     const SizedBox(height: 16),
@@ -226,13 +232,15 @@ class _StatusHeader extends StatelessWidget {
                   Text(
                     '#${booking.bookingNumber}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _statusColor(booking.status),
                       borderRadius: BorderRadius.circular(12),
@@ -252,9 +260,9 @@ class _StatusHeader extends StatelessWidget {
             Text(
               '\u20B9${booking.amount}',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
           ],
         ),
@@ -282,12 +290,21 @@ class _StatusHeader extends StatelessWidget {
 
 class _QrSection extends StatelessWidget {
   final BookingModel booking;
+  final Uint8List? qrImageBytes;
+  final bool isLoadingQr;
 
-  const _QrSection({required this.booking});
+  const _QrSection({
+    required this.booking,
+    required this.qrImageBytes,
+    required this.isLoadingQr,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (booking.status == 'cancelled') return const SizedBox.shrink();
+    final canShowQr = booking.isConfirmed || booking.isActive;
+    if (!canShowQr) {
+      return const SizedBox.shrink();
+    }
 
     return Card(
       child: Padding(
@@ -296,32 +313,60 @@ class _QrSection extends StatelessWidget {
           children: [
             Text(
               'Scan at Entry/Exit',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            QrImageView(
-              data: booking.bookingNumber,
-              version: QrVersions.auto,
-              size: 200,
-              backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: AppColors.textPrimary,
+            if (isLoadingQr)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: CircularProgressIndicator(),
+              )
+            else if (qrImageBytes != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.memory(
+                  qrImageBytes!,
+                  width: 220,
+                  height: 220,
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                ),
+              )
+            else
+              Container(
+                width: 220,
+                height: 220,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'QR is unavailable right now. Pull to refresh and try again.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color: AppColors.textPrimary,
-              ),
-            ),
             const SizedBox(height: 12),
             Text(
               booking.bookingNumber,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.5,
-                  ),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This QR is generated by the server and matches the guard scanner validation.',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -345,9 +390,9 @@ class _BookingInfoCard extends StatelessWidget {
           children: [
             Text(
               'Booking Information',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             if (booking.societyName != null)
@@ -402,9 +447,9 @@ class _TimeCard extends StatelessWidget {
           children: [
             Text(
               'Schedule',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             if (startDt != null)
@@ -461,9 +506,9 @@ class _VehicleCard extends StatelessWidget {
           children: [
             Text(
               'Vehicle',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             _DetailTile(
@@ -512,16 +557,16 @@ class _DetailTile extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             '$label: ',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -543,8 +588,7 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canCancel =
-        booking.isPendingPayment || booking.isConfirmed;
+    final canCancel = booking.isPendingPayment || booking.isConfirmed;
     final canPay = booking.isPendingPayment;
 
     if (!canCancel && !canPay) return const SizedBox.shrink();
@@ -605,9 +649,7 @@ class _ActionButtons extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              context
-                  .read<BookingDetailCubit>()
-                  .cancelBooking(booking.id);
+              context.read<BookingDetailCubit>().cancelBooking(booking.id);
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Yes, Cancel'),

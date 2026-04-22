@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:core/core.dart';
 
@@ -64,6 +67,8 @@ class BookingsCubit extends Cubit<BookingsState> {
 class BookingDetailState {
   final bool isLoading;
   final BookingModel? booking;
+  final Uint8List? qrImageBytes;
+  final bool isLoadingQr;
   final String? error;
   final bool isCancelling;
   final bool isInitiatingPayment;
@@ -71,6 +76,8 @@ class BookingDetailState {
   const BookingDetailState({
     this.isLoading = false,
     this.booking,
+    this.qrImageBytes,
+    this.isLoadingQr = false,
     this.error,
     this.isCancelling = false,
     this.isInitiatingPayment = false,
@@ -79,13 +86,18 @@ class BookingDetailState {
   BookingDetailState copyWith({
     bool? isLoading,
     BookingModel? booking,
+    Uint8List? qrImageBytes,
+    bool? isLoadingQr,
     String? error,
     bool? isCancelling,
     bool? isInitiatingPayment,
+    bool clearQrImage = false,
   }) {
     return BookingDetailState(
       isLoading: isLoading ?? this.isLoading,
       booking: booking ?? this.booking,
+      qrImageBytes: clearQrImage ? null : (qrImageBytes ?? this.qrImageBytes),
+      isLoadingQr: isLoadingQr ?? this.isLoadingQr,
       error: error,
       isCancelling: isCancelling ?? this.isCancelling,
       isInitiatingPayment: isInitiatingPayment ?? this.isInitiatingPayment,
@@ -99,17 +111,65 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
   BookingDetailCubit(this._apiClient) : super(const BookingDetailState());
 
   Future<void> loadBooking(String id) async {
-    emit(state.copyWith(isLoading: true, error: null));
+    emit(
+      state.copyWith(
+        isLoading: true,
+        error: null,
+        isLoadingQr: false,
+        clearQrImage: true,
+      ),
+    );
     try {
       final response = await _apiClient.get(ApiEndpoints.booking(id));
       final booking = BookingModel.fromJson(
         response.data as Map<String, dynamic>,
       );
-      emit(state.copyWith(isLoading: false, booking: booking));
+
+      emit(state.copyWith(isLoading: false, booking: booking, error: null));
+
+      if (booking.isConfirmed || booking.isActive) {
+        await loadBookingQr(id);
+      } else {
+        emit(state.copyWith(isLoadingQr: false, clearQrImage: true));
+      }
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
+    }
+  }
+
+  Future<void> loadBookingQr(String id) async {
+    emit(state.copyWith(isLoadingQr: true, error: null));
+    try {
+      final response = await _apiClient.dio.get<List<int>>(
+        ApiEndpoints.bookingQr(id),
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final data = response.data;
+      emit(
+        state.copyWith(
+          isLoadingQr: false,
+          qrImageBytes: data == null ? null : Uint8List.fromList(data),
+        ),
+      );
+    } on ApiException catch (e) {
+      emit(
+        state.copyWith(
+          isLoadingQr: false,
+          error: e.message,
+          clearQrImage: true,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoadingQr: false,
+          error: e.toString(),
+          clearQrImage: true,
+        ),
+      );
     }
   }
 
