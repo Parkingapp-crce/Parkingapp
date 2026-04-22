@@ -23,7 +23,6 @@ void _setupDependencies() {
   // We need a late-initialized AuthBloc for DioFactory, so we create Dio manually
   // and then register AuthBloc with it.
 
-  // Create a placeholder AuthBloc first, then wire Dio
   // Using a factory approach to break the circular dependency:
 
   // 1. Create a bare Dio for AuthService (login doesn't need auth interceptor initially)
@@ -62,6 +61,9 @@ void _setupDependencies() {
   getIt.registerLazySingleton<ApiClient>(
     () => ApiClient(getIt<Dio>()),
   );
+
+  // ✅ Wire ApiClient into AuthBloc so profile requests use the authenticated Dio
+  getIt<AuthBloc>().setApiClient(getIt<ApiClient>());
 }
 
 void main() {
