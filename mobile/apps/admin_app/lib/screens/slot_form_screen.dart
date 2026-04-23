@@ -190,7 +190,7 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
                 ),
                 items: const [
                   DropdownMenuItem(value: 'society', child: Text('Society')),
-                  DropdownMenuItem(value: 'private', child: Text('Private')),
+                  DropdownMenuItem(value: 'resident', child: Text('Resident')),
                 ],
                 onChanged: (value) {
                   if (value != null) setState(() => _ownershipType = value);

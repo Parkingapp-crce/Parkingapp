@@ -10,7 +10,9 @@ class SocietyModel {
   final String city;
   final String state;
   final String pincode;
+  @JsonKey(fromJson: _toDouble)
   final double? latitude;
+  @JsonKey(fromJson: _toDouble)
   final double? longitude;
   @JsonKey(name: 'contact_email')
   final String contactEmail;
@@ -46,4 +48,11 @@ class SocietyModel {
       _$SocietyModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$SocietyModelToJson(this);
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 }

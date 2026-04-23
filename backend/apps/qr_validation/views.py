@@ -1,14 +1,14 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsGuard
+from apps.accounts.permissions import CanScanEntry, CanScanExit
 
 from .serializers import QRScanSerializer
 from .services import validate_entry, validate_exit
 
 
 class EntryValidationView(APIView):
-    permission_classes = [IsGuard]
+    permission_classes = [CanScanEntry]
 
     def post(self, request):
         serializer = QRScanSerializer(data=request.data)
@@ -19,7 +19,7 @@ class EntryValidationView(APIView):
 
 
 class ExitValidationView(APIView):
-    permission_classes = [IsGuard]
+    permission_classes = [CanScanExit]
 
     def post(self, request):
         serializer = QRScanSerializer(data=request.data)

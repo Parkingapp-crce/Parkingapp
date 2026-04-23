@@ -19,6 +19,11 @@ class HomeScreen extends StatelessWidget {
           title: const Text('Guard Scanner'),
           actions: [
             IconButton(
+              icon: const Icon(Icons.notifications_none),
+              tooltip: 'Notifications',
+              onPressed: () => context.push('/notifications'),
+            ),
+            IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Logout',
               onPressed: () {
@@ -77,29 +82,58 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
 
-                // Scan Entry Card
-                Expanded(
-                  child: _ScanOptionCard(
-                    title: 'Scan Entry',
-                    subtitle: 'Validate vehicle entering the parking area',
-                    icon: Icons.login_rounded,
-                    color: AppColors.success,
-                    onTap: () => context.push('/scan/entry'),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                Builder(
+                  builder: (context) {
+                    final authState = context.watch<AuthBloc>().state;
+                    final canScanEntry = authState is Authenticated
+                        ? authState.user.canScanEntry
+                        : false;
+                    final canScanExit = authState is Authenticated
+                        ? authState.user.canScanExit
+                        : false;
 
-                // Scan Exit Card
-                Expanded(
-                  child: _ScanOptionCard(
-                    title: 'Scan Exit',
-                    subtitle: 'Validate vehicle leaving the parking area',
-                    icon: Icons.logout_rounded,
-                    color: AppColors.primary,
-                    onTap: () => context.push('/scan/exit'),
-                  ),
-                ),
+                    if (!canScanEntry && !canScanExit) {
+                      return Expanded(
+                        child: Center(
+                          child: Text(
+                            'Your scan access is currently disabled. Contact your admin.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      );
+                    }
 
+                    return Expanded(
+                      child: Column(
+                        children: [
+                          if (canScanEntry) ...[
+                            Expanded(
+                              child: _ScanOptionCard(
+                                title: 'Scan Entry',
+                                subtitle: 'Validate vehicle entering the parking area',
+                                icon: Icons.login_rounded,
+                                color: AppColors.success,
+                                onTap: () => context.push('/scan/entry'),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                          if (canScanExit)
+                            Expanded(
+                              child: _ScanOptionCard(
+                                title: 'Scan Exit',
+                                subtitle: 'Validate vehicle leaving the parking area',
+                                icon: Icons.logout_rounded,
+                                color: AppColors.primary,
+                                onTap: () => context.push('/scan/exit'),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
                 const SizedBox(height: 24),
               ],
             ),

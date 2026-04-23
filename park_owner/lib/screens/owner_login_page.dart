@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:core/core.dart';
 import '../services/api_service.dart';
 import 'owner_dashboard.dart';
 import '../screens/owner_register_page.dart';
@@ -24,15 +25,16 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
       final response = await ApiService.loginUser(
           emailController.text.trim(), passwordController.text.trim());
 
-      if (response['tokens'] != null) {
-        final role = response['user']?['role'] ?? 'customer';
-        if (role != 'owner') {
-          setState(() { _error = 'This account is not an owner account.'; _loading = false; });
+      if (response['access'] != null || response['tokens'] != null) {
+        final access = response['access'] ?? response['tokens']['access'];
+        final role = response['user']?['role'] ?? 'user';
+        if (role != 'user') {
+          setState(() { _error = 'This account is not a user account.'; _loading = false; });
           return;
         }
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', response['tokens']['access']);
-        await prefs.setString('role', 'owner');
+        await prefs.setString('token', access);
+        await prefs.setString('role', 'user');
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(context,
             MaterialPageRoute(builder: (_) => const OwnerDashboard()),
@@ -48,122 +50,93 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFF7C4DFF).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.3)),
-              ),
-              child: const Icon(Icons.business_rounded, color: Color(0xFF7C4DFF), size: 26),
-            ),
-            const SizedBox(height: 20),
-            const Text('Owner Login',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800,
-                    color: Colors.white, letterSpacing: -1)),
-            const SizedBox(height: 8),
-            Text('Manage your parking lot',
-                style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.4))),
-            const SizedBox(height: 40),
-            if (_error != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
-                ),
-                child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-              ),
-            _buildField('Email', emailController, false),
-            const SizedBox(height: 16),
-            _buildField('Password', passwordController, _obscure, isPassword: true),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C4DFF),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Login', style: TextStyle(fontSize: 16,
-                        fontWeight: FontWeight.w700, color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("Don't have an account? ",
-                    style: TextStyle(color: Colors.white.withOpacity(0.4))),
-                GestureDetector(
-                  onTap: () => Navigator.push(context,
+                Icon(
+                  Icons.business_rounded,
+                  size: 80,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Owner Login',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Manage your parking lot',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 40),
+                if (_error != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    ),
+                    child: Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                  ),
+                AppTextField(
+                  controller: emailController,
+                  label: 'Email',
+                  hint: 'Enter your email',
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  controller: passwordController,
+                  label: 'Password',
+                  hint: 'Enter your password',
+                  prefixIcon: Icons.lock_outlined,
+                  obscureText: _obscure,
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscure = !_obscure);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  label: 'Sign In',
+                  onPressed: _login,
+                  isLoading: _loading,
+                  icon: Icons.login,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const OwnerRegisterPage())),
-                  child: const Text('Register',
-                      style: TextStyle(color: Color(0xFF7C4DFF), fontWeight: FontWeight.w700)),
+                    child: const Text('New Owner? Create Account'),
+                  ),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField(String label, TextEditingController ctrl, bool obscure,
-      {bool isPassword = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5),
-            fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: ctrl,
-          obscureText: obscure,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFF141414),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF7C4DFF))),
-            suffixIcon: isPassword
-                ? IconButton(
-                    icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.white38),
-                    onPressed: () => setState(() => _obscure = !_obscure))
-                : null,
           ),
         ),
-      ],
+      ),
     );
   }
 }

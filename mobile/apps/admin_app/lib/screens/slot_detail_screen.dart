@@ -127,6 +127,20 @@ class SlotDetailScreen extends StatelessWidget {
                         label: 'Ownership',
                         value: slot.ownershipType.toUpperCase(),
                       ),
+                      if (slot.ownerName != null && slot.ownerName!.isNotEmpty)
+                        _DetailRow(
+                          label: 'Owner Name',
+                          value: slot.ownerName!,
+                        ),
+                      _DetailRow(
+                        label: 'Approval',
+                        value: slot.approvalStatus.toUpperCase(),
+                      ),
+                      if (slot.approvalNotes.isNotEmpty)
+                        _DetailRow(
+                          label: 'Admin Notes',
+                          value: slot.approvalNotes,
+                        ),
                       _DetailRow(
                         label: 'Active',
                         value: slot.isActive ? 'Yes' : 'No',
@@ -136,6 +150,64 @@ class SlotDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Approval actions
+              if (slot.isPendingApproval) ...[
+                PrimaryButton(
+                  label: 'Approve Slot',
+                  icon: Icons.check_circle_outline,
+                  onPressed: () async {
+                    final societyId = _getSocietyId(context);
+                    if (societyId == null) return;
+                    await context.read<SlotsCubit>().decideSlotApproval(
+                          societyId,
+                          slotId,
+                          approve: true,
+                        );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Slot approved'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final societyId = _getSocietyId(context);
+                      if (societyId == null) return;
+                      await context.read<SlotsCubit>().decideSlotApproval(
+                            societyId,
+                            slotId,
+                            approve: false,
+                          );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Slot rejected'),
+                            backgroundColor: AppColors.warning,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.close, color: AppColors.error),
+                    label: const Text(
+                      'Reject Slot',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Block/Unblock button
               if (slot.isBlocked)

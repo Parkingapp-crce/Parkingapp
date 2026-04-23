@@ -56,6 +56,9 @@ def create_booking(user, slot_id, vehicle, start_time, end_time):
         if slot.state == ParkingSlot.SlotState.BLOCKED:
             raise ValidationError("Slot is currently blocked.")
 
+        if slot.approval_status != ParkingSlot.ApprovalStatus.APPROVED:
+            raise ValidationError("Slot is not approved for booking yet.")
+
         # Validate vehicle type matches slot type
         if vehicle.vehicle_type != slot.slot_type:
             raise ValidationError(

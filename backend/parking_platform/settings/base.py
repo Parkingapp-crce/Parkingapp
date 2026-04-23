@@ -120,6 +120,7 @@ SIMPLE_JWT = {
 
 # QR Code signing
 QR_SIGNING_SECRET = env("QR_SIGNING_SECRET", default="qr-signing-secret-change-me")
+MAPTILER_API_KEY = env("MAPTILER_API_KEY", default="")
 
 # Razorpay
 RAZORPAY_KEY_ID = env("RAZORPAY_KEY_ID", default="")

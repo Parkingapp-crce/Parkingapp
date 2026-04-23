@@ -34,25 +34,7 @@ class _VehiclesContent extends StatelessWidget {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: BlocConsumer<VehiclesCubit, VehiclesState>(
-        listener: (context, state) {
-          if (state.addSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Vehicle added successfully!'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-          }
-          if (state.error != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error!),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        },
+      body: BlocBuilder<VehiclesCubit, VehiclesState>(
         builder: (context, state) {
           if (state.isLoading) {
             return const LoadingWidget(message: 'Loading vehicles...');
@@ -83,105 +65,149 @@ class _VehiclesContent extends StatelessWidget {
   }
 
   void _showAddVehicleDialog(BuildContext context) {
-    final regController = TextEditingController();
-    final makeController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    String selectedType = 'car';
-
-    showModalBottomSheet(
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (sheetContext, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                24,
-                24,
-                24,
-                24 + MediaQuery.of(sheetContext).viewInsets.bottom,
-              ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Add Vehicle',
-                      style: Theme.of(sheetContext)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedType,
-                      decoration: const InputDecoration(
-                        labelText: 'Vehicle Type',
-                        prefixIcon: Icon(Icons.category),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'car', child: Text('Car')),
-                        DropdownMenuItem(value: 'bike', child: Text('Bike')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setSheetState(() => selectedType = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: regController,
-                      label: 'Registration Number',
-                      hint: 'e.g., MH01AB1234',
-                      prefixIcon: Icons.confirmation_number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Registration number is required';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: makeController,
-                      label: 'Make & Model',
-                      hint: 'e.g., Honda City',
-                      prefixIcon: Icons.info_outline,
-                    ),
-                    const SizedBox(height: 24),
-                    BlocBuilder<VehiclesCubit, VehiclesState>(
-                      builder: (_, vState) {
-                        return PrimaryButton(
-                          label: 'Add Vehicle',
-                          isLoading: vState.isAdding,
-                          onPressed: () {
-                            if (!formKey.currentState!.validate()) return;
-                            context.read<VehiclesCubit>().addVehicle(
-                                  vehicleType: selectedType,
-                                  registrationNo:
-                                      regController.text.trim(),
-                                  makeModel:
-                                      makeController.text.trim(),
-                                );
-                            Navigator.of(sheetContext).pop();
-                          },
-                          icon: Icons.add,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+      builder: (sheetContext) => _AddVehicleSheet(parentContext: context),
+    ).then((success) {
+      if (success == true && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vehicle added successfully!'),
+            backgroundColor: AppColors.success,
+          ),
         );
-      },
+      }
+    });
+  }
+}
+
+class _AddVehicleSheet extends StatefulWidget {
+  final BuildContext parentContext;
+
+  const _AddVehicleSheet({required this.parentContext});
+
+  @override
+  State<_AddVehicleSheet> createState() => _AddVehicleSheetState();
+}
+
+class _AddVehicleSheetState extends State<_AddVehicleSheet> {
+  final _regController = TextEditingController();
+  final _makeController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  String _selectedType = 'car';
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _regController.dispose();
+    _makeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isSubmitting = true);
+    bool success = false;
+    try {
+      success = await context
+          .read<VehiclesCubit>()
+          .addVehicle(
+            vehicleType: _selectedType,
+            registrationNo: _regController.text.trim(),
+            makeModel: _makeController.text.trim(),
+          )
+          .timeout(const Duration(seconds: 25));
+    } catch (_) {
+      success = false;
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+
+    if (success && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Add Vehicle',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedType,
+              decoration: const InputDecoration(
+                labelText: 'Vehicle Type',
+                prefixIcon: Icon(Icons.category),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'car', child: Text('Car')),
+                DropdownMenuItem(value: 'bike', child: Text('Bike')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedType = value);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _regController,
+              label: 'Registration Number',
+              hint: 'e.g., MH01AB1234',
+              prefixIcon: Icons.confirmation_number,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Registration number is required';
+                }
+                if (value.trim().length < 6) {
+                  return 'Enter a valid registration number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _makeController,
+              label: 'Make & Model',
+              hint: 'e.g., Honda City',
+              prefixIcon: Icons.info_outline,
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              label: 'Add Vehicle',
+              isLoading: _isSubmitting,
+              onPressed: _submit,
+              icon: Icons.add,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

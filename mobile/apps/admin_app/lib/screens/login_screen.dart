@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -129,6 +130,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           icon: Icons.login,
                         );
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push('/register'),
+                        child: const Text('New Society Owner? Create Admin Account'),
+                      ),
                     ),
                   ],
                 ),

@@ -53,25 +53,59 @@ class SocietiesCubit extends Cubit<SocietiesState> {
 
   SocietiesCubit(this._apiClient) : super(const SocietiesState());
 
-  Future<void> loadSocieties() async {
+  Future<void> loadSocieties({bool forceRefresh = false}) async {
+    if (!forceRefresh && state.isLoading) return;
+
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
-      final response = await _apiClient.get(ApiEndpoints.societies);
-      final data = response.data;
-      List<SocietyModel> societies;
-      if (data is Map<String, dynamic> && data.containsKey('results')) {
-        final apiResponse = ApiResponse<SocietyModel>.fromJson(
-          data,
-          (json) => SocietyModel.fromJson(json),
+      final societies = <SocietyModel>[];
+      var page = 1;
+      var hasNextPage = true;
+      var paginatedResponse = false;
+
+      while (hasNextPage) {
+        final response = await _apiClient.get(
+          ApiEndpoints.societies,
+          queryParameters: {'page': page, 'page_size': 200},
         );
-        societies = apiResponse.results;
-      } else if (data is List) {
-        societies = data
-            .map((e) => SocietyModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } else {
-        societies = [];
+        final data = response.data;
+
+        if (data is Map<String, dynamic> && data.containsKey('results')) {
+          paginatedResponse = true;
+          final apiResponse = ApiResponse<SocietyModel>.fromJson(
+            data,
+            (json) => SocietyModel.fromJson(json),
+          );
+          societies.addAll(apiResponse.results);
+          hasNextPage = data['next'] != null && apiResponse.results.isNotEmpty;
+          page += 1;
+          continue;
+        }
+
+        if (data is List) {
+          societies.addAll(
+            data.map((e) => SocietyModel.fromJson(e as Map<String, dynamic>)),
+          );
+        }
+        hasNextPage = false;
       }
+
+      if (!paginatedResponse && societies.isEmpty) {
+        final response = await _apiClient.get(ApiEndpoints.societies);
+        final data = response.data;
+        if (data is Map<String, dynamic> && data.containsKey('results')) {
+          final apiResponse = ApiResponse<SocietyModel>.fromJson(
+            data,
+            (json) => SocietyModel.fromJson(json),
+          );
+          societies.addAll(apiResponse.results);
+        } else if (data is List) {
+          societies.addAll(
+            data.map((e) => SocietyModel.fromJson(e as Map<String, dynamic>)),
+          );
+        }
+      }
+
       emit(state.copyWith(isLoading: false, societies: societies));
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
@@ -97,7 +131,7 @@ class SocietiesCubit extends Cubit<SocietiesState> {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
       await _apiClient.post(ApiEndpoints.societies, data: data);
-      await loadSocieties();
+      await loadSocieties(forceRefresh: true);
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
       rethrow;
@@ -111,7 +145,7 @@ class SocietiesCubit extends Cubit<SocietiesState> {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
       await _apiClient.put(ApiEndpoints.society(id), data: data);
-      await loadSocieties();
+      await loadSocieties(forceRefresh: true);
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
       rethrow;
@@ -127,7 +161,7 @@ class SocietiesCubit extends Cubit<SocietiesState> {
         ApiEndpoints.society(id),
         data: {'is_active': isActive},
       );
-      await loadSocieties();
+      await loadSocieties(forceRefresh: true);
     } on ApiException catch (e) {
       emit(state.copyWith(error: e.message));
     } catch (e) {

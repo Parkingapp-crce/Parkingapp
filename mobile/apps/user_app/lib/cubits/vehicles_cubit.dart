@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:core/core.dart';
 
@@ -67,27 +69,46 @@ class VehiclesCubit extends Cubit<VehiclesState> {
     }
   }
 
-  Future<void> addVehicle({
+  Future<bool> addVehicle({
     required String vehicleType,
     required String registrationNo,
     required String makeModel,
   }) async {
-    emit(state.copyWith(isAdding: true, error: null));
+    emit(state.copyWith(isAdding: true, error: null, addSuccess: false));
     try {
-      await _apiClient.post(
+      final normalizedRegistration = registrationNo
+          .trim()
+          .toUpperCase()
+          .replaceAll(' ', '');
+
+      await _apiClient
+          .post(
         ApiEndpoints.vehicles,
         data: {
           'vehicle_type': vehicleType,
-          'registration_no': registrationNo,
+          'registration_no': normalizedRegistration,
           'make_model': makeModel,
         },
-      );
+      )
+          .timeout(const Duration(seconds: 20));
       emit(state.copyWith(isAdding: false, addSuccess: true));
-      await loadVehicles();
+      unawaited(loadVehicles());
+      return true;
+    } on TimeoutException {
+      emit(
+        state.copyWith(
+          isAdding: false,
+          error: 'Request timed out. Please try again.',
+          addSuccess: false,
+        ),
+      );
+      return false;
     } on ApiException catch (e) {
-      emit(state.copyWith(isAdding: false, error: e.message));
+      emit(state.copyWith(isAdding: false, error: e.message, addSuccess: false));
+      return false;
     } catch (e) {
-      emit(state.copyWith(isAdding: false, error: e.toString()));
+      emit(state.copyWith(isAdding: false, error: e.toString(), addSuccess: false));
+      return false;
     }
   }
 

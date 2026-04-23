@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 
 import '../cubits/slots_cubit.dart';
@@ -12,6 +14,9 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  String? _joinCode;
+  bool _isJoinCodeLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -21,7 +26,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _loadData() {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated && authState.user.society != null) {
-      context.read<SlotsCubit>().loadSlots(authState.user.society!);
+      final societyId = authState.user.society!;
+      context.read<SlotsCubit>().loadSlots(societyId);
+      _loadJoinCode(societyId);
+    }
+  }
+
+  Future<void> _loadJoinCode(String societyId) async {
+    setState(() {
+      _isJoinCodeLoading = true;
+    });
+    try {
+      final response = await context.read<ApiClient>().get(ApiEndpoints.society(societyId));
+      final data = response.data;
+      if (!mounted) return;
+      if (data is Map<String, dynamic>) {
+        setState(() {
+          _joinCode = data['join_code'] as String?;
+          _isJoinCodeLoading = false;
+        });
+      } else {
+        setState(() {
+          _joinCode = null;
+          _isJoinCodeLoading = false;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _joinCode = null;
+        _isJoinCodeLoading = false;
+      });
     }
   }
 
@@ -31,6 +66,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () => context.go('/notifications'),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,
@@ -80,6 +119,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                     ),
                     const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.vpn_key, color: AppColors.primary),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Society Join Code',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _isJoinCodeLoading
+                                        ? 'Loading...'
+                                        : (_joinCode?.isNotEmpty == true ? _joinCode! : 'Unavailable'),
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 1.2,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Copy code',
+                              onPressed: (_joinCode?.isNotEmpty == true)
+                                  ? () async {
+                                      await Clipboard.setData(ClipboardData(text: _joinCode!));
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Join code copied')),
+                                      );
+                                    }
+                                  : null,
+                              icon: const Icon(Icons.copy),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.how_to_reg, color: AppColors.primary),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Review new resident join requests before they can access parking flows.',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              TextButton(
+                                onPressed: () => context.go('/join-requests'),
+                                child: const Text('Join Requests'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.security, color: AppColors.primary),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Generate guard credentials and control who can scan entry or exit QR codes.',
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              TextButton(
+                                onPressed: () => context.go('/guards'),
+                                child: const Text('Manage Guards'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                     _buildSummaryGrid(slotsState),
                     const SizedBox(height: 24),
                     Text(

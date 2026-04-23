@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:core/core.dart';
 import '../services/api_service.dart';
 
 class EntryLogsPage extends StatefulWidget {
@@ -10,9 +11,9 @@ class EntryLogsPage extends StatefulWidget {
 }
 
 class _EntryLogsPageState extends State<EntryLogsPage> {
-  final Color primaryGreen = const Color(0xFF1E7E34);
-  final Color textDark = const Color(0xFF0D1B0F);
-  final Color textGrey = const Color(0xFF6B7280);
+  final Color primaryGreen = AppColors.primary;
+  final Color textDark = AppColors.textPrimary;
+  final Color textGrey = AppColors.textSecondary;
 
   List<dynamic> logs = [];
   bool isLoading = true;

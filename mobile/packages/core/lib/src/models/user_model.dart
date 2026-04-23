@@ -11,6 +11,10 @@ class UserModel {
   final String fullName;
   final String role;
   final String? society;
+  @JsonKey(name: 'can_scan_entry', defaultValue: false)
+  final bool canScanEntry;
+  @JsonKey(name: 'can_scan_exit', defaultValue: false)
+  final bool canScanExit;
   @JsonKey(name: 'created_at')
   final String createdAt;
 
@@ -21,6 +25,8 @@ class UserModel {
     required this.fullName,
     required this.role,
     this.society,
+    this.canScanEntry = false,
+    this.canScanExit = false,
     required this.createdAt,
   });
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:core/core.dart';
 import '../services/api_service.dart';
 import 'owner_login_page.dart';
 
@@ -13,13 +14,10 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
   final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
-  final lotNameCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
-  final cityCtrl = TextEditingController();
-  final slotsCtrl = TextEditingController();
-  final priceCtrl = TextEditingController();
-  final openingCtrl = TextEditingController();
-  final closingCtrl = TextEditingController();
+  final phoneCtrl = TextEditingController();
+  final flatCtrl = TextEditingController();
+  final floorCtrl = TextEditingController();
+  final joinCodeCtrl = TextEditingController();
 
   bool _loading = false;
   bool _obscure = true;
@@ -27,10 +25,9 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
 
   Future<void> _register() async {
     if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty ||
-        passwordCtrl.text.isEmpty || lotNameCtrl.text.isEmpty ||
-        addressCtrl.text.isEmpty || cityCtrl.text.isEmpty ||
-        slotsCtrl.text.isEmpty || priceCtrl.text.isEmpty ||
-        openingCtrl.text.isEmpty || closingCtrl.text.isEmpty) {
+        passwordCtrl.text.isEmpty || phoneCtrl.text.isEmpty ||
+        flatCtrl.text.isEmpty || floorCtrl.text.isEmpty ||
+        joinCodeCtrl.text.isEmpty) {
       setState(() => _error = 'Please fill all fields');
       return;
     }
@@ -41,21 +38,18 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
         name: nameCtrl.text.trim(),
         email: emailCtrl.text.trim(),
         password: passwordCtrl.text.trim(),
-        lotName: lotNameCtrl.text.trim(),
-        address: addressCtrl.text.trim(),
-        city: cityCtrl.text.trim(),
-        totalSlots: int.tryParse(slotsCtrl.text.trim()) ?? 0,
-        pricePerHour: double.tryParse(priceCtrl.text.trim()) ?? 0,
-        openingTime: openingCtrl.text.trim(),
-        closingTime: closingCtrl.text.trim(),
+        phone: phoneCtrl.text.trim(),
+        flatNumber: flatCtrl.text.trim(),
+        floorNumber: floorCtrl.text.trim(),
+        joinCode: joinCodeCtrl.text.trim(),
       );
 
       if (response['message'] != null &&
-          response['message'].toString().contains('success')) {
+          response['message'].toString().contains('success') || response['user'] != null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please login.'),
-              backgroundColor: Color(0xFF7C4DFF)));
+          SnackBar(content: const Text('Registration successful! Please login.'),
+              backgroundColor: AppColors.success));
         Navigator.pushReplacement(context,
             MaterialPageRoute(builder: (_) => const OwnerLoginPage()));
       } else {
@@ -65,36 +59,19 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
         });
       }
     } catch (e) {
-      setState(() { _error = 'Connection error'; _loading = false; });
-    }
-  }
-
-  Future<void> _pickTime(TextEditingController ctrl) async {
-    final picked = await showTimePicker(
-        context: context, initialTime: TimeOfDay.now());
-    if (picked != null) {
-      final h = picked.hour.toString().padLeft(2, '0');
-      final m = picked.minute.toString().padLeft(2, '0');
-      ctrl.text = '$h:$m';
+      setState(() { _error = 'Connection error: $e'; _loading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text('Owner Registration',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -104,53 +81,45 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: AppColors.error.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
                 ),
-                child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                child: Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
               ),
             _sectionLabel('Personal Info'),
-            _buildField('Full Name', nameCtrl),
+            AppTextField(label: 'Full Name', hint: 'Enter full name', controller: nameCtrl),
             const SizedBox(height: 12),
-            _buildField('Email', emailCtrl),
+            AppTextField(label: 'Email', hint: 'Enter email', controller: emailCtrl, keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 12),
-            _buildField('Password', passwordCtrl, obscure: _obscure, isPassword: true),
+            AppTextField(label: 'Phone', hint: 'Enter phone number', controller: phoneCtrl, keyboardType: TextInputType.phone),
+            const SizedBox(height: 12),
+            AppTextField(
+              label: 'Password',
+              hint: 'Enter password',
+              controller: passwordCtrl,
+              obscureText: _obscure,
+              suffix: IconButton(
+                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
             const SizedBox(height: 24),
-            _sectionLabel('Parking Lot Info'),
-            _buildField('Parking Lot Name', lotNameCtrl),
-            const SizedBox(height: 12),
-            _buildField('Address', addressCtrl),
-            const SizedBox(height: 12),
-            _buildField('City', cityCtrl),
-            const SizedBox(height: 12),
-            _buildField('Total Number of Slots', slotsCtrl, keyboardType: TextInputType.number),
-            const SizedBox(height: 12),
-            _buildField('Price per Hour (₹)', priceCtrl, keyboardType: TextInputType.number),
+            _sectionLabel('Society Info'),
+            AppTextField(label: 'Society Join Code', hint: 'Enter 6-digit code', controller: joinCodeCtrl),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _buildTimePicker('Opening Time', openingCtrl)),
+                Expanded(child: AppTextField(label: 'Flat Number', hint: 'e.g. A-101', controller: flatCtrl)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildTimePicker('Closing Time', closingCtrl)),
+                Expanded(child: AppTextField(label: 'Floor', hint: 'e.g. 1st', controller: floorCtrl)),
               ],
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _register,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C4DFF),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Register as Owner',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
-                            color: Colors.white)),
-              ),
+            PrimaryButton(
+              label: 'Register as Owner',
+              onPressed: _register,
+              isLoading: _loading,
             ),
             const SizedBox(height: 32),
           ],
@@ -163,83 +132,8 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(label,
-          style: TextStyle(color: const Color(0xFF7C4DFF).withOpacity(0.9),
+          style: TextStyle(color: AppColors.primary,
               fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
-    );
-  }
-
-  Widget _buildField(String label, TextEditingController ctrl,
-      {bool obscure = false, bool isPassword = false,
-      TextInputType? keyboardType}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5),
-            fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          obscureText: obscure,
-          keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFF141414),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF7C4DFF))),
-            suffixIcon: isPassword
-                ? IconButton(
-                    icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.white38),
-                    onPressed: () => setState(() => _obscure = !_obscure))
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimePicker(String label, TextEditingController ctrl) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5),
-            fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: () => _pickTime(ctrl),
-          child: AbsorbPointer(
-            child: TextField(
-              controller: ctrl,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFF141414),
-                hintText: '00:00',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
-                suffixIcon: Icon(Icons.access_time_rounded,
-                    color: Colors.white.withOpacity(0.3), size: 18),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7C4DFF))),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

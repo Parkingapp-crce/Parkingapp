@@ -115,6 +115,15 @@ class _SlotListScreenState extends State<SlotListScreen> {
               ),
               const SizedBox(width: 8),
               _FilterChip(
+                label: 'Pending',
+                selected: state.stateFilter == 'pending',
+                color: AppColors.warning,
+                onSelected: () {
+                  context.read<SlotsCubit>().setStateFilter('pending');
+                },
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
                 label: 'Available',
                 selected: state.stateFilter == 'available',
                 color: AppColors.slotAvailable,
@@ -266,11 +275,44 @@ class _SlotCard extends StatelessWidget {
           'Slot ${slot.slotNumber}',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          'Floor: ${slot.floor.isNotEmpty ? slot.floor : '-'} | '
-          '${slot.slotType.toUpperCase()} | '
-          '\u20B9${slot.hourlyRate}/hr',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Floor: ${slot.floor.isNotEmpty ? slot.floor : '-'} | '
+              '${slot.slotType.toUpperCase()} | '
+              '\u20B9${slot.hourlyRate}/hr',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            if (slot.ownerName != null && slot.ownerName!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Owner: ${slot.ownerName}',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              )
+            else if (slot.ownershipType == 'society')
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Owner: Society Admin',
+                  style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ),
+            if (slot.isPendingApproval)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Pending admin approval',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+          ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

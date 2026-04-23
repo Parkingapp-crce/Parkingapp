@@ -38,3 +38,4 @@ export 'src/widgets/error_widget.dart';
 export 'src/widgets/empty_state_widget.dart';
 export 'src/widgets/primary_button.dart';
 export 'src/widgets/app_text_field.dart';
+export 'src/widgets/notification_inbox_screen.dart';

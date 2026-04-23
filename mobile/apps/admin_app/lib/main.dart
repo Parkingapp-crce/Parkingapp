@@ -6,7 +6,7 @@ import 'package:core/core.dart';
 
 import 'router.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final storage = SecureStorageService();
@@ -20,7 +20,7 @@ void main() {
     contentType: 'application/json',
   ));
 
-  final authService = AuthService(bootstrapDio);
+  final authService = AuthService(bootstrapDio, tokenManager);
 
   final authBloc = AuthBloc(
     authService: authService,
@@ -35,9 +35,6 @@ void main() {
   );
 
   final apiClient = ApiClient(dio);
-
-  // Check existing auth state
-  authBloc.add(const AuthCheckRequested());
 
   runApp(AdminApp(
     authBloc: authBloc,

@@ -25,6 +25,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         on_delete=models.SET_NULL,
         related_name="members",
     )
+    flat_number = models.CharField(max_length=20, blank=True)
+    floor_number = models.CharField(max_length=10, blank=True)
+    can_scan_entry = models.BooleanField(default=False)
+    can_scan_exit = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -61,3 +65,33 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return f"{self.registration_no} ({self.vehicle_type})"
+
+
+class UserNotification(models.Model):
+    class NotificationType(models.TextChoices):
+        JOIN_REQUEST = "join_request", "Join Request"
+        JOIN_APPROVED = "join_approved", "Join Approved"
+        JOIN_REJECTED = "join_rejected", "Join Rejected"
+        SLOT_PENDING = "slot_pending", "Slot Pending"
+        SLOT_APPROVED = "slot_approved", "Slot Approved"
+        SLOT_REJECTED = "slot_rejected", "Slot Rejected"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    notification_type = models.CharField(max_length=32, choices=NotificationType.choices)
+    title = models.CharField(max_length=120)
+    message = models.CharField(max_length=255)
+    payload = models.JSONField(default=dict, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "is_read", "created_at"])]
+
+    def __str__(self):
+        return f"{self.user.email}: {self.title}"

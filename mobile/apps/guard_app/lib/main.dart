@@ -38,7 +38,7 @@ void _setupDependencies() {
 
   // Auth Service (uses base dio for login, profile will use intercepted dio)
   getIt.registerLazySingleton<AuthService>(
-    () => AuthService(baseDio),
+    () => AuthService(baseDio, getIt<TokenManager>()),
   );
 
   // Auth Bloc
@@ -64,9 +64,11 @@ void _setupDependencies() {
   );
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _setupDependencies();
+
+  await getIt<TokenManager>().clearTokens();
   runApp(const GuardApp());
 }
 
@@ -84,7 +86,6 @@ class _GuardAppState extends State<GuardApp> {
   void initState() {
     super.initState();
     _router = createRouter();
-    getIt<AuthBloc>().add(const AuthCheckRequested());
   }
 
   @override

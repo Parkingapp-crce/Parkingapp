@@ -2,6 +2,7 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -34,6 +35,13 @@ GoRouter createRouter() {
       GoRoute(
         path: '/home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => NotificationInboxScreen(
+          apiClient: GetIt.I<ApiClient>(),
+          title: 'Notifications',
+        ),
       ),
       GoRoute(
         path: '/scan/entry',

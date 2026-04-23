@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:core/core.dart';
 import '../services/api_service.dart';
 
 class QRScannerPage extends StatefulWidget {
@@ -10,9 +11,9 @@ class QRScannerPage extends StatefulWidget {
 }
 
 class _QRScannerPageState extends State<QRScannerPage> {
-  final Color primaryGreen = const Color(0xFF1E7E34);
-  final Color textDark = const Color(0xFF0D1B0F);
-  final Color textGrey = const Color(0xFF6B7280);
+  final Color primaryGreen = AppColors.primary;
+  final Color textDark = AppColors.textPrimary;
+  final Color textGrey = AppColors.textSecondary;
 
   final MobileScannerController _controller = MobileScannerController();
   bool isProcessing = false;
@@ -297,7 +298,7 @@ class _ScannerOverlayPainter extends CustomPainter {
     canvas.drawPath(path, paint);
 
     final cornerPaint = Paint()
-      ..color = const Color(0xFF1E7E34)
+      ..color = AppColors.primary
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

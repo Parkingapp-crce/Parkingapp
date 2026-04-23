@@ -402,6 +402,24 @@ class _SlotTile extends StatelessWidget {
                 ),
               ),
             ],
+            if (slot.availableFrom != null && slot.availableTo != null) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _stateColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${slot.availableFrom} - ${slot.availableTo}',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: _stateColor,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

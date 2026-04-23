@@ -77,6 +77,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         phone: event.phone,
         fullName: event.fullName,
         password: event.password,
+        role: event.role,
+        societyJoinCode: event.societyJoinCode,
+        societyName: event.societyName,
+        societyAddress: event.societyAddress,
+        societyCity: event.societyCity,
+        societyState: event.societyState,
+        societyPincode: event.societyPincode,
+        societyLatitude: event.societyLatitude,
+        societyLongitude: event.societyLongitude,
       );
 
       final tokens = data['tokens'] as Map<String, dynamic>;
