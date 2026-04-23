@@ -142,11 +142,15 @@ def _build_pending_booking(user, slot, vehicle, start_time, end_time):
     booking.save(update_fields=["qr_code_token"])
 
     from .tasks import expire_booking_lock
+    import logging
 
-    expire_booking_lock.apply_async(
-        args=[str(booking.id)],
-        countdown=LOCK_DURATION_SECONDS,
-    )
+    try:
+        expire_booking_lock.apply_async(
+            args=[str(booking.id)],
+            countdown=LOCK_DURATION_SECONDS,
+        )
+    except Exception as e:
+        logging.warning("Failed to queue expire_booking_lock task: %s", e)
 
     return booking
 

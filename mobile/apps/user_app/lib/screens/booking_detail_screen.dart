@@ -93,7 +93,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     };
 
     try {
-      _razorpay.open(options);
+      // DEV BYPASS: Ignore Razorpay SDK and simulate success in UI
+      // _razorpay.open(options);
+      
+      // Simulate success callback immediately to force move forward
+      _handlePaymentSuccess(
+        PaymentSuccessResponse(
+          payment.id,
+          payment.razorpayOrderId, 
+          'dev_bypass_signature',
+          null,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

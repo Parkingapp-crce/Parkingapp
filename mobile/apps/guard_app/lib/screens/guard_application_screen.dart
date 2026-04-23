@@ -135,6 +135,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(title: const Text('Apply as Guard')),
       body: _isLoadingSocieties
           ? const LoadingWidget(message: 'Loading societies...')
@@ -228,7 +229,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        initialValue: _selectedSocietyId,
+                        value: _selectedSocietyId,
                         decoration: const InputDecoration(
                           labelText: 'Society',
                           border: OutlineInputBorder(),

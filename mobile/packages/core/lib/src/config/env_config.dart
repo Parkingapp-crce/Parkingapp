@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 enum Environment { dev, staging, prod }
 
 class EnvConfig {
@@ -13,7 +15,7 @@ class EnvConfig {
 
   static const dev = EnvConfig._(
     environment: Environment.dev,
-    apiBaseUrl: 'http://10.0.2.2:8000', // Web/Chrome localhost
+    apiBaseUrl: kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000',
   );
 
   static const staging = EnvConfig._(
