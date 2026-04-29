@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../services/api_service.dart';
 import 'qr_code_page.dart';
 
@@ -21,6 +22,37 @@ class _BookingPageState extends State<BookingPage> {
   DateTime? endTime;
   bool isLoading = false;
   String selectedVehicleType = '4-wheeler';
+  late Razorpay _razorpay;
+
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    vehicleController.dispose();
+    super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    _proceedWithBooking(response.paymentId);
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    setState(() => isLoading = false);
+    _snack('Payment failed: ${response.message}');
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    setState(() => isLoading = false);
+    _snack('External wallet selected: ${response.walletName}');
+  }
 
   double get totalAmount {
     if (startTime == null || endTime == null) return 0;
@@ -84,6 +116,26 @@ class _BookingPageState extends State<BookingPage> {
 
     setState(() => isLoading = true);
 
+    var options = {
+      'key': 'rzp_test_Si0o1H1Ewco24k', // TODO: Replace with your actual Razorpay key
+      'amount': (totalAmount * 100).toInt(),
+      'name': 'Park App',
+      'description': 'Booking for ${widget.lot['name']}',
+      'prefill': {
+        'contact': '9876543210',
+        'email': 'user@example.com'
+      }
+    };
+
+    try {
+      _razorpay.open(options);
+    } catch (e) {
+      setState(() => isLoading = false);
+      _snack('Error starting Razorpay: $e');
+    }
+  }
+
+  Future<void> _proceedWithBooking(String? paymentId) async {
     try {
       final response = await ApiService.bookSlot(
         parkingLotId: widget.lot['id'],
@@ -100,6 +152,7 @@ class _BookingPageState extends State<BookingPage> {
             builder: (context) => QRCodePage(
               booking: response['booking'],
               qrCode: response['qr_code'],
+              paymentId: paymentId ?? 'unknown',
             ),
           ),
         );

@@ -7,8 +7,14 @@ import 'my_bookings_page.dart';
 class QRCodePage extends StatelessWidget {
   final Map<String, dynamic> booking;
   final Map<String, dynamic> qrCode;
+  final String paymentId;
 
-  const QRCodePage({super.key, required this.booking, required this.qrCode});
+  const QRCodePage({
+    super.key, 
+    required this.booking, 
+    required this.qrCode,
+    required this.paymentId,
+  });
 
   final Color primaryGreen = const Color(0xFF1E7E34);
   final Color textDark = const Color(0xFF0D1B0F);
@@ -30,7 +36,8 @@ class QRCodePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final code = qrCode['code']?.toString() ?? '';
+    final originalCode = qrCode['code']?.toString() ?? '';
+    final code = '$originalCode|PaymentId:$paymentId';
     final status = booking['status']?.toString().toUpperCase() ?? '-';
     final isActive = booking['status'] == 'active';
     final vehicleType = booking['vehicle_type']?.toString() ?? '4-wheeler';
@@ -220,6 +227,11 @@ class QRCodePage extends StatelessWidget {
                       'Total',
                       formatMoney(booking['total_charge']),
                     ),
+                  _detailRow(
+                    Icons.payments_rounded,
+                    'Payment ID',
+                    paymentId,
+                  ),
                   _detailRow(
                     Icons.info_outline_rounded,
                     'Status',

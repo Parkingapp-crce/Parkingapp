@@ -97,13 +97,14 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
   Future<void> openQr(Map<String, dynamic> booking) async {
     final cachedCode = booking['qr_code_value']?.toString();
+    final paymentId = booking['payment_id']?.toString() ?? 'N/A';
     if (cachedCode != null && cachedCode.isNotEmpty) {
       if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) =>
-              QRCodePage(booking: booking, qrCode: {'code': cachedCode}),
+              QRCodePage(booking: booking, qrCode: {'code': cachedCode}, paymentId: paymentId),
         ),
       );
       return;
@@ -123,7 +124,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => QRCodePage(booking: booking, qrCode: {'code': qrCode}),
+        builder: (_) => QRCodePage(booking: booking, qrCode: {'code': qrCode}, paymentId: paymentId),
       ),
     );
   }
