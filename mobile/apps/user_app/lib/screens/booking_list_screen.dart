@@ -13,8 +13,9 @@ class BookingListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          BookingsCubit(GetIt.instance<ApiClient>())..loadBookings(),
+      create: (_) => BookingsCubit(GetIt.instance<ApiClient>())
+        ..loadBookings()
+        ..startPolling(),
       child: const _BookingListContent(),
     );
   }
@@ -26,9 +27,7 @@ class _BookingListContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Bookings'),
-      ),
+      appBar: AppBar(title: const Text('My Bookings')),
       body: Column(
         children: [
           _FilterTabs(),
@@ -42,8 +41,7 @@ class _BookingListContent extends StatelessWidget {
                 if (state.error != null) {
                   return AppErrorWidget(
                     message: state.error!,
-                    onRetry: () =>
-                        context.read<BookingsCubit>().loadBookings(),
+                    onRetry: () => context.read<BookingsCubit>().loadBookings(),
                   );
                 }
 
@@ -58,8 +56,7 @@ class _BookingListContent extends StatelessWidget {
                 }
 
                 return RefreshIndicator(
-                  onRefresh: () =>
-                      context.read<BookingsCubit>().loadBookings(),
+                  onRefresh: () => context.read<BookingsCubit>().loadBookings(),
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: bookings.length,
@@ -100,15 +97,15 @@ class _FilterTabs extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: GestureDetector(
-                  onTap: () => context
-                      .read<BookingsCubit>()
-                      .setFilter(filter['value']!),
+                  onTap: () =>
+                      context.read<BookingsCubit>().setFilter(filter['value']!),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color:
-                          isSelected ? AppColors.primary : AppColors.surface,
+                      color: isSelected ? AppColors.primary : AppColors.surface,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
@@ -142,29 +139,20 @@ class _BookingCard extends StatelessWidget {
 
   const _BookingCard({required this.booking});
 
-  Color _statusColor(String status) {
+  Color _paymentStatusColor(String? status) {
     switch (status) {
-      case 'confirmed':
+      case 'captured':
         return AppColors.success;
-      case 'active':
-        return AppColors.primary;
-      case 'pending_payment':
-        return AppColors.warning;
-      case 'completed':
-        return AppColors.textSecondary;
-      case 'cancelled':
+      case 'failed':
         return AppColors.error;
+      case 'refunded':
+        return AppColors.textSecondary;
+      case 'created':
+      case 'unpaid':
+      case null:
+        return AppColors.warning;
       default:
         return AppColors.textSecondary;
-    }
-  }
-
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'pending_payment':
-        return 'PENDING PAYMENT';
-      default:
-        return status.toUpperCase();
     }
   }
 
@@ -179,6 +167,7 @@ class _BookingCard extends StatelessWidget {
       startDt = DateTime.parse(booking.startTime).toLocal();
       endDt = DateTime.parse(booking.endTime).toLocal();
     } catch (_) {}
+    final paymentColor = _paymentStatusColor(booking.paymentStatus);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -196,34 +185,26 @@ class _BookingCard extends StatelessWidget {
                   Text(
                     '#${booking.bookingNumber}',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color:
-                          _statusColor(booking.status).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _statusLabel(booking.status),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _statusColor(booking.status),
-                      ),
-                    ),
+                  _PaymentChip(
+                    label: booking.paymentStatusLabel,
+                    color: paymentColor,
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Booking ${booking.status.replaceAll('_', ' ').toUpperCase()}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 10),
               if (booking.societyName != null)
-                _DetailRow(
-                  icon: Icons.apartment,
-                  text: booking.societyName!,
-                ),
+                _DetailRow(icon: Icons.apartment, text: booking.societyName!),
               if (booking.slotNumber != null)
                 _DetailRow(
                   icon: Icons.grid_view,
@@ -247,9 +228,9 @@ class _BookingCard extends StatelessWidget {
                   Text(
                     '\u20B9${booking.amount}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const Icon(
                     Icons.arrow_forward_ios,
@@ -260,6 +241,32 @@ class _BookingCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _PaymentChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );
@@ -282,9 +289,9 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),

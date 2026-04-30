@@ -145,6 +145,8 @@ class _BookingPageState extends State<BookingPage> {
         endTime: endTime!.toUtc().toIso8601String(),
       );
 
+      if (!mounted) return;
+
       if (response['booking'] != null) {
         Navigator.pushReplacement(
           context,
@@ -157,12 +159,20 @@ class _BookingPageState extends State<BookingPage> {
           ),
         );
       } else {
-        _snack(response['error'] ?? 'Booking failed');
+        _snack(
+          response['error'] ??
+              response['detail'] ??
+              response['message'] ??
+              'Booking failed',
+        );
       }
     } catch (e) {
+      if (!mounted) return;
       _snack('Server error. Try again.');
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

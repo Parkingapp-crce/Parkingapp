@@ -4,117 +4,184 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:core/core.dart';
 
 import '../cubits/bookings_cubit.dart';
+import '../widgets/embedded_checkout.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final String bookingId;
+  final String? checkoutSessionId;
+  final String? checkoutStatus;
 
-  const BookingDetailScreen({super.key, required this.bookingId});
+  const BookingDetailScreen({
+    super.key,
+    required this.bookingId,
+    this.checkoutSessionId,
+    this.checkoutStatus,
+  });
 
   @override
   State<BookingDetailScreen> createState() => _BookingDetailScreenState();
 }
 
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
-  late final Razorpay _razorpay;
-  BookingDetailCubit? _cubit;
+  bool _handledCheckoutReturn = false;
+  PaymentModel? _activeEmbeddedPayment;
+  bool _isCompletingEmbeddedCheckout = false;
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
-  @override
-  void dispose() {
-    _razorpay.clear();
-    super.dispose();
-  }
-
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    if (_cubit == null) return;
-    final verified = await _cubit!.verifyPayment(
-      razorpayOrderId: response.orderId ?? '',
-      paymentId: response.paymentId ?? '',
-      signature: response.signature ?? '',
-    );
-    if (verified && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment successful!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      _cubit!.loadBooking(widget.bookingId);
+  Future<void> _handleCheckoutReturn(BookingDetailCubit cubit) async {
+    if (_handledCheckoutReturn) {
+      return;
     }
-  }
+    _handledCheckoutReturn = true;
 
-  void _handlePaymentError(PaymentFailureResponse response) {
-    if (mounted) {
+    if (widget.checkoutStatus == 'success' &&
+        widget.checkoutSessionId != null) {
+      final verified = await cubit.verifyPayment(
+        checkoutSessionId: widget.checkoutSessionId!,
+      );
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Payment failed: ${response.message ?? "Unknown error"}',
+            verified
+                ? 'Payment completed successfully.'
+                : 'Checkout returned, but payment verification is still pending.',
           ),
-          backgroundColor: AppColors.error,
+          backgroundColor: verified ? AppColors.success : AppColors.warning,
         ),
       );
+      await cubit.loadBooking(widget.bookingId);
+      return;
     }
-  }
 
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    if (mounted) {
+    if (widget.checkoutStatus == 'cancelled' && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('External wallet: ${response.walletName ?? ""}'),
+        const SnackBar(
+          content: Text('Checkout was cancelled.'),
+          backgroundColor: AppColors.warning,
         ),
       );
     }
   }
 
-  void _initiatePayment(BookingDetailCubit cubit, BookingModel booking) async {
-    _cubit = cubit;
-    final payment = await cubit.initiatePayment(booking.id);
+  Future<void> _initiatePayment(
+    BookingDetailCubit cubit,
+    BookingModel booking,
+  ) async {
+    final payment = await cubit.initiatePayment(
+      booking.id,
+      embedded: supportsEmbeddedCheckout,
+    );
     if (payment == null) return;
 
-    final options = {
-      'key': EnvConfig.dev.razorpayKey,
-      'amount': (double.tryParse(payment.amount) ?? 0) * 100,
-      'order_id': payment.razorpayOrderId,
-      'name': 'ParkEase',
-      'description': 'Booking #${booking.bookingNumber}',
-      'prefill': {},
-    };
+    if (supportsEmbeddedCheckout) {
+      final publishableKey = payment.stripePublishableKey;
+      final clientSecret = payment.checkoutClientSecret;
+      final sessionId = payment.stripeCheckoutSessionId;
+
+      if (publishableKey == null ||
+          publishableKey.isEmpty ||
+          clientSecret == null ||
+          clientSecret.isEmpty ||
+          sessionId == null ||
+          sessionId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Embedded checkout configuration is missing.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      cubit.startPolling(booking.id);
+      setState(() {
+        _activeEmbeddedPayment = payment;
+        _isCompletingEmbeddedCheckout = false;
+      });
+      return;
+    }
+
+    final checkoutUrl = payment.checkoutUrl;
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Checkout URL is missing.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
 
     try {
-      // DEV BYPASS: Ignore Razorpay SDK and simulate success in UI
-      // _razorpay.open(options);
-      
-      // Simulate success callback immediately to force move forward
-      _handlePaymentSuccess(
-        PaymentSuccessResponse(
-          payment.id,
-          payment.razorpayOrderId, 
-          'dev_bypass_signature',
-          null,
-        ),
+      cubit.startPolling(booking.id);
+      final launched = await launchUrl(
+        Uri.parse(checkoutUrl),
+        mode: LaunchMode.platformDefault,
       );
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open Checkout.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not open payment: $e'),
+            content: Text('Could not open Checkout: $e'),
             backgroundColor: AppColors.error,
           ),
         );
       }
     }
+  }
+
+  Future<void> _handleEmbeddedCheckoutComplete(
+    BookingDetailCubit cubit,
+    String checkoutSessionId,
+  ) async {
+    if (_isCompletingEmbeddedCheckout) return;
+
+    setState(() => _isCompletingEmbeddedCheckout = true);
+    final verified = await cubit.verifyPayment(
+      checkoutSessionId: checkoutSessionId,
+    );
+    await cubit.loadBooking(widget.bookingId);
+
+    if (!mounted) return;
+    setState(() {
+      _activeEmbeddedPayment = null;
+      _isCompletingEmbeddedCheckout = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          verified
+              ? 'Payment completed successfully.'
+              : 'Payment completion is syncing. The booking will update shortly.',
+        ),
+        backgroundColor: verified ? AppColors.success : AppColors.warning,
+      ),
+    );
   }
 
   @override
@@ -125,7 +192,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ..loadBooking(widget.bookingId),
       child: Scaffold(
         appBar: AppBar(title: const Text('Booking Details')),
-        body: BlocBuilder<BookingDetailCubit, BookingDetailState>(
+        body: BlocConsumer<BookingDetailCubit, BookingDetailState>(
+          listener: (context, state) {
+            final booking = state.booking;
+            if (_activeEmbeddedPayment != null &&
+                !_isCompletingEmbeddedCheckout &&
+                booking != null &&
+                !booking.isPendingPayment) {
+              setState(() => _activeEmbeddedPayment = null);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Payment completed successfully.'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            }
+          },
           builder: (context, state) {
             if (state.isLoading) {
               return const LoadingWidget(message: 'Loading booking...');
@@ -143,6 +225,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             final booking = state.booking;
             if (booking == null) {
               return const EmptyStateWidget(title: 'Booking not found');
+            }
+
+            if (!_handledCheckoutReturn && widget.checkoutStatus != null) {
+              final detailCubit = context.read<BookingDetailCubit>();
+              Future.microtask(() {
+                _handleCheckoutReturn(detailCubit);
+              });
             }
 
             return RefreshIndicator(
@@ -174,11 +263,37 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     _ActionButtons(
                       booking: booking,
                       state: state,
+                      isCheckoutOpen: _activeEmbeddedPayment != null,
                       onPay: () => _initiatePayment(
                         context.read<BookingDetailCubit>(),
                         booking,
                       ),
                     ),
+                    if (_activeEmbeddedPayment != null) ...[
+                      const SizedBox(height: 16),
+                      _EmbeddedCheckoutPanel(
+                        payment: _activeEmbeddedPayment!,
+                        isCompleting: _isCompletingEmbeddedCheckout,
+                        onComplete: (sessionId) =>
+                            _handleEmbeddedCheckoutComplete(
+                              context.read<BookingDetailCubit>(),
+                              sessionId,
+                            ),
+                        onError: (message) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        },
+                        onClose: _isCompletingEmbeddedCheckout
+                            ? null
+                            : () {
+                                setState(() => _activeEmbeddedPayment = null);
+                              },
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -195,7 +310,7 @@ class _StatusHeader extends StatelessWidget {
 
   const _StatusHeader({required this.booking});
 
-  Color _statusColor(String status) {
+  Color _bookingStatusColor(String status) {
     switch (status) {
       case 'confirmed':
         return AppColors.success;
@@ -212,27 +327,47 @@ class _StatusHeader extends StatelessWidget {
     }
   }
 
-  String _statusLabel(String status) {
+  Color _paymentStatusColor(String? status) {
+    switch (status) {
+      case 'captured':
+        return AppColors.success;
+      case 'failed':
+        return AppColors.error;
+      case 'refunded':
+        return AppColors.textSecondary;
+      case 'created':
+      case 'unpaid':
+      case null:
+        return AppColors.warning;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _bookingStatusLabel(String status) {
     switch (status) {
       case 'pending_payment':
-        return 'PENDING PAYMENT';
+        return 'BOOKING PENDING';
       default:
-        return status.toUpperCase();
+        return 'BOOKING ${status.toUpperCase()}';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final paymentColor = _paymentStatusColor(booking.paymentStatus);
+    final bookingColor = _bookingStatusColor(booking.status);
+
     return Card(
-      color: _statusColor(booking.status).withValues(alpha: 0.1),
+      color: paymentColor.withValues(alpha: 0.1),
       elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Icon(
-              _statusIcon(booking.status),
-              color: _statusColor(booking.status),
+              _paymentStatusIcon(booking.paymentStatus),
+              color: paymentColor,
               size: 32,
             ),
             const SizedBox(width: 12),
@@ -247,23 +382,20 @@ class _StatusHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _statusColor(booking.status),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _statusLabel(booking.status),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _HeaderChip(
+                        label: booking.paymentStatusLabel,
+                        color: paymentColor,
                       ),
-                    ),
+                      _HeaderChip(
+                        label: _bookingStatusLabel(booking.status),
+                        color: bookingColor,
+                        filled: false,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -281,21 +413,49 @@ class _StatusHeader extends StatelessWidget {
     );
   }
 
-  IconData _statusIcon(String status) {
+  IconData _paymentStatusIcon(String? status) {
     switch (status) {
-      case 'confirmed':
+      case 'captured':
         return Icons.check_circle;
-      case 'active':
-        return Icons.play_circle;
-      case 'pending_payment':
-        return Icons.payment;
-      case 'completed':
-        return Icons.task_alt;
-      case 'cancelled':
-        return Icons.cancel;
+      case 'failed':
+        return Icons.error;
+      case 'refunded':
+        return Icons.replay_circle_filled;
       default:
-        return Icons.info;
+        return Icons.payment;
     }
+  }
+}
+
+class _HeaderChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool filled;
+
+  const _HeaderChip({
+    required this.label,
+    required this.color,
+    this.filled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: filled ? color : color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: filled ? null : Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: filled ? Colors.white : color,
+        ),
+      ),
+    );
   }
 }
 
@@ -589,11 +749,13 @@ class _DetailTile extends StatelessWidget {
 class _ActionButtons extends StatelessWidget {
   final BookingModel booking;
   final BookingDetailState state;
-  final VoidCallback onPay;
+  final bool isCheckoutOpen;
+  final VoidCallback? onPay;
 
   const _ActionButtons({
     required this.booking,
     required this.state,
+    required this.isCheckoutOpen,
     required this.onPay,
   });
 
@@ -611,7 +773,7 @@ class _ActionButtons extends StatelessWidget {
           PrimaryButton(
             label: 'Pay Now',
             isLoading: state.isInitiatingPayment,
-            onPressed: onPay,
+            onPressed: isCheckoutOpen ? null : onPay,
             icon: Icons.payment,
           ),
         if (canPay && canCancel) const SizedBox(height: 12),
@@ -666,6 +828,71 @@ class _ActionButtons extends StatelessWidget {
             child: const Text('Yes, Cancel'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmbeddedCheckoutPanel extends StatelessWidget {
+  final PaymentModel payment;
+  final bool isCompleting;
+  final ValueChanged<String> onComplete;
+  final ValueChanged<String> onError;
+  final VoidCallback? onClose;
+
+  const _EmbeddedCheckoutPanel({
+    required this.payment,
+    required this.isCompleting,
+    required this.onComplete,
+    required this.onError,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sessionId = payment.stripeCheckoutSessionId!;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lock_outline, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Secure Checkout',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close checkout',
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            if (isCompleting) ...[
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(),
+            ],
+            const SizedBox(height: 12),
+            EmbeddedCheckoutView(
+              key: ValueKey(sessionId),
+              publishableKey: payment.stripePublishableKey!,
+              clientSecret: payment.checkoutClientSecret!,
+              sessionId: sessionId,
+              onComplete: onComplete,
+              onError: onError,
+            ),
+          ],
+        ),
       ),
     );
   }

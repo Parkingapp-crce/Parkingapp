@@ -28,6 +28,97 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" crossorigin="anonymous">
+
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+    }
+  </style>
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    (() => {
+      const activeCheckouts = new Map();
+
+      const parseDetail = (event) => {
+        if (!event.detail) return {};
+        if (typeof event.detail === 'string') {
+          return JSON.parse(event.detail);
+        }
+        return event.detail;
+      };
+
+      const dispatchCheckoutEvent = (name, detail) => {
+        window.dispatchEvent(
+          new CustomEvent(name, { detail: JSON.stringify(detail) })
+        );
+      };
+
+      window.addEventListener('parkEaseMountCheckout', async (event) => {
+        let detail = {};
+        try {
+          detail = parseDetail(event);
+          const { containerId, publishableKey, clientSecret, sessionId } = detail;
+          const container = document.getElementById(containerId);
+
+          if (!container) {
+            throw new Error('Checkout container was not found.');
+          }
+          if (!window.Stripe) {
+            throw new Error('Stripe.js did not load.');
+          }
+          if (!publishableKey || !clientSecret) {
+            throw new Error('Checkout configuration is missing.');
+          }
+
+          const existingCheckout = activeCheckouts.get(containerId);
+          if (existingCheckout) {
+            existingCheckout.destroy();
+            activeCheckouts.delete(containerId);
+          }
+          container.replaceChildren();
+
+          const stripe = window.Stripe(publishableKey);
+          const createEmbeddedCheckout =
+            stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout;
+          if (!createEmbeddedCheckout) {
+            throw new Error('Embedded Checkout is not available in Stripe.js.');
+          }
+          const checkout = await createEmbeddedCheckout.call(stripe, {
+            fetchClientSecret: () => Promise.resolve(clientSecret),
+            onComplete: () => {
+              dispatchCheckoutEvent('parkEaseCheckoutComplete', {
+                containerId,
+                sessionId,
+              });
+            },
+          });
+
+          activeCheckouts.set(containerId, checkout);
+          checkout.mount(`#${containerId}`);
+        } catch (error) {
+          dispatchCheckoutEvent('parkEaseCheckoutError', {
+            containerId: detail.containerId,
+            sessionId: detail.sessionId,
+            message: error && error.message ? error.message : String(error),
+          });
+        }
+      });
+
+      window.addEventListener('parkEaseDestroyCheckout', (event) => {
+        const { containerId } = parseDetail(event);
+        const checkout = activeCheckouts.get(containerId);
+        if (checkout) {
+          checkout.destroy();
+          activeCheckouts.delete(containerId);
+        }
+      });
+    })();
+  </script>
 
   <title>user_app</title>
   <link rel="manifest" href="manifest.json">

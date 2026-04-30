@@ -16,12 +16,22 @@ class _BookingListScreenState extends State<BookingListScreen> {
   void initState() {
     super.initState();
     _loadBookings();
+    _startLiveRefresh();
   }
 
   void _loadBookings() {
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
       context.read<BookingsCubit>().loadBookings(
+        societyId: authState.user.society,
+      );
+    }
+  }
+
+  void _startLiveRefresh() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated) {
+      context.read<BookingsCubit>().startPolling(
         societyId: authState.user.society,
       );
     }
@@ -164,7 +174,7 @@ class _BookingListScreenState extends State<BookingListScreen> {
                         _BookingInfoRow(
                           icon: Icons.currency_rupee,
                           text:
-                              '\u20B9${booking.amount} (${(booking.paymentStatus ?? "unknown").replaceAll('_', ' ')})',
+                              '\u20B9${booking.amount} (${booking.paymentStatusLabel})',
                         ),
                         if (booking.actualEntry != null)
                           _BookingInfoRow(

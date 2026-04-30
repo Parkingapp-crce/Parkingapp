@@ -10,7 +10,6 @@ final getIt = GetIt.instance;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
   final storage = SecureStorageService();
   final tokenManager = TokenManager(storage);
 

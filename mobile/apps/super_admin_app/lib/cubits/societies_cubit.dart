@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:core/core.dart';
 
@@ -50,8 +52,22 @@ class SocietiesState {
 
 class SocietiesCubit extends Cubit<SocietiesState> {
   final ApiClient _apiClient;
+  Timer? _dashboardPollingTimer;
 
   SocietiesCubit(this._apiClient) : super(const SocietiesState());
+
+  @override
+  Future<void> close() {
+    _dashboardPollingTimer?.cancel();
+    return super.close();
+  }
+
+  void startDashboardPolling() {
+    _dashboardPollingTimer?.cancel();
+    _dashboardPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      loadDashboard(silent: true);
+    });
+  }
 
   Future<void> loadSocieties() async {
     emit(state.copyWith(isLoading: true, clearError: true));
@@ -80,16 +96,28 @@ class SocietiesCubit extends Cubit<SocietiesState> {
     }
   }
 
-  Future<void> loadDashboard() async {
-    emit(state.copyWith(isDashboardLoading: true, clearError: true));
+  Future<void> loadDashboard({bool silent = false}) async {
+    if (!silent || state.dashboardData == null) {
+      emit(state.copyWith(isDashboardLoading: true, clearError: true));
+    }
     try {
       final response = await _apiClient.get(ApiEndpoints.adminDashboard);
       final data = response.data as Map<String, dynamic>;
-      emit(state.copyWith(isDashboardLoading: false, dashboardData: data));
+      emit(
+        state.copyWith(
+          isDashboardLoading: false,
+          dashboardData: data,
+          clearError: true,
+        ),
+      );
     } on ApiException catch (e) {
-      emit(state.copyWith(isDashboardLoading: false, error: e.message));
+      if (!silent || state.dashboardData == null) {
+        emit(state.copyWith(isDashboardLoading: false, error: e.message));
+      }
     } catch (e) {
-      emit(state.copyWith(isDashboardLoading: false, error: e.toString()));
+      if (!silent || state.dashboardData == null) {
+        emit(state.copyWith(isDashboardLoading: false, error: e.toString()));
+      }
     }
   }
 

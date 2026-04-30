@@ -17,6 +17,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    context.read<DashboardCubit>().startPolling();
   }
 
   void _loadData() {
@@ -279,10 +280,7 @@ class _ParkedVehicleCard extends StatelessWidget {
                   ),
                 ),
                 _StatusChip(
-                  label: (booking.paymentStatus ?? 'unknown').replaceAll(
-                    '_',
-                    ' ',
-                  ),
+                  label: booking.paymentStatusLabel,
                   color: _paymentStatusColor(booking.paymentStatus),
                 ),
               ],
@@ -392,7 +390,7 @@ class _GateActivityCard extends StatelessWidget {
             _InfoRow(
               icon: Icons.currency_rupee,
               label: 'Payment',
-              value: activity.paymentStatus.replaceAll('_', ' '),
+              value: _paymentStatusLabel(activity.paymentStatus),
             ),
             if (activity.errorMessage.isNotEmpty)
               Padding(
@@ -493,5 +491,22 @@ Color _paymentStatusColor(String? status) {
       return AppColors.error;
     default:
       return AppColors.textSecondary;
+  }
+}
+
+String _paymentStatusLabel(String? status) {
+  switch (status) {
+    case 'captured':
+      return 'PAYMENT COMPLETED';
+    case 'created':
+    case 'unpaid':
+    case null:
+      return 'PAYMENT PENDING';
+    case 'failed':
+      return 'PAYMENT FAILED';
+    case 'refunded':
+      return 'PAYMENT REFUNDED';
+    default:
+      return status.replaceAll('_', ' ').toUpperCase();
   }
 }

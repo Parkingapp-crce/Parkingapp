@@ -70,4 +70,22 @@ class BookingModel {
   bool get isConfirmed => status == 'confirmed';
   bool get isActive => status == 'active';
   bool get isCompleted => status == 'completed';
+  bool get isPaymentCompleted => paymentStatus == 'captured';
+
+  String get paymentStatusLabel {
+    switch (paymentStatus) {
+      case 'captured':
+        return 'PAYMENT COMPLETED';
+      case 'failed':
+        return 'PAYMENT FAILED';
+      case 'refunded':
+        return 'PAYMENT REFUNDED';
+      case 'created':
+      case 'unpaid':
+      case null:
+        return 'PAYMENT PENDING';
+      default:
+        return paymentStatus!.replaceAll('_', ' ').toUpperCase();
+    }
+  }
 }

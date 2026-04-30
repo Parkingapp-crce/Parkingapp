@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 
 enum Environment { dev, staging, prod }
@@ -13,9 +14,17 @@ class EnvConfig {
     this.razorpayKey = '',
   });
 
-  static const dev = EnvConfig._(
+  static String get _defaultDevUrl {
+    if (kIsWeb) return 'http://127.0.0.1:8000';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:8000';
+    } catch (_) {} 
+    return 'http://127.0.0.1:8000';
+  }
+
+  static final dev = EnvConfig._(
     environment: Environment.dev,
-    apiBaseUrl: kIsWeb ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000',
+    apiBaseUrl: _defaultDevUrl,
   );
 
   static const staging = EnvConfig._(

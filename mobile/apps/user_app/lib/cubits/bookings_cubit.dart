@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -39,11 +40,27 @@ class BookingsState {
 
 class BookingsCubit extends Cubit<BookingsState> {
   final ApiClient _apiClient;
+  Timer? _pollingTimer;
 
   BookingsCubit(this._apiClient) : super(const BookingsState());
 
-  Future<void> loadBookings() async {
-    emit(state.copyWith(isLoading: true, error: null));
+  @override
+  Future<void> close() {
+    _pollingTimer?.cancel();
+    return super.close();
+  }
+
+  void startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      loadBookings(silent: true);
+    });
+  }
+
+  Future<void> loadBookings({bool silent = false}) async {
+    if (!silent || state.bookings.isEmpty) {
+      emit(state.copyWith(isLoading: true, error: null));
+    }
     try {
       final response = await _apiClient.get(ApiEndpoints.bookingsList);
       final data = response.data as Map<String, dynamic>;
@@ -53,9 +70,13 @@ class BookingsCubit extends Cubit<BookingsState> {
       );
       emit(state.copyWith(isLoading: false, bookings: apiResponse.results));
     } on ApiException catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.message));
+      if (!silent || state.bookings.isEmpty) {
+        emit(state.copyWith(isLoading: false, error: e.message));
+      }
     } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
+      if (!silent || state.bookings.isEmpty) {
+        emit(state.copyWith(isLoading: false, error: e.toString()));
+      }
     }
   }
 
@@ -107,18 +128,39 @@ class BookingDetailState {
 
 class BookingDetailCubit extends Cubit<BookingDetailState> {
   final ApiClient _apiClient;
+  Timer? _pollingTimer;
 
   BookingDetailCubit(this._apiClient) : super(const BookingDetailState());
 
-  Future<void> loadBooking(String id) async {
-    emit(
-      state.copyWith(
-        isLoading: true,
-        error: null,
-        isLoadingQr: false,
-        clearQrImage: true,
-      ),
-    );
+  @override
+  Future<void> close() {
+    _pollingTimer?.cancel();
+    return super.close();
+  }
+
+  void startPolling(String bookingId) {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      loadBooking(bookingId, silent: true);
+    });
+  }
+
+  void stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  Future<void> loadBooking(String id, {bool silent = false}) async {
+    if (!silent) {
+      emit(
+        state.copyWith(
+          isLoading: true,
+          error: null,
+          isLoadingQr: false,
+          clearQrImage: true,
+        ),
+      );
+    }
     try {
       final response = await _apiClient.get(ApiEndpoints.booking(id));
       final booking = BookingModel.fromJson(
@@ -127,15 +169,25 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
 
       emit(state.copyWith(isLoading: false, booking: booking, error: null));
 
+      if (booking.isPendingPayment && _pollingTimer == null) {
+        startPolling(id);
+      } else if (!booking.isPendingPayment && _pollingTimer != null) {
+        stopPolling();
+      }
+
       if (booking.isConfirmed || booking.isActive) {
         await loadBookingQr(id);
       } else {
         emit(state.copyWith(isLoadingQr: false, clearQrImage: true));
       }
     } on ApiException catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.message));
+      if (!silent) {
+        emit(state.copyWith(isLoading: false, error: e.message));
+      }
     } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
+      if (!silent) {
+        emit(state.copyWith(isLoading: false, error: e.toString()));
+      }
     }
   }
 
@@ -186,12 +238,15 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
     }
   }
 
-  Future<PaymentModel?> initiatePayment(String bookingId) async {
+  Future<PaymentModel?> initiatePayment(
+    String bookingId, {
+    bool embedded = false,
+  }) async {
     emit(state.copyWith(isInitiatingPayment: true, error: null));
     try {
       final response = await _apiClient.post(
         ApiEndpoints.paymentInitiate,
-        data: {'booking_id': bookingId},
+        data: {'booking_id': bookingId, 'embedded': embedded},
       );
       emit(state.copyWith(isInitiatingPayment: false));
       return PaymentModel.fromJson(response.data as Map<String, dynamic>);
@@ -204,19 +259,11 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
     }
   }
 
-  Future<bool> verifyPayment({
-    required String razorpayOrderId,
-    required String paymentId,
-    required String signature,
-  }) async {
+  Future<bool> verifyPayment({required String checkoutSessionId}) async {
     try {
       await _apiClient.post(
         ApiEndpoints.paymentVerify,
-        data: {
-          'razorpay_order_id': razorpayOrderId,
-          'razorpay_payment_id': paymentId,
-          'razorpay_signature': signature,
-        },
+        data: {'checkout_session_id': checkoutSessionId},
       );
       return true;
     } catch (_) {

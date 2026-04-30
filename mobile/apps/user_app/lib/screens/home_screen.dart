@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +42,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   int _durationMinutes = 60;
   TimeOfDay? _endTime;
   String _vehicleType = 'car';
+  bool _showMap = false;
 
   @override
   void initState() {
@@ -406,28 +408,147 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (state.resolvedDestinationLabel != null) ...[
-          Text(
-            'Results near ${state.resolvedDestinationLabel}',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Sorted by distance${state.searchRadiusKm != null ? ' within ${state.searchRadiusKm!.toStringAsFixed(0)} km' : ''}.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Results near ${state.resolvedDestinationLabel}',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sorted by distance${state.searchRadiusKm != null ? ' within ${state.searchRadiusKm!.toStringAsFixed(0)} km' : ''}.',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _showMap = !_showMap;
+                  });
+                },
+                icon: Icon(_showMap ? Icons.list : Icons.map),
+                tooltip: _showMap ? 'List View' : 'Map View',
+              )
+            ],
           ),
           const SizedBox(height: 12),
         ],
-        ...state.results.map(
-          (society) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _SocietyCard(society: society, request: state.lastRequest!),
+        if (_showMap)
+          _buildResultsMap(context, state)
+        else
+          ...state.results.map(
+            (society) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _SocietyCard(society: society, request: state.lastRequest!),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildResultsMap(BuildContext context, SocietiesState state) {
+    final validResults = state.results.where((s) => s.latitude != null && s.longitude != null).toList();
+    if (validResults.isEmpty) {
+      return const SizedBox(
+        height: 300,
+        child: Center(child: Text('No map coordinates available for these locations.')),
+      );
+    }
+    
+    final markers = validResults.map((s) {
+      return Marker(
+        point: LatLng(s.latitude!, s.longitude!),
+        width: 80,
+        height: 60,
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {
+            // Show bottom sheet with the society details when tapped
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _SocietyCard(society: s, request: state.lastRequest!),
+              ),
+            );
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: const ShapeDecoration(
+                  color: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(2),
+                    ),
+                  ),
+                ),
+                child: const Text('P', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+              Container(
+                transform: Matrix4.translationValues(0, -2, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.divider),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: Text(
+                  '\u20B9${s.startingHourlyRate}/hr',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      );
+    }).toList();
+
+    return SizedBox(
+      height: 400,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: LatLng(validResults.first.latitude!, validResults.first.longitude!),
+            initialZoom: 14.0,
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
+          ),
+          children: [
+            TileLayer(
+              key: const ValueKey('homeTileLayer'),
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.parkease.user_app',
+            ),
+            MarkerLayer(
+              key: const ValueKey('homeMarkerLayer'),
+              markers: markers,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -552,17 +673,18 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
     }
 
     _autocompleteDebounce?.cancel();
+    // Increased debounce to 1500ms to stay within Nominatim's 1 req/sec limit
     _autocompleteDebounce = Timer(
-      const Duration(milliseconds: 350),
-      () => cubit.loadDestinationSuggestions(trimmed),
+      const Duration(milliseconds: 1500),
+      () {
+        if (trimmed.isNotEmpty) {
+          cubit.loadDestinationSuggestions(trimmed);
+        }
+      },
     );
   }
 
-  void _selectSuggestion(
-    BuildContext context,
-    LocationSuggestionModel suggestion,
-  ) {
-    _destinationController.text = suggestion.label;
+  void _selectSuggestion(BuildContext context, dynamic suggestion) {
     context.read<SocietiesCubit>().selectDestination(suggestion);
     FocusScope.of(context).unfocus();
   }

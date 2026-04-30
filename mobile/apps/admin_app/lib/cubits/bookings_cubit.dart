@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:core/core.dart';
 
@@ -28,11 +30,27 @@ class BookingsState {
 
 class BookingsCubit extends Cubit<BookingsState> {
   final ApiClient _apiClient;
+  Timer? _pollingTimer;
 
   BookingsCubit(this._apiClient) : super(const BookingsState());
 
-  Future<void> loadBookings({String? societyId}) async {
-    emit(state.copyWith(isLoading: true, clearError: true));
+  @override
+  Future<void> close() {
+    _pollingTimer?.cancel();
+    return super.close();
+  }
+
+  void startPolling({String? societyId}) {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      loadBookings(societyId: societyId, silent: true);
+    });
+  }
+
+  Future<void> loadBookings({String? societyId, bool silent = false}) async {
+    if (!silent || state.bookings.isEmpty) {
+      emit(state.copyWith(isLoading: true, clearError: true));
+    }
     try {
       final queryParams = <String, dynamic>{};
       if (societyId != null) {
@@ -57,11 +75,17 @@ class BookingsCubit extends Cubit<BookingsState> {
       } else {
         bookings = [];
       }
-      emit(state.copyWith(isLoading: false, bookings: bookings));
+      emit(
+        state.copyWith(isLoading: false, bookings: bookings, clearError: true),
+      );
     } on ApiException catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.message));
+      if (!silent || state.bookings.isEmpty) {
+        emit(state.copyWith(isLoading: false, error: e.message));
+      }
     } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
+      if (!silent || state.bookings.isEmpty) {
+        emit(state.copyWith(isLoading: false, error: e.toString()));
+      }
     }
   }
 }

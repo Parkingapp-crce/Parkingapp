@@ -103,7 +103,11 @@ GoRouter createRouter(AuthBloc authBloc) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return BookingDetailScreen(bookingId: id);
+          return BookingDetailScreen(
+            bookingId: id,
+            checkoutSessionId: state.uri.queryParameters['session_id'],
+            checkoutStatus: state.uri.queryParameters['checkout'],
+          );
         },
       ),
       GoRoute(

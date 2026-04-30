@@ -4,6 +4,10 @@ from django.db import models
 
 
 class Payment(models.Model):
+    class Provider(models.TextChoices):
+        RAZORPAY = "razorpay", "Razorpay"
+        STRIPE = "stripe", "Stripe"
+
     class Status(models.TextChoices):
         CREATED = "created", "Created"
         CAPTURED = "captured", "Captured"
@@ -31,9 +35,19 @@ class Payment(models.Model):
     )
     payment_type = models.CharField(max_length=20, choices=PaymentType.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10, default="INR")
+    provider = models.CharField(
+        max_length=20, choices=Provider.choices, default=Provider.STRIPE
+    )
     razorpay_order_id = models.CharField(max_length=100, unique=True)
     razorpay_payment_id = models.CharField(max_length=100, null=True, blank=True)
     razorpay_signature = models.CharField(max_length=255, null=True, blank=True)
+    stripe_checkout_session_id = models.CharField(
+        max_length=255, null=True, blank=True, unique=True
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255, null=True, blank=True, unique=True
+    )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.CREATED
     )
@@ -44,4 +58,9 @@ class Payment(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Payment {self.razorpay_order_id} - {self.status}"
+        reference = (
+            self.stripe_checkout_session_id
+            or self.razorpay_order_id
+            or str(self.id)
+        )
+        return f"Payment {reference} - {self.status}"

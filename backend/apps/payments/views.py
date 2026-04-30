@@ -1,11 +1,20 @@
+from django.conf import settings
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.bookings.models import Booking
 
-from .serializers import PaymentInitiateSerializer, PaymentVerifySerializer
-from .services import create_razorpay_order, handle_razorpay_webhook, verify_payment
+from .serializers import (
+    PaymentInitiateSerializer,
+    PaymentSerializer,
+    PaymentVerifySerializer,
+)
+from .services import (
+    create_stripe_checkout_session,
+    handle_stripe_webhook,
+    verify_checkout_session,
+)
 
 
 class PaymentInitiateView(APIView):
@@ -27,8 +36,23 @@ class PaymentInitiateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        order_data = create_razorpay_order(booking)
-        return Response(order_data, status=status.HTTP_201_CREATED)
+        embedded = serializer.validated_data.get("embedded", False)
+        payment, checkout_url, checkout_client_secret = create_stripe_checkout_session(
+            booking,
+            request,
+            embedded=embedded,
+        )
+        serializer = PaymentSerializer(
+            payment,
+            context={
+                "checkout_url": checkout_url,
+                "checkout_client_secret": checkout_client_secret,
+                "stripe_publishable_key": (
+                    settings.STRIPE_PUBLISHABLE_KEY if embedded else None
+                ),
+            },
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class PaymentVerifyView(APIView):
@@ -38,22 +62,45 @@ class PaymentVerifyView(APIView):
         serializer = PaymentVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        payment = verify_payment(
-            razorpay_order_id=serializer.validated_data["razorpay_order_id"],
-            razorpay_payment_id=serializer.validated_data["razorpay_payment_id"],
-            razorpay_signature=serializer.validated_data["razorpay_signature"],
+        payment = verify_checkout_session(
+            checkout_session_id=serializer.validated_data["checkout_session_id"],
+            user=request.user,
         )
-        return Response(
-            {"status": "payment_verified", "payment_id": str(payment.id)}
-        )
+        return Response(PaymentSerializer(payment).data)
 
 
-class RazorpayWebhookView(APIView):
+class StripeWebhookView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        signature = request.headers.get("X-Razorpay-Signature", "")
+        signature = request.headers.get("Stripe-Signature", "")
         body = request.body.decode("utf-8")
 
-        handle_razorpay_webhook(body, signature)
+        handle_stripe_webhook(body, signature)
         return Response({"status": "ok"})
+
+
+class ManualPaymentVerifyView(APIView):
+    """Manual payment verification endpoint for testing without webhooks"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """Manually verify a payment by checkout session ID"""
+        checkout_session_id = request.data.get("checkout_session_id")
+        if not checkout_session_id:
+            return Response(
+                {"error": "checkout_session_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            payment = verify_checkout_session(
+                checkout_session_id=checkout_session_id,
+                user=request.user,
+            )
+            return Response(PaymentSerializer(payment).data)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )

@@ -16,6 +16,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    context.read<SocietiesCubit>().startDashboardPolling();
   }
 
   void _loadData() {
@@ -30,10 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Platform Dashboard'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -48,11 +46,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return const LoadingWidget(message: 'Loading dashboard...');
           }
 
-          if (state.error != null && state.dashboardData == null && state.societies.isEmpty) {
-            return AppErrorWidget(
-              message: state.error!,
-              onRetry: _loadData,
-            );
+          if (state.error != null &&
+              state.dashboardData == null &&
+              state.societies.isEmpty) {
+            return AppErrorWidget(message: state.error!, onRetry: _loadData);
           }
 
           return RefreshIndicator(
@@ -62,9 +59,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   'Platform Overview',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 _buildDashboardCards(state),
@@ -72,8 +69,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   'Recent Societies',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _buildRecentSocieties(state),
@@ -90,10 +87,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Extract dashboard data or fallback to computed values from societies
     final totalSocieties = data?['total_societies'] ?? state.societies.length;
-    final activeSocieties = data?['active_societies'] ??
+    final activeSocieties =
+        data?['active_societies'] ??
         state.societies.where((s) => s.isActive).length;
     final totalBookings = data?['total_bookings'] ?? 0;
-    final totalSlots = data?['total_slots'] ??
+    final totalSlots =
+        data?['total_slots'] ??
         state.societies.fold<int>(0, (sum, s) => sum + (s.totalSlots ?? 0));
     final totalRevenue = data?['total_revenue'] ?? '0';
 
@@ -141,10 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildRecentSocieties(SocietiesState state) {
     if (state.isLoading && state.societies.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(32),
-        child: LoadingWidget(),
-      );
+      return const Padding(padding: EdgeInsets.all(32), child: LoadingWidget());
     }
 
     if (state.societies.isEmpty) {
@@ -185,10 +181,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             subtitle: Text(
               '${society.city} | ${society.totalSlots ?? 0} slots',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -246,10 +239,8 @@ class _DashboardCard extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       value,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold, color: color),
                     ),
                   ),
                 ),
@@ -260,9 +251,9 @@ class _DashboardCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 title,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ),
           ],

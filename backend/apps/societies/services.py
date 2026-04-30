@@ -25,8 +25,14 @@ def _request_location_json(base_url, query_params):
         headers={"User-Agent": settings.GEOCODING_USER_AGENT},
     )
 
-    with urlopen(request, timeout=settings.GEOCODING_TIMEOUT_SECONDS) as response:
-        return json.loads(response.read().decode("utf-8"))
+    try:
+        import urllib.error
+        import logging
+        with urlopen(request, timeout=settings.GEOCODING_TIMEOUT_SECONDS) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.URLError as e:
+        logging.getLogger(__name__).error(f"Geocoding req failed: {e}")
+        return None
 
 
 def _format_location_result(raw_result, *, fallback_label=""):
@@ -54,6 +60,9 @@ def autocomplete_destinations(query, *, limit=None):
             "limit": limit or settings.LOCATION_AUTOCOMPLETE_LIMIT,
         },
     )
+
+    if not payload:
+        return []
 
     return [_format_location_result(result) for result in payload]
 

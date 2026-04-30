@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,7 +14,20 @@ class ApiService {
     return prefs.getString("token");
   }
 
-  /// 🔹 LOGIN (all roles)
+  static Map<String, dynamic> _decodeMapBody(http.Response response) {
+    if (response.body.isEmpty) {
+      return {};
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    return {"data": decoded};
+  }
+
+  /// ðŸ”¹ LOGIN (all roles)
   static Future<Map<String, dynamic>> loginUser(
       String email, String password) async {
     final response = await http.post(
@@ -24,7 +38,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 REGISTER (Customer)
+  /// ðŸ”¹ REGISTER (Customer)
   static Future<Map<String, dynamic>> registerUser(
       String name, String email, String password) async {
     final response = await http.post(
@@ -35,7 +49,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 REGISTER OWNER
+  /// ðŸ”¹ REGISTER OWNER
   static Future<Map<String, dynamic>> registerOwner({
     required String name,
     required String email,
@@ -55,7 +69,7 @@ class ApiService {
         "name": name,
         "email": email,
         "password": password,
-        "parking_name": lotName,   // ✅ Fixed: Django expects parking_name
+        "parking_name": lotName,   // âœ… Fixed: Django expects parking_name
         "address": address,
         "city": city,
         "total_slots": totalSlots,
@@ -67,7 +81,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔥 GOOGLE LOGIN
+  /// ðŸ”¥ GOOGLE LOGIN
   static Future<Map<String, dynamic>> googleLogin(
       String email, String name) async {
     final response = await http.post(
@@ -78,7 +92,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 PROFILE
+  /// ðŸ”¹ PROFILE
   static Future<Map<String, dynamic>> getProfile() async {
     final token = await _getToken();
     final response = await http.get(
@@ -91,7 +105,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 OWNER DASHBOARD
+  /// ðŸ”¹ OWNER DASHBOARD
   static Future<Map<String, dynamic>> getOwnerDashboard() async {
     final token = await _getToken();
     final response = await http.get(
@@ -104,7 +118,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 ADMIN DASHBOARD
+  /// ðŸ”¹ ADMIN DASHBOARD
   static Future<Map<String, dynamic>> getAdminDashboard() async {
     final token = await _getToken();
     final response = await http.get(
@@ -117,7 +131,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 GET ALL PARKING LOTS (for customers)
+  /// ðŸ”¹ GET ALL PARKING LOTS (for customers)
   static Future<Map<String, dynamic>> getParkingLots() async {
     final response = await http.get(
       Uri.parse("$baseUrl/parking-lots"),
@@ -126,7 +140,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 FORGOT PASSWORD
+  /// ðŸ”¹ FORGOT PASSWORD
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     final response = await http.post(
       Uri.parse("$baseUrl/forgot-password"),
@@ -136,7 +150,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 VERIFY OTP
+  /// ðŸ”¹ VERIFY OTP
   static Future<Map<String, dynamic>> verifyOTP(
       String email, String otp) async {
     final response = await http.post(
@@ -147,7 +161,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 RESET PASSWORD
+  /// ðŸ”¹ RESET PASSWORD
   static Future<Map<String, dynamic>> resetPassword(
       String email, String newPassword) async {
     final response = await http.post(
@@ -158,32 +172,65 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 BOOK SLOT
- static Future<Map<String, dynamic>> bookSlot({
-  required int parkingLotId,
-  required String vehicleNumber,
-  required String vehicleType,
-  required String startTime,
-  required String endTime,
-}) async {
-  final token = await _getToken();
-  final response = await http.post(
-    Uri.parse("$baseUrl/book-slot"),
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer $token",
-    },
-    body: jsonEncode({
-      "parking_lot_id": parkingLotId,
-      "vehicle_number": vehicleNumber,
-      "vehicle_type": vehicleType,
-      "start_time": startTime,
-      "end_time": endTime,
-    }),
-  );
-  return jsonDecode(response.body);
-}
-  /// 🔹 MY BOOKINGS
+  /// ðŸ”¹ BOOK SLOT
+  static Future<Map<String, dynamic>> bookSlot({
+    required int parkingLotId,
+    required String vehicleNumber,
+    required String vehicleType,
+    required String startTime,
+    required String endTime,
+  }) async {
+    final token = await _getToken();
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse("$baseUrl/book-slot"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode({
+              "parking_lot_id": parkingLotId,
+              "vehicle_number": vehicleNumber,
+              "vehicle_type": vehicleType,
+              "start_time": startTime,
+              "end_time": endTime,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final body = _decodeMapBody(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return body;
+      }
+
+      return {
+        ...body,
+        "status_code": response.statusCode,
+        "error": body["error"] ??
+            body["detail"] ??
+            body["message"] ??
+            "Booking failed.",
+      };
+    } on TimeoutException {
+      return {
+        "error": "Request timed out. Check that the backend is running.",
+      };
+    } on FormatException {
+      return {
+        "error":
+            "The server returned an unexpected response. Check the backend logs.",
+      };
+    } on http.ClientException {
+      return {
+        "error":
+            "Cannot reach the server. Verify the API URL and backend server.",
+      };
+    }
+  }
+
+  /// ðŸ”¹ MY BOOKINGS
   static Future<List<dynamic>> getMyBookings() async {
     final token = await _getToken();
     final response = await http.get(
@@ -196,7 +243,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 GET QR CODE
+  /// ðŸ”¹ GET QR CODE
   static Future<Map<String, dynamic>> getBookingQR(int bookingId) async {
     final token = await _getToken();
     final response = await http.get(
@@ -209,7 +256,7 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// 🔹 CANCEL BOOKING
+  /// ðŸ”¹ CANCEL BOOKING
   static Future<Map<String, dynamic>> cancelBooking(int bookingId) async {
     final token = await _getToken();
     final response = await http.post(
