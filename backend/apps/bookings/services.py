@@ -143,14 +143,19 @@ def _build_pending_booking(user, slot, vehicle, start_time, end_time):
 
     from .tasks import expire_booking_lock
     import logging
+    import threading
 
-    try:
-        expire_booking_lock.apply_async(
-            args=[str(booking.id)],
-            countdown=LOCK_DURATION_SECONDS,
-        )
-    except Exception as e:
-        logging.warning("Failed to queue expire_booking_lock task: %s", e)
+    def trigger_celery_task():
+        try:
+            expire_booking_lock.apply_async(
+                args=[str(booking.id)],
+                countdown=LOCK_DURATION_SECONDS,
+            )
+        except Exception as e:
+            logging.warning("Failed to queue expire_booking_lock task: %s", e)
+
+    # Run in background thread so it doesn't block the API response if Redis is down
+    threading.Thread(target=trigger_celery_task, daemon=True).start()
 
     return booking
 

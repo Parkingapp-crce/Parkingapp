@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
+import 'package:local_auth/local_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +16,56 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final LocalAuthentication _localAuth = LocalAuthentication();
   bool _obscurePassword = true;
+  bool _canCheckBiometrics = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometrics();
+  }
+
+  Future<void> _checkBiometrics() async {
+    bool canCheckBiometrics;
+    try {
+      canCheckBiometrics = await _localAuth.canCheckBiometrics ||
+          await _localAuth.isDeviceSupported();
+    } on PlatformException catch (e) {
+      canCheckBiometrics = false;
+    }
+    if (!mounted) return;
+
+    setState(() {
+      _canCheckBiometrics = canCheckBiometrics;
+    });
+  }
+
+  Future<void> _authenticateWithBiometrics() async {
+    bool authenticated = false;
+    try {
+      authenticated = await _localAuth.authenticate(
+        localizedReason: 'Scan your fingerprint (or face) to authenticate',
+        persistAcrossBackgrounding: true,
+        biometricOnly: false,
+      );
+    } on PlatformException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Biometric auth failed: ${e.message}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    if (authenticated) {
+      context.read<AuthBloc>().add(const AuthBiometricLoginRequested());
+    }
+  }
 
   @override
   void dispose() {
@@ -127,15 +178,34 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
-                        return PrimaryButton(
-                          label: 'Sign In',
-                          isLoading: state is AuthLoading,
-                          onPressed: _onLogin,
-                          icon: Icons.login,
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            PrimaryButton(
+                              label: 'Sign In',
+                              isLoading: state is AuthLoading,
+                              onPressed: _onLogin,
+                              icon: Icons.login,
+                            ),
+                            if (_canCheckBiometrics) ...[
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: state is AuthLoading ? null : _authenticateWithBiometrics,
+                                icon: const Icon(Icons.fingerprint, size: 24),
+                                label: const Text('Login with Biometrics'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

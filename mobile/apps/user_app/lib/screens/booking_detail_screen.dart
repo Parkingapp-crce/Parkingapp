@@ -14,12 +14,14 @@ class BookingDetailScreen extends StatefulWidget {
   final String bookingId;
   final String? checkoutSessionId;
   final String? checkoutStatus;
+  final bool autoPay;
 
   const BookingDetailScreen({
     super.key,
     required this.bookingId,
     this.checkoutSessionId,
     this.checkoutStatus,
+    this.autoPay = false,
   });
 
   @override
@@ -28,6 +30,7 @@ class BookingDetailScreen extends StatefulWidget {
 
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
   bool _handledCheckoutReturn = false;
+  bool _hasAutoPaid = false;
   PaymentModel? _activeEmbeddedPayment;
   bool _isCompletingEmbeddedCheckout = false;
 
@@ -195,6 +198,17 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         body: BlocConsumer<BookingDetailCubit, BookingDetailState>(
           listener: (context, state) {
             final booking = state.booking;
+            
+            if (widget.autoPay && 
+                !_hasAutoPaid && 
+                booking != null && 
+                booking.isPendingPayment) {
+              _hasAutoPaid = true;
+              Future.microtask(() {
+                _initiatePayment(context.read<BookingDetailCubit>(), booking);
+              });
+            }
+
             if (_activeEmbeddedPayment != null &&
                 !_isCompletingEmbeddedCheckout &&
                 booking != null &&
@@ -234,69 +248,83 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               });
             }
 
-            return RefreshIndicator(
-              onRefresh: () => context.read<BookingDetailCubit>().loadBooking(
-                widget.bookingId,
-              ),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _StatusHeader(booking: booking),
-                    const SizedBox(height: 16),
-                    _QrSection(
-                      booking: booking,
-                      qrImageBytes: state.qrImageBytes,
-                      isLoadingQr: state.isLoadingQr,
+            return Stack(
+              children: [
+                RefreshIndicator(
+                  onRefresh: () => context.read<BookingDetailCubit>().loadBooking(
+                    widget.bookingId,
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _StatusHeader(booking: booking),
+                        const SizedBox(height: 16),
+                        _QrSection(
+                          booking: booking,
+                          qrImageBytes: state.qrImageBytes,
+                          isLoadingQr: state.isLoadingQr,
+                        ),
+                        const SizedBox(height: 16),
+                        _BookingInfoCard(booking: booking),
+                        const SizedBox(height: 16),
+                        _TimeCard(booking: booking),
+                        if (booking.vehicle != null) ...[
+                          const SizedBox(height: 16),
+                          _VehicleCard(vehicle: booking.vehicle!),
+                        ],
+                        const SizedBox(height: 24),
+                        _ActionButtons(
+                          booking: booking,
+                          state: state,
+                          isCheckoutOpen: _activeEmbeddedPayment != null,
+                          onPay: () => _initiatePayment(
+                            context.read<BookingDetailCubit>(),
+                            booking,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _BookingInfoCard(booking: booking),
-                    const SizedBox(height: 16),
-                    _TimeCard(booking: booking),
-                    if (booking.vehicle != null) ...[
-                      const SizedBox(height: 16),
-                      _VehicleCard(vehicle: booking.vehicle!),
-                    ],
-                    const SizedBox(height: 24),
-                    _ActionButtons(
-                      booking: booking,
-                      state: state,
-                      isCheckoutOpen: _activeEmbeddedPayment != null,
-                      onPay: () => _initiatePayment(
-                        context.read<BookingDetailCubit>(),
-                        booking,
-                      ),
-                    ),
-                    if (_activeEmbeddedPayment != null) ...[
-                      const SizedBox(height: 16),
-                      _EmbeddedCheckoutPanel(
-                        payment: _activeEmbeddedPayment!,
-                        isCompleting: _isCompletingEmbeddedCheckout,
-                        onComplete: (sessionId) =>
-                            _handleEmbeddedCheckoutComplete(
-                              context.read<BookingDetailCubit>(),
-                              sessionId,
-                            ),
-                        onError: (message) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(message),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                        },
-                        onClose: _isCompletingEmbeddedCheckout
-                            ? null
-                            : () {
-                                setState(() => _activeEmbeddedPayment = null);
-                              },
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
+                if (_activeEmbeddedPayment != null)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 800),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: _EmbeddedCheckoutPanel(
+                            payment: _activeEmbeddedPayment!,
+                            isCompleting: _isCompletingEmbeddedCheckout,
+                            onComplete: (sessionId) =>
+                                _handleEmbeddedCheckoutComplete(
+                                  context.read<BookingDetailCubit>(),
+                                  sessionId,
+                                ),
+                            onError: (message) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(message),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            },
+                            onClose: _isCompletingEmbeddedCheckout
+                                ? null
+                                : () {
+                                    setState(() => _activeEmbeddedPayment = null);
+                                  },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),

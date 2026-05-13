@@ -24,6 +24,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         super(const AuthInitial()) {
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthLoginRequested>(_onLoginRequested);
+    on<AuthBiometricLoginRequested>(_onBiometricLoginRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthLoggedOut>(_onLoggedOut);
   }
@@ -62,6 +63,44 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onBiometricLoginRequested(
+    AuthBiometricLoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthLoading());
+    try {
+      final email = await _tokenManager.getEmail();
+      final password = await _tokenManager.getPassword();
+      
+      if (email == null || email.isEmpty || password == null || password.isEmpty) {
+        emit(const AuthError('No saved credentials found. Please login with password first.'));
+        return;
+      }
+
+      final data = await _authService.login(
+        email: email,
+        password: password,
+      );
+
+      final access = data['access'] as String;
+      final refresh = data['refresh'] as String;
+      await _tokenManager.saveTokens(access: access, refresh: refresh);
+
+      if (_apiClient != null) {
+        final response = await _apiClient!.get(ApiEndpoints.profile);
+        final user = UserModel.fromJson(response.data as Map<String, dynamic>);
+        emit(Authenticated(user));
+      } else {
+        final user = await _authService.getProfile();
+        emit(Authenticated(user));
+      }
+    } on ApiException catch (e) {
+      emit(AuthError(e.message));
+    } catch (e) {
+      emit(AuthError(e.toString()));
+    }
+  }
+
   Future<void> _onLoginRequested(
     AuthLoginRequested event,
     Emitter<AuthState> emit,
@@ -76,6 +115,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final access = data['access'] as String;
       final refresh = data['refresh'] as String;
       await _tokenManager.saveTokens(access: access, refresh: refresh);
+      await _tokenManager.saveCredentials(
+        email: event.email,
+        password: event.password,
+      );
 
       if (_apiClient != null) {
         final response = await _apiClient!.get(ApiEndpoints.profile);
@@ -109,6 +152,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await _tokenManager.saveTokens(
         access: tokens['access'] as String,
         refresh: tokens['refresh'] as String,
+      );
+      await _tokenManager.saveCredentials(
+        email: event.email,
+        password: event.password,
       );
 
       final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);

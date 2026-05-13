@@ -22,6 +22,8 @@ class PaymentInitiateView(APIView):
 
     def post(self, request):
         serializer = PaymentInitiateSerializer(data=request.data)
+        if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -31,6 +33,7 @@ class PaymentInitiateView(APIView):
                 status=Booking.Status.PENDING_PAYMENT,
             )
         except Booking.DoesNotExist:
+            print("Booking not found. Validated data:", serializer.validated_data)
             return Response(
                 {"error": "Booking not found or not in pending payment state."},
                 status=status.HTTP_400_BAD_REQUEST,

@@ -7,7 +7,7 @@ import 'dart:ui_web' as ui;
 
 import 'package:flutter/material.dart';
 
-const bool supportsEmbeddedCheckout = true;
+const bool supportsEmbeddedCheckout = false;
 
 class EmbeddedCheckoutView extends StatefulWidget {
   final String publishableKey;
@@ -77,17 +77,21 @@ class _EmbeddedCheckoutViewState extends State<EmbeddedCheckoutView> {
   void _mountAfterLayout() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      html.window.dispatchEvent(
-        html.CustomEvent(
-          'parkEaseMountCheckout',
-          detail: jsonEncode({
-            'containerId': _containerId,
-            'publishableKey': widget.publishableKey,
-            'clientSecret': widget.clientSecret,
-            'sessionId': widget.sessionId,
-          }),
-        ),
-      );
+      // Delay to ensure the platform view is fully inserted into the DOM
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        html.window.dispatchEvent(
+          html.CustomEvent(
+            'parkEaseMountCheckout',
+            detail: jsonEncode({
+              'containerId': _containerId,
+              'publishableKey': widget.publishableKey,
+              'clientSecret': widget.clientSecret,
+              'sessionId': widget.sessionId,
+            }),
+          ),
+        );
+      });
     });
   }
 

@@ -85,6 +85,27 @@ class BookingDetailView(generics.RetrieveAPIView):
             return qs.filter(slot__society_id=self.request.user.society_id)
         return qs.filter(user=self.request.user)
 
+    def get_object(self):
+        obj = super().get_object()
+        if obj.status == Booking.Status.PENDING_PAYMENT:
+            # Auto-verify pending payments from Stripe when refreshing
+            from apps.payments.models import Payment
+            from apps.payments.services import verify_checkout_session
+            
+            pending_payments = obj.payments.filter(
+                provider=Payment.Provider.STRIPE, 
+                status=Payment.Status.CREATED
+            ).exclude(stripe_checkout_session_id__isnull=True)
+            
+            for payment in pending_payments:
+                try:
+                    verify_checkout_session(payment.stripe_checkout_session_id)
+                except Exception as e:
+                    print(f"Auto-verify failed for {payment.id}: {e}")
+            
+            obj.refresh_from_db()
+        return obj
+
 
 class BookingCancelView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -106,19 +127,25 @@ class BookingQRView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
+        print(f"QR View hit for booking {pk}")
         try:
             booking = Booking.objects.get(id=pk, user=request.user)
         except Booking.DoesNotExist:
+            print("Booking not found")
             return Response(
                 {"error": "Booking not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        print(f"Booking status is {booking.status}")
         if booking.status not in (Booking.Status.CONFIRMED, Booking.Status.ACTIVE):
+            print("Booking status invalid for QR")
             return Response(
                 {"error": "QR code only available for confirmed or active bookings."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        print("Generating QR image...")
         qr_image = generate_qr_image(booking.qr_code_token)
+        print("QR image generated successfully")
         return HttpResponse(qr_image.getvalue(), content_type="image/png")

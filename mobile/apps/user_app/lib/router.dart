@@ -107,6 +107,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             bookingId: id,
             checkoutSessionId: state.uri.queryParameters['session_id'],
             checkoutStatus: state.uri.queryParameters['checkout'],
+            autoPay: state.uri.queryParameters['autoPay'] == 'true',
           );
         },
       ),

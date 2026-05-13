@@ -21,6 +21,10 @@ class AuthLoginRequested extends AuthEvent {
   List<Object?> get props => [email, password];
 }
 
+class AuthBiometricLoginRequested extends AuthEvent {
+  const AuthBiometricLoginRequested();
+}
+
 class AuthRegisterRequested extends AuthEvent {
   final String email;
   final String phone;

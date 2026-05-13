@@ -55,7 +55,7 @@ class _BookingCreateContent extends StatelessWidget {
                 backgroundColor: AppColors.success,
               ),
             );
-            context.go('/bookings/${state.createdBooking!.id}');
+            context.go('/bookings/${state.createdBooking!.id}?autoPay=true');
           }
           if (state.error != null) {
             ScaffoldMessenger.of(context).showSnackBar(

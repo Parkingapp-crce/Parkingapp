@@ -5,6 +5,8 @@ import 'token_store_native.dart'
 class SecureStorageService {
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
+  static const _emailKey = 'saved_email';
+  static const _passwordKey = 'saved_password';
 
   final TokenStore _store;
 
@@ -13,6 +15,8 @@ class SecureStorageService {
 
   Future<String?> getAccessToken() => _safeRead(_accessTokenKey);
   Future<String?> getRefreshToken() => _safeRead(_refreshTokenKey);
+  Future<String?> getEmail() => _safeRead(_emailKey);
+  Future<String?> getPassword() => _safeRead(_passwordKey);
 
   Future<void> saveTokens({
     required String access,
@@ -24,10 +28,27 @@ class SecureStorageService {
     ]);
   }
 
+  Future<void> saveCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await Future.wait([
+      _store.write(_emailKey, email),
+      _store.write(_passwordKey, password),
+    ]);
+  }
+
   Future<void> clearTokens() async {
     await Future.wait([
       _safeDelete(_accessTokenKey),
       _safeDelete(_refreshTokenKey),
+    ]);
+  }
+
+  Future<void> clearCredentials() async {
+    await Future.wait([
+      _safeDelete(_emailKey),
+      _safeDelete(_passwordKey),
     ]);
   }
 
