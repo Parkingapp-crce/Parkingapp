@@ -458,71 +458,188 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   }
 
   Widget _buildResultsMap(BuildContext context, SocietiesState state) {
-    final validResults = state.results.where((s) => s.latitude != null && s.longitude != null).toList();
-    if (validResults.isEmpty) {
+    final validResults = state.results
+        .where((s) => s.latitude != null && s.longitude != null)
+        .toList();
+    final destination = state.selectedDestination;
+
+    if (validResults.isEmpty && destination == null) {
       return const SizedBox(
         height: 300,
-        child: Center(child: Text('No map coordinates available for these locations.')),
+        child: Center(child: Text('No location data available.')),
       );
     }
-    
-    final markers = validResults.map((s) {
-      return Marker(
-        point: LatLng(s.latitude!, s.longitude!),
-        width: 80,
-        height: 60,
-        alignment: Alignment.center,
-        child: GestureDetector(
-          onTap: () {
-            // Show bottom sheet with the society details when tapped
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: Colors.transparent,
-              builder: (ctx) => Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _SocietyCard(society: s, request: state.lastRequest!),
-              ),
-            );
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: const ShapeDecoration(
-                  color: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
-                      bottomRight: Radius.circular(2),
-                    ),
-                  ),
+
+    final markers = <Marker>[];
+    final polylines = <Polyline>[];
+
+    // Add Destination Marker
+    if (destination != null) {
+      markers.add(
+        Marker(
+          point: LatLng(destination.latitude, destination.longitude),
+          width: 44,
+          height: 44,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 6,
+                  spreadRadius: 1,
                 ),
-                child: const Text('P', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-              Container(
-                transform: Matrix4.translationValues(0, -2, 0),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.divider),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
-                  ],
-                ),
-                child: Text(
-                  '\u20B9${s.startingHourlyRate}/hr',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
-                ),
-              ),
-            ],
+              ],
+            ),
+            child: const Icon(
+              Icons.location_on,
+              color: AppColors.error,
+              size: 32,
+            ),
           ),
         ),
       );
-    }).toList();
+    }
+
+    // Add Society Markers and Polylines
+    for (final s in validResults) {
+      final societyPoint = LatLng(s.latitude!, s.longitude!);
+
+      // Add Polyline from destination to society
+      if (destination != null) {
+        polylines.add(
+          Polyline(
+            points: [
+              LatLng(destination.latitude, destination.longitude),
+              societyPoint,
+            ],
+            color: AppColors.primary.withValues(alpha: 0.5),
+            strokeWidth: 3,
+            borderColor: Colors.white,
+            borderStrokeWidth: 1,
+          ),
+        );
+
+        // Add Distance Label Marker at midpoint
+        final midLat = (destination.latitude + s.latitude!) / 2;
+        final midLng = (destination.longitude + s.longitude!) / 2;
+        markers.add(
+          Marker(
+            point: LatLng(midLat, midLng),
+            width: 70,
+            height: 26,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '${s.distanceKm.toStringAsFixed(1)} km',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Add Society Marker
+      markers.add(
+        Marker(
+          point: societyPoint,
+          width: 80,
+          height: 60,
+          alignment: Alignment.center,
+          child: GestureDetector(
+            onTap: () {
+              // Show bottom sheet with the society details when tapped
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                builder: (ctx) => Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _SocietyCard(society: s, request: state.lastRequest!),
+                ),
+              );
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const ShapeDecoration(
+                    color: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(2),
+                      ),
+                    ),
+                  ),
+                  child: const Text(
+                    'P',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Container(
+                  transform: Matrix4.translationValues(0, -2, 0),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    '₹${s.startingHourlyRate}/hr',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final initialCenter = destination != null
+        ? LatLng(destination.latitude, destination.longitude)
+        : (validResults.isNotEmpty
+            ? LatLng(validResults.first.latitude!, validResults.first.longitude!)
+            : const LatLng(19.0760, 72.8777)); // Mumbai default if nothing else
 
     return SizedBox(
       height: 400,
@@ -530,7 +647,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
         borderRadius: BorderRadius.circular(12),
         child: FlutterMap(
           options: MapOptions(
-            initialCenter: LatLng(validResults.first.latitude!, validResults.first.longitude!),
+            initialCenter: initialCenter,
             initialZoom: 14.0,
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -541,6 +658,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               key: const ValueKey('homeTileLayer'),
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.parkease.user_app',
+            ),
+            PolylineLayer(
+              key: const ValueKey('homePolylineLayer'),
+              polylines: polylines,
             ),
             MarkerLayer(
               key: const ValueKey('homeMarkerLayer'),
