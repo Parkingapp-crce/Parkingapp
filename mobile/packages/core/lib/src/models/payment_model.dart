@@ -29,6 +29,8 @@ class PaymentModel {
   final String? checkoutClientSecret;
   @JsonKey(name: 'stripe_publishable_key')
   final String? stripePublishableKey;
+  @JsonKey(name: 'razorpay_key_id')
+  final String? razorpayKeyId;
 
   const PaymentModel({
     required this.id,
@@ -47,10 +49,14 @@ class PaymentModel {
     this.checkoutUrl,
     this.checkoutClientSecret,
     this.stripePublishableKey,
+    this.razorpayKeyId,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) =>
       _$PaymentModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$PaymentModelToJson(this);
+
+  String? get razorpayOrderId => orderReferenceId;
+  String? get razorpayPaymentId => providerPaymentId;
 }

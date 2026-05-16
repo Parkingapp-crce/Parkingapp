@@ -40,6 +40,7 @@ class ApiEndpoints {
   // Payments
   static const paymentInitiate = '/api/v1/payments/initiate/';
   static const paymentVerify = '/api/v1/payments/verify/';
+  static const paymentVerifyRazorpay = '/api/v1/payments/razorpay/verify/';
 
   // QR Validation
   static const qrEntry = '/api/v1/qr/entry/';

@@ -23,6 +23,7 @@ PaymentModel _$PaymentModelFromJson(Map<String, dynamic> json) => PaymentModel(
   checkoutUrl: json['checkout_url'] as String?,
   checkoutClientSecret: json['checkout_client_secret'] as String?,
   stripePublishableKey: json['stripe_publishable_key'] as String?,
+  razorpayKeyId: json['razorpay_key_id'] as String?,
 );
 
 Map<String, dynamic> _$PaymentModelToJson(PaymentModel instance) =>
@@ -43,4 +44,5 @@ Map<String, dynamic> _$PaymentModelToJson(PaymentModel instance) =>
       'checkout_url': instance.checkoutUrl,
       'checkout_client_secret': instance.checkoutClientSecret,
       'stripe_publishable_key': instance.stripePublishableKey,
+      'razorpay_key_id': instance.razorpayKeyId,
     };

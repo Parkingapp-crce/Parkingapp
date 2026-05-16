@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 
 import '../cubits/bookings_cubit.dart';
@@ -33,10 +35,76 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   bool _hasAutoPaid = false;
   PaymentModel? _activeEmbeddedPayment;
   bool _isCompletingEmbeddedCheckout = false;
+  late Razorpay _razorpay;
 
   @override
   void initState() {
     super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleRazorpaySuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handleRazorpayError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleRazorpayExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  void _handleRazorpaySuccess(PaymentSuccessResponse response) {
+    final cubit = context.read<BookingDetailCubit>();
+    _verifyRazorpayPayment(
+      cubit,
+      response.orderId ?? '',
+      response.paymentId ?? '',
+      response.signature ?? '',
+    );
+  }
+
+  void _handleRazorpayError(PaymentFailureResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment Failed: ${response.message}'),
+        backgroundColor: AppColors.error,
+      ),
+    );
+  }
+
+  void _handleRazorpayExternalWallet(ExternalWalletResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('External Wallet: ${response.walletName}'),
+        backgroundColor: AppColors.primary,
+      ),
+    );
+  }
+
+  Future<void> _verifyRazorpayPayment(
+    BookingDetailCubit cubit,
+    String orderId,
+    String paymentId,
+    String signature,
+  ) async {
+    final verified = await cubit.verifyRazorpayPayment(
+      orderId: orderId,
+      paymentId: paymentId,
+      signature: signature,
+    );
+    await cubit.loadBooking(widget.bookingId);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          verified
+              ? 'Payment completed successfully.'
+              : 'Payment verification is pending. The booking will update shortly.',
+        ),
+        backgroundColor: verified ? AppColors.success : AppColors.warning,
+      ),
+    );
   }
 
   Future<void> _handleCheckoutReturn(BookingDetailCubit cubit) async {
@@ -80,15 +148,49 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   Future<void> _initiatePayment(
     BookingDetailCubit cubit,
-    BookingModel booking,
-  ) async {
+    BookingModel booking, {
+    String gateway = 'stripe',
+  }) async {
     final payment = await cubit.initiatePayment(
       booking.id,
-      embedded: supportsEmbeddedCheckout,
+      embedded: gateway == 'stripe' && supportsEmbeddedCheckout,
+      gateway: gateway,
     );
     if (payment == null) return;
 
-    if (supportsEmbeddedCheckout) {
+    if (gateway == 'razorpay') {
+      final options = {
+        'key': payment.razorpayKeyId,
+        'amount': (double.parse(booking.amount) * 100).toInt(),
+        'name': 'ParkWise',
+        'order_id': payment.razorpayOrderId,
+        'description': 'Booking #${booking.bookingNumber}',
+        'prefill': {
+          'contact': '', // Could add user phone here if available
+          'email': booking.ownerEmail ?? '',
+        },
+        'external': {
+          'wallets': ['paytm']
+        }
+      };
+
+      try {
+        _razorpay.open(options);
+        cubit.startPolling(booking.id);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open Razorpay: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    if (gateway == 'stripe' && supportsEmbeddedCheckout) {
       final publishableKey = payment.stripePublishableKey;
       final clientSecret = payment.checkoutClientSecret;
       final sessionId = payment.stripeCheckoutSessionId;
@@ -187,6 +289,55 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
+  void _showPaymentGatewayDialog(
+    BuildContext context,
+    BookingDetailCubit cubit,
+    BookingModel booking,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Select Payment Gateway',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            _GatewayTile(
+              label: 'Stripe',
+              subtitle: 'Cards, Apple Pay, Google Pay',
+              icon: Icons.credit_card,
+              onTap: () {
+                Navigator.pop(context);
+                _initiatePayment(cubit, booking, gateway: 'stripe');
+              },
+            ),
+            const SizedBox(height: 12),
+            _GatewayTile(
+              label: 'Razorpay',
+              subtitle: 'UPI, Wallets, Netbanking, Cards',
+              icon: Icons.account_balance_wallet,
+              onTap: () {
+                Navigator.pop(context);
+                _initiatePayment(cubit, booking, gateway: 'razorpay');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -205,7 +356,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 booking.isPendingPayment) {
               _hasAutoPaid = true;
               Future.microtask(() {
-                _initiatePayment(context.read<BookingDetailCubit>(), booking);
+                _showPaymentGatewayDialog(
+                  context,
+                  context.read<BookingDetailCubit>(),
+                  booking,
+                );
               });
             }
 
@@ -280,7 +435,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           booking: booking,
                           state: state,
                           isCheckoutOpen: _activeEmbeddedPayment != null,
-                          onPay: () => _initiatePayment(
+                          onPay: () => _showPaymentGatewayDialog(
+                            context,
                             context.read<BookingDetailCubit>(),
                             booking,
                           ),
@@ -355,8 +511,11 @@ class _StatusHeader extends StatelessWidget {
     }
   }
 
-  Color _paymentStatusColor(String? status) {
-    switch (status) {
+  Color _paymentStatusColor(BookingModel booking) {
+    if (booking.isConfirmed || booking.isActive || booking.isCompleted) {
+      return AppColors.success;
+    }
+    switch (booking.paymentStatus) {
       case 'captured':
         return AppColors.success;
       case 'failed':
@@ -383,7 +542,7 @@ class _StatusHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paymentColor = _paymentStatusColor(booking.paymentStatus);
+    final paymentColor = _paymentStatusColor(booking);
     final bookingColor = _bookingStatusColor(booking.status);
 
     return Card(
@@ -791,8 +950,9 @@ class _ActionButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final canCancel = booking.isPendingPayment || booking.isConfirmed;
     final canPay = booking.isPendingPayment;
+    final isFinished = !canCancel && !canPay;
 
-    if (!canCancel && !canPay) return const SizedBox.shrink();
+    // No return here, allow the column to build so we can show 'Back to Home'
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -828,6 +988,15 @@ class _ActionButtons extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
+            ),
+          ),
+        if (isFinished || booking.isConfirmed || booking.isActive)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: PrimaryButton(
+              label: 'Back to Home',
+              onPressed: () => context.go('/home'),
+              icon: Icons.home,
             ),
           ),
       ],
@@ -919,6 +1088,70 @@ class _EmbeddedCheckoutPanel extends StatelessWidget {
               onComplete: onComplete,
               onError: onError,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GatewayTile extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _GatewayTile({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.divider),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),

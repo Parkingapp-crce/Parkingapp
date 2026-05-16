@@ -73,6 +73,9 @@ class BookingModel {
   bool get isPaymentCompleted => paymentStatus == 'captured';
 
   String get paymentStatusLabel {
+    if (isConfirmed || isActive || isCompleted) {
+      return 'PAYMENT COMPLETED';
+    }
     switch (paymentStatus) {
       case 'captured':
         return 'PAYMENT COMPLETED';

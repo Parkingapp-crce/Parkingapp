@@ -241,12 +241,17 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
   Future<PaymentModel?> initiatePayment(
     String bookingId, {
     bool embedded = false,
+    String gateway = 'stripe',
   }) async {
     emit(state.copyWith(isInitiatingPayment: true, error: null));
     try {
       final response = await _apiClient.post(
         ApiEndpoints.paymentInitiate,
-        data: {'booking_id': bookingId, 'embedded': embedded},
+        data: {
+          'booking_id': bookingId,
+          'embedded': embedded,
+          'gateway': gateway,
+        },
       );
       emit(state.copyWith(isInitiatingPayment: false));
       return PaymentModel.fromJson(response.data as Map<String, dynamic>);
@@ -264,6 +269,26 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
       await _apiClient.post(
         ApiEndpoints.paymentVerify,
         data: {'checkout_session_id': checkoutSessionId},
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> verifyRazorpayPayment({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+  }) async {
+    try {
+      await _apiClient.post(
+        ApiEndpoints.paymentVerifyRazorpay,
+        data: {
+          'razorpay_order_id': orderId,
+          'razorpay_payment_id': paymentId,
+          'razorpay_signature': signature,
+        },
       );
       return true;
     } catch (_) {

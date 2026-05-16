@@ -3,6 +3,7 @@ from decimal import Decimal
 from urllib.parse import urlparse
 
 import stripe
+import razorpay
 from django.conf import settings
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
@@ -22,6 +23,61 @@ def _get_stripe_client():
 
     stripe.api_key = settings.STRIPE_SECRET_KEY
     return stripe
+
+
+def sync_razorpay_order_status(razorpay_order_id):
+    """
+    Polls the Razorpay API to check if an order has been paid.
+    Useful for auto-verification if the frontend callback fails.
+    """
+    client = _get_razorpay_client()
+    try:
+        # Fetch the order from Razorpay
+        order = client.order.fetch(razorpay_order_id)
+        # Fetch payments for this order
+        payments = client.order.payments(razorpay_order_id)
+        
+        if not payments or not payments.get("items"):
+            return False
+
+        # Look for a captured payment
+        captured_payment = next(
+            (p for p in payments["items"] if p["status"] == "captured"), 
+            None
+        )
+
+        if captured_payment:
+            from .models import Payment
+            from apps.bookings.models import Booking
+
+            with transaction.atomic():
+                payment_obj = Payment.objects.select_for_update().get(
+                    razorpay_order_id=razorpay_order_id
+                )
+                if payment_obj.status != Payment.Status.CAPTURED:
+                    payment_obj.status = Payment.Status.CAPTURED
+                    payment_obj.razorpay_payment_id = captured_payment["id"]
+                    payment_obj.razorpay_signature = "auto_verified"
+                    payment_obj.save()
+
+                    if payment_obj.booking:
+                        booking = payment_obj.booking
+                        booking.status = Booking.Status.CONFIRMED
+                        booking.save()
+            return True
+    except Exception as e:
+        print(f"Error syncing Razorpay order {razorpay_order_id}: {e}")
+    
+    return False
+
+
+def _get_razorpay_client():
+    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+        raise ValidationError("Razorpay is not configured.")
+
+    return razorpay.Client(
+        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+    )
 
 
 def _resolve_frontend_base_url(request=None):
@@ -143,7 +199,6 @@ def create_stripe_checkout_session(booking, request=None, embedded=False):
         amount=booking.amount,
         currency="INR",
         provider=Payment.Provider.STRIPE,
-        razorpay_order_id=checkout_session.id,
         stripe_checkout_session_id=checkout_session.id,
         stripe_payment_intent_id=_payment_intent_id(checkout_session.payment_intent),
     )
@@ -153,6 +208,34 @@ def create_stripe_checkout_session(booking, request=None, embedded=False):
         checkout_session.url,
         getattr(checkout_session, "client_secret", None),
     )
+
+
+def create_razorpay_order(booking, request=None):
+    client = _get_razorpay_client()
+
+    order_params = {
+        "amount": _amount_in_smallest_unit(booking.amount),
+        "currency": "INR",
+        "receipt": booking.booking_number,
+        "notes": {
+            "booking_id": str(booking.id),
+            "booking_number": booking.booking_number,
+            "user_email": booking.user.email,
+        },
+    }
+
+    razorpay_order = client.order.create(data=order_params)
+
+    payment = Payment.objects.create(
+        booking=booking,
+        payment_type=Payment.PaymentType.BOOKING,
+        amount=booking.amount,
+        currency="INR",
+        provider=Payment.Provider.RAZORPAY,
+        razorpay_order_id=razorpay_order["id"],
+    )
+
+    return payment, razorpay_order["id"]
 
 
 def create_stripe_penalty_checkout_session(penalty, request=None):
@@ -204,7 +287,6 @@ def create_stripe_penalty_checkout_session(penalty, request=None):
         amount=penalty.amount,
         currency="INR",
         provider=Payment.Provider.STRIPE,
-        razorpay_order_id=checkout_session.id,
         stripe_checkout_session_id=checkout_session.id,
         stripe_payment_intent_id=_payment_intent_id(checkout_session.payment_intent),
     )
@@ -270,6 +352,47 @@ def verify_checkout_session(checkout_session_id, user=None):
                 "status",
                 "updated_at",
             ]
+        )
+
+        _mark_booking_as_confirmed(payment)
+        _mark_penalty_as_paid(payment)
+        return payment
+
+
+def verify_razorpay_payment(
+    razorpay_order_id, razorpay_payment_id, razorpay_signature, user=None
+):
+    client = _get_razorpay_client()
+
+    # Verify signature
+    try:
+        client.utility.verify_payment_signature(
+            {
+                "razorpay_order_id": razorpay_order_id,
+                "razorpay_payment_id": razorpay_payment_id,
+                "razorpay_signature": razorpay_signature,
+            }
+        )
+    except razorpay.errors.SignatureVerificationError as exc:
+        raise ValidationError("Invalid Razorpay signature.") from exc
+
+    with transaction.atomic():
+        payment_query = Payment.objects.select_for_update()
+        try:
+            payment = payment_query.get(razorpay_order_id=razorpay_order_id)
+        except Payment.DoesNotExist as exc:
+            raise ValidationError("Payment not found for this order ID.") from exc
+
+        if user is not None and payment.booking and payment.booking.user_id != user.id:
+            raise ValidationError("Payment does not belong to this user.")
+
+        if payment.status == Payment.Status.CAPTURED:
+            return payment
+
+        payment.razorpay_payment_id = razorpay_payment_id
+        payment.status = Payment.Status.CAPTURED
+        payment.save(
+            update_fields=["razorpay_payment_id", "status", "updated_at"]
         )
 
         _mark_booking_as_confirmed(payment)

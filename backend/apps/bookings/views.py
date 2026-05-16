@@ -88,20 +88,33 @@ class BookingDetailView(generics.RetrieveAPIView):
     def get_object(self):
         obj = super().get_object()
         if obj.status == Booking.Status.PENDING_PAYMENT:
-            # Auto-verify pending payments from Stripe when refreshing
+            # Auto-verify pending payments from Stripe or Razorpay when refreshing
             from apps.payments.models import Payment
-            from apps.payments.services import verify_checkout_session
+            from apps.payments.services import verify_checkout_session, sync_razorpay_order_status
             
-            pending_payments = obj.payments.filter(
+            # Stripe verification
+            stripe_payments = obj.payments.filter(
                 provider=Payment.Provider.STRIPE, 
                 status=Payment.Status.CREATED
             ).exclude(stripe_checkout_session_id__isnull=True)
             
-            for payment in pending_payments:
+            for payment in stripe_payments:
                 try:
                     verify_checkout_session(payment.stripe_checkout_session_id)
                 except Exception as e:
-                    print(f"Auto-verify failed for {payment.id}: {e}")
+                    print(f"Auto-verify (Stripe) failed for {payment.id}: {e}")
+
+            # Razorpay verification
+            razorpay_payments = obj.payments.filter(
+                provider=Payment.Provider.RAZORPAY, 
+                status=Payment.Status.CREATED
+            ).exclude(razorpay_order_id__isnull=True)
+
+            for payment in razorpay_payments:
+                try:
+                    sync_razorpay_order_status(payment.razorpay_order_id)
+                except Exception as e:
+                    print(f"Auto-verify (Razorpay) failed for {payment.id}: {e}")
             
             obj.refresh_from_db()
         return obj

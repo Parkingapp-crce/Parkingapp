@@ -39,7 +39,7 @@ class Payment(models.Model):
     provider = models.CharField(
         max_length=20, choices=Provider.choices, default=Provider.STRIPE
     )
-    razorpay_order_id = models.CharField(max_length=100, unique=True)
+    razorpay_order_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
     razorpay_payment_id = models.CharField(max_length=100, null=True, blank=True)
     razorpay_signature = models.CharField(max_length=255, null=True, blank=True)
     stripe_checkout_session_id = models.CharField(
