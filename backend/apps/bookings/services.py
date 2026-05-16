@@ -34,7 +34,8 @@ def _generate_booking_number():
 def validate_booking_window(start_time, end_time):
     now = timezone.now()
 
-    if start_time < now:
+    # Allow a small 5-minute grace period for clock drift/delays
+    if start_time < now - timedelta(minutes=5):
         raise ValidationError("Start time cannot be in the past.")
 
     if start_time > now + timedelta(hours=MAX_ADVANCE_HOURS):
