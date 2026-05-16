@@ -28,7 +28,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=ApprovalStatus.choices,
         default=ApprovalStatus.APPROVED,
     )
-    approval_notes = models.CharField(max_length=255, blank=True)
+    approval_notes = models.CharField(max_length=255, blank=True, default="")
     approved_at = models.DateTimeField(null=True, blank=True)
     society = models.ForeignKey(
         "societies.Society",
@@ -37,8 +37,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         on_delete=models.SET_NULL,
         related_name="members",
     )
-    flat_number = models.CharField(max_length=20, blank=True)
-    floor_number = models.CharField(max_length=10, blank=True)
+    flat_number = models.CharField(max_length=20, blank=True, default="")
+    floor_number = models.CharField(max_length=10, blank=True, default="")
     can_scan_entry = models.BooleanField(default=False)
     can_scan_exit = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

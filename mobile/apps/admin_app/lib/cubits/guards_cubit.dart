@@ -82,7 +82,7 @@ class GuardsCubit extends Cubit<GuardsState> {
     }
   }
 
-  Future<void> createGuard({
+  Future<Map<String, dynamic>?> createGuard({
     required String fullName,
     required String phone,
     required bool canScanEntry,
@@ -105,15 +105,17 @@ class GuardsCubit extends Cubit<GuardsState> {
       final data = response.data as Map<String, dynamic>;
       final guard = UserModel.fromJson(data['guard'] as Map<String, dynamic>);
       final credentials = data['credentials'] as Map<String, dynamic>;
+      final password = credentials['temporary_password'] as String;
 
       emit(
         state.copyWith(
           isSubmitting: false,
           latestGuard: guard,
-          temporaryPassword: credentials['temporary_password'] as String?,
+          temporaryPassword: password,
         ),
       );
       await loadGuards();
+      return {'guard': guard, 'password': password};
     } on ApiException catch (e) {
       emit(state.copyWith(isSubmitting: false, error: e.message));
       rethrow;

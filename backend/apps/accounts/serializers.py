@@ -21,24 +21,26 @@ class RegisterSerializer(serializers.ModelSerializer):
         required=False,
         default=User.Role.USER,
     )
-    society_name = serializers.CharField(required=False, allow_blank=False)
-    society_address = serializers.CharField(required=False, allow_blank=False)
-    society_city = serializers.CharField(required=False, allow_blank=False)
-    society_state = serializers.CharField(required=False, allow_blank=False)
-    society_pincode = serializers.CharField(required=False, allow_blank=False)
+    society_name = serializers.CharField(required=False, allow_null=True)
+    society_address = serializers.CharField(required=False, allow_null=True)
+    society_city = serializers.CharField(required=False, allow_null=True)
+    society_state = serializers.CharField(required=False, allow_null=True)
+    society_pincode = serializers.CharField(required=False, allow_null=True)
     society_latitude = serializers.DecimalField(
         max_digits=9,
         decimal_places=6,
         required=False,
+        allow_null=True,
     )
     society_longitude = serializers.DecimalField(
         max_digits=9,
         decimal_places=6,
         required=False,
+        allow_null=True,
     )
-    society_join_code = serializers.CharField(required=False, allow_blank=False)
-    flat_number = serializers.CharField(required=False, allow_blank=True)
-    floor_number = serializers.CharField(required=False, allow_blank=True)
+    society_join_code = serializers.CharField(required=False, allow_null=True)
+    flat_number = serializers.CharField(required=False, allow_null=True)
+    floor_number = serializers.CharField(required=False, allow_null=True)
 
     class Meta:
         model = User

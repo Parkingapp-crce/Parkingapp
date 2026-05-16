@@ -40,6 +40,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
+        societyJoinCode: _joinCodeController.text.trim().isEmpty 
+            ? null 
+            : _joinCodeController.text.trim(),
       ),
     );
   }
@@ -131,6 +134,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    controller: _joinCodeController,
+                    label: 'Society Code (Optional)',
+                    hint: 'Enter code to join a society',
+                    prefixIcon: Icons.home_work_outlined,
                   ),
                   const SizedBox(height: 16),
                   AppTextField(

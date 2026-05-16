@@ -1,9 +1,10 @@
+import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'user_model.g.dart';
 
 @JsonSerializable()
-class UserModel {
+class UserModel extends Equatable {
   final String id;
   final String email;
   final String phone;
@@ -28,7 +29,7 @@ class UserModel {
   @JsonKey(name: 'can_scan_exit', defaultValue: false)
   final bool canScanExit;
   @JsonKey(name: 'created_at')
-  final String createdAt;
+  final String? createdAt; // Made nullable for safety
 
   const UserModel({
     required this.id,
@@ -45,11 +46,44 @@ class UserModel {
     this.floorNumber,
     this.canScanEntry = false,
     this.canScanExit = false,
-    required this.createdAt,
+    this.createdAt,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
+  @override
+  List<Object?> get props => [
+    id,
+    email,
+    phone,
+    fullName,
+    role,
+    approvalStatus,
+    approvalNotes,
+    approvedAt,
+    society,
+    societyName,
+    flatNumber,
+    floorNumber,
+    canScanEntry,
+    canScanExit,
+    createdAt,
+  ];
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    try {
+      return _$UserModelFromJson(json);
+    } catch (e) {
+      // Return a minimal valid model if parsing fails to prevent app crash
+      return UserModel(
+        id: json['id']?.toString() ?? 'unknown',
+        email: json['email']?.toString() ?? '',
+        phone: json['phone']?.toString() ?? '',
+        fullName: json['full_name']?.toString() ?? 'Unknown User',
+        role: json['role']?.toString() ?? 'user',
+        approvalStatus: json['approval_status']?.toString() ?? 'pending',
+        createdAt: json['created_at']?.toString(),
+      );
+    }
+  }
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
 

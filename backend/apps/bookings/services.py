@@ -73,18 +73,19 @@ def slot_is_available(slot, vehicle_type, start_time, end_time):
     if slot.slot_type != vehicle_type:
         return False
 
-    if slot.ownership_type == ParkingSlot.OwnershipType.RESIDENT:
-        day_of_week = start_time.weekday()
-        windows = _slot_windows(slot, day_of_week)
-        if not windows:
-            return False
-
+    # Check availability windows (if any are defined)
+    day_of_week = start_time.weekday()
+    windows = _slot_windows(slot, day_of_week)
+    if windows:
         in_window = any(
             window.start_time <= start_time.time() and window.end_time >= end_time.time()
             for window in windows
         )
         if not in_window:
             return False
+    elif slot.ownership_type == ParkingSlot.OwnershipType.RESIDENT:
+        # Residents MUST have a window defined to be available
+        return False
 
     buffer = timedelta(minutes=BUFFER_MINUTES)
     overlapping = Booking.objects.filter(

@@ -139,6 +139,34 @@ class ParkingSlotSerializer(serializers.ModelSerializer):
         window = obj.availability_windows.first()
         return window.end_time.strftime("%H:%M:%S") if window else "23:59:59"
 
+    def _update_availability_windows(self, instance, available_from, available_to):
+        if available_from and available_to:
+            with transaction.atomic():
+                instance.availability_windows.all().delete()
+                for day in range(7):
+                    SlotAvailabilityWindow.objects.create(
+                        slot=instance,
+                        day_of_week=day,
+                        start_time=available_from,
+                        end_time=available_to,
+                    )
+
+    def create(self, validated_data):
+        available_from = validated_data.pop("available_from_write", None)
+        available_to = validated_data.pop("available_to_write", None)
+        
+        instance = super().create(validated_data)
+        self._update_availability_windows(instance, available_from, available_to)
+        return instance
+
+    def update(self, instance, validated_data):
+        available_from = validated_data.pop("available_from_write", None)
+        available_to = validated_data.pop("available_to_write", None)
+        
+        instance = super().update(instance, validated_data)
+        self._update_availability_windows(instance, available_from, available_to)
+        return instance
+
 
 class SocietyMembershipRequestSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source="user.full_name", read_only=True)

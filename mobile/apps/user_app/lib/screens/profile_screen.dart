@@ -153,7 +153,8 @@ class ProfileScreen extends StatelessWidget {
     return name.isNotEmpty ? name[0].toUpperCase() : '?';
   }
 
-  String _formatDate(String dateStr) {
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'N/A';
     try {
       final dt = DateTime.parse(dateStr).toLocal();
       return '${dt.day}/${dt.month}/${dt.year}';

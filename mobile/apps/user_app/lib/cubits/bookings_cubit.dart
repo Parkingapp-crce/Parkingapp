@@ -140,7 +140,7 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
 
   void startPolling(String bookingId) {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       loadBooking(bookingId, silent: true);
     });
   }

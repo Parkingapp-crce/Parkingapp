@@ -43,9 +43,26 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
       setState(() {
         _slotType = slot.slotType;
         _ownershipType = slot.ownershipType;
+        if (slot.availableFrom != null) {
+          final parts = slot.availableFrom!.split(':');
+          _availableFrom = TimeOfDay(
+            hour: int.parse(parts[0]),
+            minute: int.parse(parts[1]),
+          );
+        }
+        if (slot.availableTo != null) {
+          final parts = slot.availableTo!.split(':');
+          _availableTo = TimeOfDay(
+            hour: int.parse(parts[0]),
+            minute: int.parse(parts[1]),
+          );
+        }
       });
     }
   }
+
+  TimeOfDay _availableFrom = const TimeOfDay(hour: 0, minute: 0);
+  TimeOfDay _availableTo = const TimeOfDay(hour: 23, minute: 59);
 
   @override
   void dispose() {
@@ -77,6 +94,10 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
       'slot_type': _slotType,
       'hourly_rate': _hourlyRateController.text.trim(),
       'ownership_type': _ownershipType,
+      'available_from_write':
+          '${_availableFrom.hour.toString().padLeft(2, '0')}:${_availableFrom.minute.toString().padLeft(2, '0')}:00',
+      'available_to_write':
+          '${_availableTo.hour.toString().padLeft(2, '0')}:${_availableTo.minute.toString().padLeft(2, '0')}:00',
     };
 
     try {
@@ -195,6 +216,53 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
                 onChanged: (value) {
                   if (value != null) setState(() => _ownershipType = value);
                 },
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Available Hours',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('From'),
+                      subtitle: Text(_availableFrom.format(context)),
+                      trailing: const Icon(Icons.access_time),
+                      onTap: () async {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: _availableFrom,
+                        );
+                        if (time != null) {
+                          setState(() => _availableFrom = time);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('To'),
+                      subtitle: Text(_availableTo.format(context)),
+                      trailing: const Icon(Icons.access_time),
+                      onTap: () async {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: _availableTo,
+                        );
+                        if (time != null) {
+                          setState(() => _availableTo = time);
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
               PrimaryButton(

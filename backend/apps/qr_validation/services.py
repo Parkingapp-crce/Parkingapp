@@ -83,9 +83,10 @@ def validate_entry(qr_token, guard):
                 )
 
             if now < booking.start_time:
+                local_start = timezone.localtime(booking.start_time)
                 raise ValidationError(
                     f"Early arrival. Entry is not permitted before "
-                    f"{booking.start_time.strftime('%H:%M')}."
+                    f"{local_start.strftime('%H:%M')}."
                 )
 
             if now > booking.end_time:

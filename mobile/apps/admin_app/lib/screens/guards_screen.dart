@@ -39,25 +39,67 @@ class _GuardsScreenState extends State<GuardsScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     try {
-      await context.read<GuardsCubit>().createGuard(
+      final result = await context.read<GuardsCubit>().createGuard(
         fullName: _fullNameController.text.trim(),
         phone: _phoneController.text.trim(),
         canScanEntry: _canScanEntry,
         canScanExit: _canScanExit,
       );
+      
+      if (result != null && mounted) {
+        await _showCredentialsDialog(
+          result['guard'] as UserModel,
+          result['password'] as String,
+        );
+      }
+
       _fullNameController.clear();
       _phoneController.clear();
       setState(() {
         _canScanEntry = true;
         _canScanExit = true;
       });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Guard credentials created.')),
-      );
     } catch (_) {
-      // The bloc listener shows the error.
+      // Error handled by listener
     }
+  }
+
+  Future<void> _showCredentialsDialog(UserModel guard, String password) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.vpn_key, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Guard Credentials'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Temporary credentials generated successfully:'),
+            const SizedBox(height: 16),
+            _CredentialField(label: 'Email', value: guard.email),
+            const SizedBox(height: 12),
+            _CredentialField(label: 'Password', value: password),
+            const SizedBox(height: 16),
+            const Text(
+              'Please share these with the guard. This password is only shown once.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK, I HAVE COPIED IT'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _loadGuards() {
@@ -380,7 +422,7 @@ class _GuardApprovalCard extends StatelessWidget {
             Text(guard.email),
             const SizedBox(height: 4),
             Text(guard.phone),
-            if (guard.societyName?.isNotEmpty == true) ...[
+            if (guard.societyName != null && guard.societyName!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text('Society: ${guard.societyName}'),
             ],
@@ -618,5 +660,49 @@ Color _approvalColor(String status) {
       return AppColors.error;
     default:
       return AppColors.textSecondary;
+  }
+}
+
+class _CredentialField extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _CredentialField({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Row(
+            children: [
+              Expanded(child: SelectableText(value)),
+              IconButton(
+                icon: const Icon(Icons.copy, size: 18),
+                onPressed: () {
+                  // Optional: Add clipboard logic
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
