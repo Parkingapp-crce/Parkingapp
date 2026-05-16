@@ -17,6 +17,10 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   approvedAt: json['approved_at'] as String?,
   society: json['society'] as String?,
   societyName: json['society_name'] as String?,
+  flatNumber: json['flat_number'] as String?,
+  floorNumber: json['floor_number'] as String?,
+  canScanEntry: json['can_scan_entry'] as bool? ?? false,
+  canScanExit: json['can_scan_exit'] as bool? ?? false,
   createdAt: json['created_at'] as String,
 );
 
@@ -31,5 +35,9 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'approved_at': instance.approvedAt,
   'society': instance.society,
   'society_name': instance.societyName,
+  'flat_number': instance.flatNumber,
+  'floor_number': instance.floorNumber,
+  'can_scan_entry': instance.canScanEntry,
+  'can_scan_exit': instance.canScanExit,
   'created_at': instance.createdAt,
 };

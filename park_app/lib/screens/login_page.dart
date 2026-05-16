@@ -42,9 +42,9 @@ class LoginPage extends StatelessWidget {
       );
     } catch (e) {
       print("Google Login Error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Google login failed")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Google login failed")));
     }
   }
 
@@ -58,7 +58,6 @@ class LoginPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-
               /// Logo
               Column(
                 children: [
@@ -109,10 +108,7 @@ class LoginPage extends StatelessWidget {
               Center(
                 child: Text(
                   'Sign in to your account',
-                  style: TextStyle(
-                    color: textGrey,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: textGrey, fontSize: 16),
                 ),
               ),
 
@@ -198,13 +194,16 @@ class LoginPage extends StatelessWidget {
                   }
 
                   try {
-                    final response = await ApiService.loginUser(email, password);
+                    final response = await ApiService.loginUser(
+                      email,
+                      password,
+                    );
 
                     // ✅ FIX: Django returns tokens.access (not token)
                     final token = response["tokens"]?["access"];
 
-                    if (response["message"] == "Login successful." && token != null) {
-
+                    if (response["message"] == "Login successful." &&
+                        token != null) {
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.setString("token", token);
 
@@ -214,12 +213,13 @@ class LoginPage extends StatelessWidget {
                           builder: (context) => const HomePage(),
                         ),
                       );
-
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            response["error"] ?? response["message"] ?? "Login failed",
+                            response["error"] ??
+                                response["message"] ??
+                                "Login failed",
                           ),
                         ),
                       );
@@ -295,9 +295,7 @@ class LoginPage extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => RegisterPage(),
-                        ),
+                        MaterialPageRoute(builder: (context) => RegisterPage()),
                       );
                     },
                     child: Text(

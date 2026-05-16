@@ -152,6 +152,12 @@ class _SlotInfoCard extends StatelessWidget {
               label: 'Hourly Rate',
               value: '${slot.hourlyRate}/hr',
             ),
+            if (slot.availableFrom != null && slot.availableTo != null)
+              _InfoRow(
+                icon: Icons.access_time,
+                label: 'Availability',
+                value: '${slot.availableFrom} - ${slot.availableTo}',
+              ),
           ],
         ),
       ),
@@ -365,6 +371,8 @@ class _VehicleSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<BookingCreateCubit>();
+    final compatibleVehicles = state.compatibleVehicles;
+    final requiredType = state.slot?.slotType ?? 'vehicle';
 
     return Card(
       child: Padding(
@@ -381,6 +389,13 @@ class _VehicleSelector extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Only ${state.slot?.slotType.toUpperCase() ?? ''} vehicles are shown for this slot.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'This slot accepts only ${requiredType.toUpperCase()} vehicles.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -406,6 +421,27 @@ class _VehicleSelector extends StatelessWidget {
                   ],
                 ),
               )
+            else if (compatibleVehicles.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  children: [
+                    Text(
+                      'No ${requiredType.toUpperCase()} vehicle found. Add one in Settings to continue.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => context.push('/vehicles'),
+                      icon: const Icon(Icons.add),
+                      label: Text('Add ${requiredType.toUpperCase()} Vehicle'),
+                    ),
+                  ],
+                ),
+              )
             else
               DropdownButtonFormField<String>(
                 initialValue: state.selectedVehicleId,
@@ -413,10 +449,12 @@ class _VehicleSelector extends StatelessWidget {
                   prefixIcon: Icon(Icons.directions_car),
                   hintText: 'Choose a vehicle',
                 ),
-                items: state.vehicles.map((v) {
+                items: compatibleVehicles.map((v) {
                   return DropdownMenuItem(
                     value: v.id,
-                    child: Text('${v.registrationNo} (${v.vehicleType})'),
+                    child: Text(
+                      '${v.registrationNo} (${v.vehicleType.toUpperCase()})',
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {

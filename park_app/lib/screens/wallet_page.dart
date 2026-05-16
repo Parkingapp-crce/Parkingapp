@@ -97,9 +97,17 @@ class WalletPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          _balancePill(Icons.arrow_downward_rounded, 'Total Added', '₹0'),
+                          _balancePill(
+                            Icons.arrow_downward_rounded,
+                            'Total Added',
+                            '₹0',
+                          ),
                           const SizedBox(width: 12),
-                          _balancePill(Icons.arrow_upward_rounded, 'Total Spent', '₹0'),
+                          _balancePill(
+                            Icons.arrow_upward_rounded,
+                            'Total Spent',
+                            '₹0',
+                          ),
                         ],
                       ),
                     ],

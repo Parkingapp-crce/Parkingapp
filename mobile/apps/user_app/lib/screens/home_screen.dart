@@ -417,16 +417,16 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                   children: [
                     Text(
                       'Results near ${state.resolvedDestinationLabel}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Sorted by distance${state.searchRadiusKm != null ? ' within ${state.searchRadiusKm!.toStringAsFixed(0)} km' : ''}.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -439,7 +439,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 },
                 icon: Icon(_showMap ? Icons.list : Icons.map),
                 tooltip: _showMap ? 'List View' : 'Map View',
-              )
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -450,7 +450,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
           ...state.results.map(
             (society) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _SocietyCard(society: society, request: state.lastRequest!),
+              child: _SocietyCard(
+                society: society,
+                request: state.lastRequest!,
+              ),
             ),
           ),
       ],
@@ -534,8 +537,9 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -581,8 +585,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: const ShapeDecoration(
                     color: AppColors.primary,
                     shape: RoundedRectangleBorder(
@@ -605,8 +611,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 ),
                 Container(
                   transform: Matrix4.translationValues(0, -2, 0),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -638,8 +646,14 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
     final initialCenter = destination != null
         ? LatLng(destination.latitude, destination.longitude)
         : (validResults.isNotEmpty
-            ? LatLng(validResults.first.latitude!, validResults.first.longitude!)
-            : const LatLng(19.0760, 72.8777)); // Mumbai default if nothing else
+              ? LatLng(
+                  validResults.first.latitude!,
+                  validResults.first.longitude!,
+                )
+              : const LatLng(
+                  19.0760,
+                  72.8777,
+                )); // Mumbai default if nothing else
 
     return SizedBox(
       height: 400,
@@ -795,14 +809,11 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
 
     _autocompleteDebounce?.cancel();
     // Increased debounce to 1500ms to stay within Nominatim's 1 req/sec limit
-    _autocompleteDebounce = Timer(
-      const Duration(milliseconds: 1500),
-      () {
-        if (trimmed.isNotEmpty) {
-          cubit.loadDestinationSuggestions(trimmed);
-        }
-      },
-    );
+    _autocompleteDebounce = Timer(const Duration(milliseconds: 1500), () {
+      if (trimmed.isNotEmpty) {
+        cubit.loadDestinationSuggestions(trimmed);
+      }
+    });
   }
 
   void _selectSuggestion(BuildContext context, dynamic suggestion) {

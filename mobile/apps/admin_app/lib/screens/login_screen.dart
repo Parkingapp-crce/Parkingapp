@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -24,10 +25,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onLogin() {
     if (_formKey.currentState?.validate() ?? false) {
-      context.read<AuthBloc>().add(AuthLoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          ));
+      context.read<AuthBloc>().add(
+        AuthLoginRequested(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -63,7 +66,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Admin Login',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
@@ -73,8 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Sign in to manage your society parking',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 40),
@@ -129,6 +133,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           icon: Icons.login,
                         );
                       },
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push('/register'),
+                        child: const Text(
+                          'New Society Owner? Create Admin Account',
+                        ),
+                      ),
                     ),
                   ],
                 ),

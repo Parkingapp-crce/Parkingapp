@@ -10,8 +10,8 @@ class QRCodePage extends StatelessWidget {
   final String paymentId;
 
   const QRCodePage({
-    super.key, 
-    required this.booking, 
+    super.key,
+    required this.booking,
     required this.qrCode,
     required this.paymentId,
   });
@@ -214,7 +214,8 @@ class QRCodePage extends StatelessWidget {
                     'Base Amount',
                     formatMoney(booking['amount']),
                   ),
-                  if ((double.tryParse('${booking['penalty_amount']}') ?? 0) > 0)
+                  if ((double.tryParse('${booking['penalty_amount']}') ?? 0) >
+                      0)
                     _detailRow(
                       Icons.warning_amber_rounded,
                       'Penalty',
@@ -227,11 +228,7 @@ class QRCodePage extends StatelessWidget {
                       'Total',
                       formatMoney(booking['total_charge']),
                     ),
-                  _detailRow(
-                    Icons.payments_rounded,
-                    'Payment ID',
-                    paymentId,
-                  ),
+                  _detailRow(Icons.payments_rounded, 'Payment ID', paymentId),
                   _detailRow(
                     Icons.info_outline_rounded,
                     'Status',

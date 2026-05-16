@@ -103,8 +103,7 @@ class _SocietyListScreenState extends State<SocietyListScreen> {
                       final society = societies[index];
                       return _SocietyCard(
                         society: society,
-                        onTap: () =>
-                            context.go('/societies/${society.id}'),
+                        onTap: () => context.go('/societies/${society.id}'),
                       );
                     },
                   ),
@@ -122,10 +121,7 @@ class _SocietyCard extends StatelessWidget {
   final SocietyModel society;
   final VoidCallback onTap;
 
-  const _SocietyCard({
-    required this.society,
-    required this.onTap,
-  });
+  const _SocietyCard({required this.society, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -139,8 +135,9 @@ class _SocietyCard extends StatelessWidget {
               : AppColors.textSecondary.withOpacity(0.1),
           child: Icon(
             Icons.apartment,
-            color:
-                society.isActive ? AppColors.success : AppColors.textSecondary,
+            color: society.isActive
+                ? AppColors.success
+                : AppColors.textSecondary,
           ),
         ),
         title: Text(
@@ -158,18 +155,32 @@ class _SocietyCard extends StatelessWidget {
             const SizedBox(height: 2),
             Row(
               children: [
-                Icon(Icons.local_parking, size: 14, color: AppColors.textSecondary),
+                Icon(
+                  Icons.local_parking,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Total: ${society.totalSlots ?? 0}',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.check_circle_outline, size: 14, color: AppColors.slotAvailable),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 14,
+                  color: AppColors.slotAvailable,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Available: ${society.availableSlots ?? 0}',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -186,8 +197,9 @@ class _SocietyCard extends StatelessWidget {
           child: Text(
             society.isActive ? 'ACTIVE' : 'INACTIVE',
             style: TextStyle(
-              color:
-                  society.isActive ? AppColors.success : AppColors.textSecondary,
+              color: society.isActive
+                  ? AppColors.success
+                  : AppColors.textSecondary,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),

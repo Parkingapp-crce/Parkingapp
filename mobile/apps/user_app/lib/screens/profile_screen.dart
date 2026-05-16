@@ -9,9 +9,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
+      appBar: AppBar(title: const Text('Profile')),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is! Authenticated) {
@@ -41,13 +39,15 @@ class ProfileScreen extends StatelessWidget {
                 Text(
                   user.fullName,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(12),
@@ -81,8 +81,10 @@ class ProfileScreen extends StatelessWidget {
                 const Divider(),
                 const SizedBox(height: 8),
                 ListTile(
-                  leading: const Icon(Icons.directions_car_outlined,
-                      color: AppColors.primary),
+                  leading: const Icon(
+                    Icons.directions_car_outlined,
+                    color: AppColors.primary,
+                  ),
                   title: const Text('My Vehicles'),
                   subtitle: const Text('Manage your vehicles'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -111,12 +113,13 @@ class ProfileScreen extends StatelessWidget {
                             TextButton(
                               onPressed: () {
                                 Navigator.of(dialogContext).pop();
-                                context
-                                    .read<AuthBloc>()
-                                    .add(const AuthLoggedOut());
+                                context.read<AuthBloc>().add(
+                                  const AuthLoggedOut(),
+                                );
                               },
                               style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.error),
+                                foregroundColor: AppColors.error,
+                              ),
                               child: const Text('Logout'),
                             ),
                           ],
@@ -192,15 +195,15 @@ class _ProfileTile extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
               Text(
                 value,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
               ),
             ],
           ),

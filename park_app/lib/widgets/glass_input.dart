@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class GlassInput extends StatelessWidget {
-
   final String hint;
   final IconData icon;
   final bool obscure;
@@ -11,7 +10,7 @@ class GlassInput extends StatelessWidget {
     required this.hint,
     required this.icon,
     required this.controller,
-    this.obscure = false
+    this.obscure = false,
   });
 
   @override

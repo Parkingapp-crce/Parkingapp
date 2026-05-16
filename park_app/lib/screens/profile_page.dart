@@ -32,11 +32,14 @@ class _ProfilePageState extends State<ProfilePage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeAnim = CurvedAnimation(parent: _animController!, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController!, curve: Curves.easeOutCubic));
+    _fadeAnim = CurvedAnimation(
+      parent: _animController!,
+      curve: Curves.easeOut,
+    );
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animController!, curve: Curves.easeOutCubic),
+        );
 
     _loadProfile();
   }
@@ -65,21 +68,41 @@ class _ProfilePageState extends State<ProfilePage>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Log out?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        content: const Text('You will be returned to the login screen.', style: TextStyle(color: Color(0xFF6B7280))),
+        title: const Text(
+          'Log out?',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        content: const Text(
+          'You will be returned to the login screen.',
+          style: TextStyle(color: Color(0xFF6B7280)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red[600],
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 0,
             ),
-            child: const Text('Log out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Log out',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -110,8 +133,20 @@ class _ProfilePageState extends State<ProfilePage>
     if (dateStr == null || dateStr.isEmpty) return 'Not set';
     try {
       final date = DateTime.parse(dateStr);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     } catch (_) {
       return 'Not set';
@@ -121,19 +156,27 @@ class _ProfilePageState extends State<ProfilePage>
   String _formatRole(String? role) {
     if (role == null) return 'User';
     switch (role) {
-      case 'owner': return 'Parking Owner';
-      case 'guard': return 'Guard';
-      case 'admin': return 'Admin';
-      default: return 'Customer';
+      case 'owner':
+        return 'Parking Owner';
+      case 'guard':
+        return 'Guard';
+      case 'admin':
+        return 'Admin';
+      default:
+        return 'Customer';
     }
   }
 
   Color _getRoleColor(String? role) {
     switch (role) {
-      case 'owner': return const Color(0xFF7C3AED);
-      case 'guard': return const Color(0xFF0369A1);
-      case 'admin': return const Color(0xFFB45309);
-      default: return primaryGreen;
+      case 'owner':
+        return const Color(0xFF7C3AED);
+      case 'guard':
+        return const Color(0xFF0369A1);
+      case 'admin':
+        return const Color(0xFFB45309);
+      default:
+        return primaryGreen;
     }
   }
 
@@ -146,7 +189,8 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   String _getPhone() {
-    final phone = profileData?['phone'] ??
+    final phone =
+        profileData?['phone'] ??
         profileData?['phone_number'] ??
         profileData?['mobile'];
     if (phone == null || phone.toString().isEmpty) return 'Not added';
@@ -156,8 +200,8 @@ class _ProfilePageState extends State<ProfilePage>
   String _getMemberSince() {
     return _formatDate(
       profileData?['created_at'] ??
-      profileData?['date_joined'] ??
-      profileData?['member_since'],
+          profileData?['date_joined'] ??
+          profileData?['member_since'],
     );
   }
 
@@ -170,7 +214,8 @@ class _ProfilePageState extends State<ProfilePage>
           : FadeTransition(
               opacity: _fadeAnim ?? const AlwaysStoppedAnimation(1.0),
               child: SlideTransition(
-                position: _slideAnim ?? const AlwaysStoppedAnimation(Offset.zero),
+                position:
+                    _slideAnim ?? const AlwaysStoppedAnimation(Offset.zero),
                 child: CustomScrollView(
                   slivers: [
                     _buildSliverHeader(),
@@ -238,7 +283,11 @@ class _ProfilePageState extends State<ProfilePage>
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.refresh_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ],
@@ -298,7 +347,10 @@ class _ProfilePageState extends State<ProfilePage>
 
                 // Role badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -344,11 +396,7 @@ class _ProfilePageState extends State<ProfilePage>
             isFirst: true,
           ),
           _divider(),
-          _infoTile(
-            Icons.phone_outlined,
-            'Phone',
-            _getPhone(),
-          ),
+          _infoTile(Icons.phone_outlined, 'Phone', _getPhone()),
           _divider(),
           _infoTile(
             Icons.calendar_today_outlined,
@@ -442,8 +490,12 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _menuTile(IconData icon, String label,
-      {bool isFirst = false, bool isLast = false}) {
+  Widget _menuTile(
+    IconData icon,
+    String label, {
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
     return InkWell(
       onTap: () {},
       borderRadius: BorderRadius.vertical(
@@ -474,7 +526,11 @@ class _ProfilePageState extends State<ProfilePage>
                 ),
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey[300], size: 20),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey[300],
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -511,8 +567,13 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _infoTile(IconData icon, String label, String value,
-      {bool isFirst = false, bool isLast = false}) {
+  Widget _infoTile(
+    IconData icon,
+    String label,
+    String value, {
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       child: Row(
@@ -558,9 +619,5 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _divider() => Divider(
-        height: 1,
-        color: Colors.grey[100],
-        indent: 68,
-      );
+  Widget _divider() => Divider(height: 1, color: Colors.grey[100], indent: 68);
 }

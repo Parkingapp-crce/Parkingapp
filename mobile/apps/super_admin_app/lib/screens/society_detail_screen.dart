@@ -46,8 +46,9 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<SocietiesCubit, SocietiesState>(
       builder: (context, state) {
-        final society =
-            context.read<SocietiesCubit>().getSocietyById(widget.societyId);
+        final society = context.read<SocietiesCubit>().getSocietyById(
+          widget.societyId,
+        );
 
         if (society == null) {
           return Scaffold(
@@ -101,9 +102,7 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                         children: [
                           Text(
                             society.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
@@ -150,10 +149,8 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                     children: [
                       Text(
                         'Society Information',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const Divider(height: 24),
                       _DetailRow(label: 'Name', value: society.name),
@@ -162,9 +159,13 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                       _DetailRow(label: 'State', value: society.state),
                       _DetailRow(label: 'Pincode', value: society.pincode),
                       _DetailRow(
-                          label: 'Contact Email', value: society.contactEmail),
+                        label: 'Contact Email',
+                        value: society.contactEmail,
+                      ),
                       _DetailRow(
-                          label: 'Contact Phone', value: society.contactPhone),
+                        label: 'Contact Phone',
+                        value: society.contactPhone,
+                      ),
                     ],
                   ),
                 ),
@@ -178,8 +179,10 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                 child: society.isActive
                     ? OutlinedButton.icon(
                         onPressed: () => _toggleActive(society),
-                        icon: const Icon(Icons.pause_circle_outline,
-                            color: AppColors.error),
+                        icon: const Icon(
+                          Icons.pause_circle_outline,
+                          color: AppColors.error,
+                        ),
                         label: const Text(
                           'Deactivate Society',
                           style: TextStyle(color: AppColors.error),
@@ -213,9 +216,9 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
           children: [
             Text(
               'Slot Overview',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -251,8 +254,9 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                   value: total > 0 ? (total - available) / total : 0,
                   minHeight: 8,
                   backgroundColor: AppColors.divider,
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -271,9 +275,9 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
           children: [
             Text(
               'Statistics',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const Divider(height: 24),
             if (_stats!['total_bookings'] != null)
@@ -310,9 +314,7 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('${action[0].toUpperCase()}${action.substring(1)} Society'),
-        content: Text(
-          'Are you sure you want to $action ${society.name}?',
-        ),
+        content: Text('Are you sure you want to $action ${society.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -331,9 +333,9 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
 
     if (confirm == true && mounted) {
       await context.read<SocietiesCubit>().toggleSocietyActive(
-            widget.societyId,
-            newStatus,
-          );
+        widget.societyId,
+        newStatus,
+      );
     }
   }
 }
@@ -356,16 +358,16 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ),
       ],
@@ -387,10 +389,7 @@ class _DetailRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
+          Text(label, style: TextStyle(color: AppColors.textSecondary)),
           const SizedBox(width: 16),
           Flexible(
             child: Text(

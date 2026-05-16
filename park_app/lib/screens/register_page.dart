@@ -10,7 +10,6 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -37,7 +36,6 @@ class _RegisterPageState extends State<RegisterPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-
             /// 🔹 TOP IMAGE
             Image.asset(
               "assets/images/car.png",
@@ -51,7 +49,6 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   /// Title
                   const Text(
                     "Join ParkEasy",
@@ -83,7 +80,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 15),
 
                   /// Confirm Password
-                  _buildPasswordField("Confirm Password", confirmPasswordController),
+                  _buildPasswordField(
+                    "Confirm Password",
+                    confirmPasswordController,
+                  ),
 
                   const SizedBox(height: 15),
 
@@ -103,7 +103,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           "I agree to the Terms of Service and Privacy Policy.",
                           style: TextStyle(color: textGrey, fontSize: 12),
                         ),
-                      )
+                      ),
                     ],
                   ),
 
@@ -114,64 +114,75 @@ class _RegisterPageState extends State<RegisterPage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       // Disable button if loading
-                      onPressed: _isLoading ? null : () async {
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              final name = nameController.text.trim();
+                              final email = emailController.text.trim();
+                              final password = passwordController.text.trim();
+                              final confirm = confirmPasswordController.text
+                                  .trim();
 
-                        final name = nameController.text.trim();
-                        final email = emailController.text.trim();
-                        final password = passwordController.text.trim();
-                        final confirm = confirmPasswordController.text.trim();
+                              if (name.isEmpty ||
+                                  email.isEmpty ||
+                                  password.isEmpty ||
+                                  confirm.isEmpty) {
+                                _show("Fill all fields");
+                                return;
+                              }
 
-                        if (name.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
-                          _show("Fill all fields");
-                          return;
-                        }
+                              if (password != confirm) {
+                                _show("Passwords do not match");
+                                return;
+                              }
 
-                        if (password != confirm) {
-                          _show("Passwords do not match");
-                          return;
-                        }
+                              if (!agree) {
+                                _show("Please accept terms");
+                                return;
+                              }
 
-                        if (!agree) {
-                          _show("Please accept terms");
-                          return;
-                        }
+                              // Start loading
+                              setState(() {
+                                _isLoading = true;
+                              });
 
-                        // Start loading
-                        setState(() {
-                          _isLoading = true;
-                        });
+                              try {
+                                final res = await ApiService.registerUser(
+                                  name,
+                                  email,
+                                  password,
+                                );
 
-                        try {
-                          final res = await ApiService.registerUser(name, email, password);
+                                // CRITICAL: Check if the widget is still mounted after the async call
+                                if (!mounted) return;
 
-                          // CRITICAL: Check if the widget is still mounted after the async call
-                          if (!mounted) return;
-
-                          // ✅ FIX: Django returns "User registered successfully." (with dot)
-                          if (res["message"] == "User registered successfully.") {
-                            _show("Registered Successfully!");
-                            // Pop back to the login page
-                            Navigator.pop(context);
-                          } else {
-                            // Show actual error from Django
-                            final error = res["email"]?[0] ??
-                                res["message"] ??
-                                "Registration failed";
-                            _show(error);
-                          }
-                        } catch (e) {
-                          if (!mounted) return;
-                          _show("Server error. Please try again.");
-                          print("REGISTER ERROR: $e");
-                        } finally {
-                          // Stop loading whether it succeeded or failed
-                          if (mounted) {
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          }
-                        }
-                      },
+                                // ✅ FIX: Django returns "User registered successfully." (with dot)
+                                if (res["message"] ==
+                                    "User registered successfully.") {
+                                  _show("Registered Successfully!");
+                                  // Pop back to the login page
+                                  Navigator.pop(context);
+                                } else {
+                                  // Show actual error from Django
+                                  final error =
+                                      res["email"]?[0] ??
+                                      res["message"] ??
+                                      "Registration failed";
+                                  _show(error);
+                                }
+                              } catch (e) {
+                                if (!mounted) return;
+                                _show("Server error. Please try again.");
+                                print("REGISTER ERROR: $e");
+                              } finally {
+                                // Stop loading whether it succeeded or failed
+                                if (mounted) {
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -181,13 +192,19 @@ class _RegisterPageState extends State<RegisterPage> {
                         // Adjust disabled color if you like
                         disabledBackgroundColor: primaryGreen.withOpacity(0.6),
                       ),
-                      child: _isLoading 
+                      child: _isLoading
                           ? const SizedBox(
-                              height: 20, 
-                              width: 20, 
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
-                          : const Text("Create Account", style: TextStyle(color: Colors.white)),
+                          : const Text(
+                              "Create Account",
+                              style: TextStyle(color: Colors.white),
+                            ),
                     ),
                   ),
 
@@ -200,9 +217,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   Row(
                     children: [
-                      Expanded(child: _socialBtn("Google", "assets/images/Google.svg")),
+                      Expanded(
+                        child: _socialBtn("Google", "assets/images/Google.svg"),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: _socialBtn("Apple", "assets/images/Apple.svg")),
+                      Expanded(
+                        child: _socialBtn("Apple", "assets/images/Apple.svg"),
+                      ),
                     ],
                   ),
 
@@ -225,15 +246,15 @@ class _RegisterPageState extends State<RegisterPage> {
                                 color: primaryGreen,
                                 fontWeight: FontWeight.bold,
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -286,9 +307,7 @@ class _RegisterPageState extends State<RegisterPage> {
       onPressed: () {},
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

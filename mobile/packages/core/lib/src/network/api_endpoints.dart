@@ -8,6 +8,11 @@ class ApiEndpoints {
   static const tokenRefresh = '/api/v1/auth/token/refresh/';
   static const profile = '/api/v1/auth/profile/';
   static const vehicles = '/api/v1/auth/vehicles/';
+  static const guards = '/api/v1/auth/guards/';
+  static String guard(String id) => '/api/v1/auth/guards/$id/';
+  static const notifications = '/api/v1/auth/notifications/';
+  static String notificationRead(String id) =>
+      '/api/v1/auth/notifications/$id/read/';
   static String vehicleDelete(String id) => '/api/v1/auth/vehicles/$id/';
 
   // Societies
@@ -18,17 +23,26 @@ class ApiEndpoints {
   static const destinationReverseGeocode =
       '/api/v1/societies/destinations/reverse-geocode/';
   static const societySearch = '/api/v1/societies/search/';
+  static const societiesGeocode = '/api/v1/societies/geocode/';
   static String society(String id) => '/api/v1/societies/$id/';
   static String societySlots(String societyId) =>
       '/api/v1/societies/$societyId/slots/';
   static String slot(String societyId, String slotId) =>
       '/api/v1/societies/$societyId/slots/$slotId/';
+  static String slotDecision(String societyId, String slotId) =>
+      '/api/v1/societies/$societyId/slots/$slotId/decision/';
   static String slotBlock(String societyId, String slotId) =>
       '/api/v1/societies/$societyId/slots/$slotId/block/';
   static String slotUnblock(String societyId, String slotId) =>
       '/api/v1/societies/$societyId/slots/$slotId/unblock/';
   static String slotAvailability(String societyId, String slotId) =>
       '/api/v1/societies/$societyId/slots/$slotId/availability/';
+  static String societyJoinRequests(String societyId) =>
+      '/api/v1/societies/$societyId/join-requests/';
+  static String societyJoinRequestDecision(
+    String societyId,
+    String requestId,
+  ) => '/api/v1/societies/$societyId/join-requests/$requestId/decision/';
 
   // Bookings
   static const bookings = '/api/v1/bookings/';

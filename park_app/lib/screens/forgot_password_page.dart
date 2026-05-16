@@ -26,7 +26,10 @@ class ForgotPasswordPage extends StatelessWidget {
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24.0,
+                      vertical: 20.0,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -39,7 +42,10 @@ class ForgotPasswordPage extends StatelessWidget {
                               color: Colors.white,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.arrow_back_ios_new, size: 18),
+                            child: const Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 18,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 40),
@@ -52,35 +58,63 @@ class ForgotPasswordPage extends StatelessWidget {
                               color: const Color(0xFF1E7E34).withOpacity(0.12),
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Icon(Icons.lock_reset, size: 45, color: primaryGreen),
+                            child: Icon(
+                              Icons.lock_reset,
+                              size: 45,
+                              color: primaryGreen,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 32),
 
                         // Title
-                        Text('Forgot Password',
-                            style: TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.w800)),
+                        Text(
+                          'Forgot Password',
+                          style: TextStyle(
+                            color: textDark,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           "Enter your email address and we'll send you a 6-digit code to reset your password.",
-                          style: TextStyle(color: textGrey, fontSize: 15, height: 1.5),
+                          style: TextStyle(
+                            color: textGrey,
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
                         ),
                         const SizedBox(height: 32),
 
                         // Email field
-                        Text('Email Address',
-                            style: TextStyle(color: textDark, fontSize: 14, fontWeight: FontWeight.w700)),
+                        Text(
+                          'Email Address',
+                          style: TextStyle(
+                            color: textDark,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             hintText: 'example@email.com',
-                            hintStyle: TextStyle(color: textGrey.withOpacity(0.6)),
-                            prefixIcon: Icon(Icons.mail_outline, color: primaryGreen, size: 22),
+                            hintStyle: TextStyle(
+                              color: textGrey.withOpacity(0.6),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.mail_outline,
+                              color: primaryGreen,
+                              size: 22,
+                            ),
                             filled: true,
                             fillColor: fieldBackground,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16.0,
+                            ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(color: borderColor),
@@ -102,16 +136,24 @@ class ForgotPasswordPage extends StatelessWidget {
 
                               if (email.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Please enter your email")),
+                                  const SnackBar(
+                                    content: Text("Please enter your email"),
+                                  ),
                                 );
                                 return;
                               }
 
                               try {
-                                final res = await ApiService.forgotPassword(email);
+                                final res = await ApiService.forgotPassword(
+                                  email,
+                                );
 
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(res["message"] ?? "Reset code sent!")),
+                                  SnackBar(
+                                    content: Text(
+                                      res["message"] ?? "Reset code sent!",
+                                    ),
+                                  ),
                                 );
 
                                 // Always navigate to OTP page (don't reveal if email exists)
@@ -123,7 +165,11 @@ class ForgotPasswordPage extends StatelessWidget {
                                 );
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Server error. Please try again.")),
+                                  const SnackBar(
+                                    content: Text(
+                                      "Server error. Please try again.",
+                                    ),
+                                  ),
                                 );
                               }
                             },
@@ -131,11 +177,18 @@ class ForgotPasswordPage extends StatelessWidget {
                               backgroundColor: primaryGreen,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               elevation: 0,
                             ),
-                            child: const Text('Send Reset Code',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Send Reset Code',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
 
@@ -148,13 +201,23 @@ class ForgotPasswordPage extends StatelessWidget {
                             child: Wrap(
                               alignment: WrapAlignment.center,
                               children: [
-                                Text('Remember your password? ',
-                                    style: TextStyle(color: textGrey, fontSize: 14)),
+                                Text(
+                                  'Remember your password? ',
+                                  style: TextStyle(
+                                    color: textGrey,
+                                    fontSize: 14,
+                                  ),
+                                ),
                                 GestureDetector(
                                   onTap: () => Navigator.pop(context),
-                                  child: Text('Back to Login',
-                                      style: TextStyle(
-                                          color: primaryGreen, fontSize: 14, fontWeight: FontWeight.w700)),
+                                  child: Text(
+                                    'Back to Login',
+                                    style: TextStyle(
+                                      color: primaryGreen,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

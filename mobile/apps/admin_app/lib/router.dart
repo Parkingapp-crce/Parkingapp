@@ -1,21 +1,25 @@
 import 'dart:async';
 
+import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:core/core.dart';
 
-import 'cubits/slots_cubit.dart';
 import 'cubits/bookings_cubit.dart';
 import 'cubits/dashboard_cubit.dart';
 import 'cubits/guards_cubit.dart';
-import 'screens/login_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/slot_list_screen.dart';
-import 'screens/slot_form_screen.dart';
-import 'screens/slot_detail_screen.dart';
+import 'cubits/slots_cubit.dart';
 import 'screens/booking_list_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/guards_screen.dart';
+import 'screens/join_requests_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/owner_detail_screen.dart';
+import 'screens/owners_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/slot_detail_screen.dart';
+import 'screens/slot_form_screen.dart';
+import 'screens/slot_list_screen.dart';
 
 GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
   return GoRouter(
@@ -23,13 +27,15 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     redirect: (context, state) {
       final authState = authBloc.state;
-      final isLoggingIn = state.matchedLocation == '/login';
+      final isPublicAuthRoute =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
 
       if (authState is Unauthenticated || authState is AuthError) {
-        return isLoggingIn ? null : '/login';
+        return isPublicAuthRoute ? null : '/login';
       }
 
-      if (authState is Authenticated && isLoggingIn) {
+      if (authState is Authenticated && isPublicAuthRoute) {
         return '/dashboard';
       }
 
@@ -37,6 +43,10 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return AdminShell(apiClient: apiClient, child: child);
@@ -73,12 +83,42 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
             ],
           ),
           GoRoute(
-            path: '/bookings',
-            builder: (context, state) => const BookingListScreen(),
-          ),
-          GoRoute(
             path: '/guards',
             builder: (context, state) => const GuardsScreen(),
+          ),
+          GoRoute(
+            path: '/join-requests',
+            builder: (context, state) => const JoinRequestsScreen(),
+          ),
+          GoRoute(
+            path: '/notifications',
+            builder: (context, state) => NotificationInboxScreen(
+              apiClient: apiClient,
+              title: 'Notifications',
+            ),
+          ),
+          GoRoute(
+            path: '/owners',
+            builder: (context, state) => const OwnersScreen(),
+            routes: [
+              GoRoute(
+                path: ':ownerId',
+                builder: (context, state) {
+                  final ownerId = state.pathParameters['ownerId']!;
+                  final extra = state.extra as Map<String, dynamic>? ?? {};
+                  return OwnerDetailScreen(
+                    ownerId: ownerId,
+                    ownerName: extra['name'] as String? ?? 'Owner',
+                    ownerEmail: extra['email'] as String? ?? '',
+                    ownerPhone: extra['phone'] as String? ?? '',
+                  );
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/bookings',
+            builder: (context, state) => const BookingListScreen(),
           ),
         ],
       ),
@@ -102,56 +142,67 @@ class _AdminShellState extends State<AdminShell> {
     final location = GoRouterState.of(context).uri.toString();
     final currentIndex = switch (location) {
       final path when path.startsWith('/slots') => 1,
-      final path when path.startsWith('/bookings') => 2,
-      final path when path.startsWith('/guards') => 3,
+      final path when path.startsWith('/guards') => 2,
+      final path when path.startsWith('/owners') => 3,
+      final path when path.startsWith('/bookings') => 4,
       _ => 0,
     };
 
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(create: (_) => SlotsCubit(widget.apiClient)),
-        BlocProvider(create: (_) => BookingsCubit(widget.apiClient)),
-        BlocProvider(create: (_) => DashboardCubit(widget.apiClient)),
-        BlocProvider(create: (_) => GuardsCubit(widget.apiClient)),
-      ],
-      child: Scaffold(
-        body: widget.child,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: currentIndex,
-          onDestinationSelected: (index) {
-            switch (index) {
-              case 0:
-                context.go('/dashboard');
-              case 1:
-                context.go('/slots');
-              case 2:
-                context.go('/bookings');
-              case 3:
-                context.go('/guards');
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.local_parking_outlined),
-              selectedIcon: Icon(Icons.local_parking),
-              label: 'Slots',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.book_online_outlined),
-              selectedIcon: Icon(Icons.book_online),
-              label: 'Bookings',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.security_outlined),
-              selectedIcon: Icon(Icons.security),
-              label: 'Guards',
-            ),
-          ],
+    return RepositoryProvider.value(
+      value: widget.apiClient,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => SlotsCubit(widget.apiClient)),
+          BlocProvider(create: (_) => BookingsCubit(widget.apiClient)),
+          BlocProvider(create: (_) => DashboardCubit(widget.apiClient)),
+          BlocProvider(create: (_) => GuardsCubit(widget.apiClient)),
+        ],
+        child: Scaffold(
+          body: widget.child,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: currentIndex,
+            onDestinationSelected: (index) {
+              switch (index) {
+                case 0:
+                  context.go('/dashboard');
+                case 1:
+                  context.go('/slots');
+                case 2:
+                  context.go('/guards');
+                case 3:
+                  context.go('/owners');
+                case 4:
+                  context.go('/bookings');
+              }
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard),
+                label: 'Dashboard',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.local_parking_outlined),
+                selectedIcon: Icon(Icons.local_parking),
+                label: 'Slots',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.security_outlined),
+                selectedIcon: Icon(Icons.security),
+                label: 'Guards',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.people_alt_outlined),
+                selectedIcon: Icon(Icons.people_alt),
+                label: 'Owners',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.book_online_outlined),
+                selectedIcon: Icon(Icons.book_online),
+                label: 'Bookings',
+              ),
+            ],
+          ),
         ),
       ),
     );

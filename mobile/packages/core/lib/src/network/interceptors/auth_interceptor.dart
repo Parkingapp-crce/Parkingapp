@@ -14,9 +14,9 @@ class AuthInterceptor extends QueuedInterceptor {
     required TokenManager tokenManager,
     required Dio refreshDio,
     required AuthBloc authBloc,
-  })  : _tokenManager = tokenManager,
-        _refreshDio = refreshDio,
-        _authBloc = authBloc;
+  }) : _tokenManager = tokenManager,
+       _refreshDio = refreshDio,
+       _authBloc = authBloc;
 
   @override
   void onRequest(
@@ -50,13 +50,9 @@ class AuthInterceptor extends QueuedInterceptor {
       );
 
       final newAccess = response.data['access'] as String;
-      final newRefresh =
-          (response.data['refresh'] as String?) ?? refreshToken;
+      final newRefresh = (response.data['refresh'] as String?) ?? refreshToken;
 
-      await _tokenManager.saveTokens(
-        access: newAccess,
-        refresh: newRefresh,
-      );
+      await _tokenManager.saveTokens(access: newAccess, refresh: newRefresh);
 
       // Retry original request with new token
       final retryOptions = err.requestOptions;

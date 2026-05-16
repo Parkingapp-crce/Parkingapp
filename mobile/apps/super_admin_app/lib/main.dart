@@ -6,21 +6,23 @@ import 'package:core/core.dart';
 
 import 'router.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final storage = SecureStorageService();
   final tokenManager = TokenManager(storage);
 
   // Bootstrap Dio for AuthService (used before auth is established)
-  final bootstrapDio = Dio(BaseOptions(
-    baseUrl: EnvConfig.dev.apiBaseUrl,
-    connectTimeout: AppConstants.connectionTimeout,
-    receiveTimeout: AppConstants.receiveTimeout,
-    contentType: 'application/json',
-  ));
+  final bootstrapDio = Dio(
+    BaseOptions(
+      baseUrl: EnvConfig.dev.apiBaseUrl,
+      connectTimeout: AppConstants.connectionTimeout,
+      receiveTimeout: AppConstants.receiveTimeout,
+      contentType: 'application/json',
+    ),
+  );
 
-  final authService = AuthService(bootstrapDio);
+  final authService = AuthService(bootstrapDio, tokenManager);
 
   final authBloc = AuthBloc(
     authService: authService,
@@ -35,17 +37,13 @@ void main() {
   );
 
   final apiClient = ApiClient(dio);
-  
+
   // Now set the apiClient on authBloc
   authBloc.setApiClient(apiClient);
 
-  // Check existing auth state
-  authBloc.add(const AuthCheckRequested());
+  await tokenManager.clearTokens();
 
-  runApp(SuperAdminApp(
-    authBloc: authBloc,
-    apiClient: apiClient,
-  ));
+  runApp(SuperAdminApp(authBloc: authBloc, apiClient: apiClient));
 }
 
 class SuperAdminApp extends StatefulWidget {

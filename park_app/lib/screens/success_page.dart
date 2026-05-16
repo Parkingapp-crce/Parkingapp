@@ -7,9 +7,13 @@ class SuccessPage extends StatelessWidget {
   final Color primaryGreen = const Color(0xFF1E7E34);
   final Color textDark = const Color(0xFF1B2236);
   final Color textGrey = const Color(0xFF6B7280);
-  final Color cardBackground = const Color(0xFFEEF5F0); // Light green background for the card
+  final Color cardBackground = const Color(
+    0xFFEEF5F0,
+  ); // Light green background for the card
   final Color cardBorder = const Color(0xFFD5E8D4); // Soft border for the card
-  final Color backgroundColor = const Color(0xFFF8F9FA); // Off-white app background
+  final Color backgroundColor = const Color(
+    0xFFF8F9FA,
+  ); // Off-white app background
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +42,7 @@ class SuccessPage extends StatelessWidget {
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -185,7 +187,7 @@ class SuccessPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       const Spacer(),
 
                       // 6. Bottom Decorative Element
@@ -198,7 +200,7 @@ class SuccessPage extends StatelessWidget {
                             top: Radius.circular(30),
                           ),
                         ),
-                        // You can replace this container's color with a decoration image 
+                        // You can replace this container's color with a decoration image
                         // if you have the actual graphic asset for the bottom shapes.
                       ),
                     ],

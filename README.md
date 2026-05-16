@@ -108,6 +108,36 @@ flutter run
 
 ---
 
+## ✅ Demo Login Setup (mobile/apps/*)
+
+For the new app family under `mobile/apps/*`, use the `backend/` service with `/api/v1/*` endpoints.
+
+From `backend/`, create/reset demo users:
+
+```
+python manage.py seed_demo_users
+```
+
+Default password for all demo users:
+
+```
+Password@123
+```
+
+Demo accounts:
+
+- `user@parking.com` (user app)
+- `user2@parking.com` (user app)
+- `user3@parking.com` (user app)
+- `admin@parking.com` (admin app)
+- `admin2@parking.com` (admin app)
+- `admin3@parking.com` (admin app)
+- `guard@parking.com` (guard app)
+- `guard2@parking.com` (guard app)
+- `superadmin@parking.com` (super admin app)
+
+---
+
 ## 📦 Required Tools
 
 - Python 3.10+

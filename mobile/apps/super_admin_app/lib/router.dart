@@ -31,10 +31,7 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       ShellRoute(
         builder: (context, state, child) {
           return SuperAdminShell(apiClient: apiClient, child: child);
@@ -97,9 +94,7 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: (_) => SocietiesCubit(widget.apiClient),
-        ),
+        BlocProvider(create: (_) => SocietiesCubit(widget.apiClient)),
       ],
       child: Scaffold(
         body: widget.child,

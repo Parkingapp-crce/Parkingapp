@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:core/core.dart';
 import '../services/api_service.dart';
 
 class EntryLogsPage extends StatefulWidget {
@@ -10,9 +11,9 @@ class EntryLogsPage extends StatefulWidget {
 }
 
 class _EntryLogsPageState extends State<EntryLogsPage> {
-  final Color primaryGreen = const Color(0xFF1E7E34);
-  final Color textDark = const Color(0xFF0D1B0F);
-  final Color textGrey = const Color(0xFF6B7280);
+  final Color primaryGreen = AppColors.primary;
+  final Color textDark = AppColors.textPrimary;
+  final Color textGrey = AppColors.textSecondary;
 
   List<dynamic> logs = [];
   bool isLoading = true;
@@ -51,40 +52,45 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text('Entry Logs',
-            style: TextStyle(
-                color: textDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 20)),
+        title: Text(
+          'Entry Logs',
+          style: TextStyle(
+            color: textDark,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+          ),
+        ),
         iconTheme: IconThemeData(color: textDark),
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: primaryGreen))
           : logs.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history_rounded, size: 56, color: textGrey),
-                      const SizedBox(height: 16),
-                      Text('No entry logs yet',
-                          style: TextStyle(
-                              color: textGrey,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600)),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history_rounded, size: 56, color: textGrey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No entry logs yet',
+                    style: TextStyle(
+                      color: textGrey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: fetchLogs,
-                  color: primaryGreen,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: logs.length,
-                    itemBuilder: (context, index) =>
-                        _buildLogCard(logs[index]),
-                  ),
-                ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: fetchLogs,
+              color: primaryGreen,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: logs.length,
+                itemBuilder: (context, index) => _buildLogCard(logs[index]),
+              ),
+            ),
     );
   }
 
@@ -100,9 +106,10 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -116,9 +123,7 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isAllowed
-                  ? Icons.check_circle_rounded
-                  : Icons.cancel_rounded,
+              isAllowed ? Icons.check_circle_rounded : Icons.cancel_rounded,
               color: statusColor,
               size: 24,
             ),
@@ -136,9 +141,10 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
                     Text(
                       isAllowed ? 'ALLOWED' : 'DENIED',
                       style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13),
+                        color: statusColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       '#${log['id']}',
@@ -155,9 +161,10 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
                 Text(
                   'Scanned by: ${log['scanned_by_name'] ?? '-'}',
                   style: TextStyle(
-                      color: textDark,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600),
+                    color: textDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

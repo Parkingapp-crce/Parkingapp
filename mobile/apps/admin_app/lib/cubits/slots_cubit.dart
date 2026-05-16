@@ -38,7 +38,11 @@ class SlotsState {
   List<SlotModel> get filteredSlots {
     var result = slots;
     if (stateFilter != null) {
-      result = result.where((s) => s.state == stateFilter).toList();
+      if (stateFilter == 'pending') {
+        result = result.where((s) => s.approvalStatus == 'pending').toList();
+      } else {
+        result = result.where((s) => s.state == stateFilter).toList();
+      }
     }
     if (typeFilter != null) {
       result = result.where((s) => s.slotType == typeFilter).toList();
@@ -90,10 +94,7 @@ class SlotsCubit extends Cubit<SlotsState> {
   Future<void> createSlot(String societyId, Map<String, dynamic> data) async {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
-      await _apiClient.post(
-        ApiEndpoints.societySlots(societyId),
-        data: data,
-      );
+      await _apiClient.post(ApiEndpoints.societySlots(societyId), data: data);
       await loadSlots(societyId);
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
@@ -111,10 +112,7 @@ class SlotsCubit extends Cubit<SlotsState> {
   ) async {
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
-      await _apiClient.put(
-        ApiEndpoints.slot(societyId, slotId),
-        data: data,
-      );
+      await _apiClient.put(ApiEndpoints.slot(societyId, slotId), data: data);
       await loadSlots(societyId);
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
@@ -144,6 +142,28 @@ class SlotsCubit extends Cubit<SlotsState> {
       emit(state.copyWith(error: e.message));
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
+    }
+  }
+
+  Future<void> decideSlotApproval(
+    String societyId,
+    String slotId, {
+    required bool approve,
+    String notes = '',
+  }) async {
+    emit(state.copyWith(isLoading: true, clearError: true));
+    try {
+      await _apiClient.post(
+        ApiEndpoints.slotDecision(societyId, slotId),
+        data: {'action': approve ? 'approve' : 'reject', 'notes': notes},
+      );
+      await loadSlots(societyId);
+    } on ApiException catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.message));
+      rethrow;
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.toString()));
+      rethrow;
     }
   }
 

@@ -24,10 +24,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onLogin() {
     if (_formKey.currentState?.validate() ?? false) {
-      context.read<AuthBloc>().add(AuthLoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          ));
+      context.read<AuthBloc>().add(
+        AuthLoginRequested(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 
@@ -55,15 +57,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.shield,
-                      size: 80,
-                      color: AppColors.primary,
-                    ),
+                    Icon(Icons.shield, size: 80, color: AppColors.primary),
                     const SizedBox(height: 16),
                     Text(
                       'Super Admin',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
@@ -73,8 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Sign in to manage the platform',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 40),

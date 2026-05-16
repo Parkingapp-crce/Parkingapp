@@ -41,9 +41,8 @@ class _SocietyFormScreenState extends State<SocietyFormScreen> {
   bool _isResolvingLocation = false;
   bool _obscureAdminPassword = true;
 
-  double _roundCoordinate(double value) => double.parse(
-    value.toStringAsFixed(6),
-  );
+  double _roundCoordinate(double value) =>
+      double.parse(value.toStringAsFixed(6));
 
   bool get isEditing => widget.societyId != null;
 

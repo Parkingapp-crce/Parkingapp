@@ -40,10 +40,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
       appBar: AppBar(
         title: const Text('Parking Slots'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSlots,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadSlots),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -115,6 +112,15 @@ class _SlotListScreenState extends State<SlotListScreen> {
               ),
               const SizedBox(width: 8),
               _FilterChip(
+                label: 'Pending',
+                selected: state.stateFilter == 'pending',
+                color: AppColors.warning,
+                onSelected: () {
+                  context.read<SlotsCubit>().setStateFilter('pending');
+                },
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
                 label: 'Available',
                 selected: state.stateFilter == 'available',
                 color: AppColors.slotAvailable,
@@ -150,11 +156,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
                 },
               ),
               const SizedBox(width: 16),
-              Container(
-                width: 1,
-                height: 24,
-                color: AppColors.divider,
-              ),
+              Container(width: 1, height: 24, color: AppColors.divider),
               const SizedBox(width: 16),
               _FilterChip(
                 label: 'Car',
@@ -218,10 +220,7 @@ class _SlotCard extends StatelessWidget {
   final SlotModel slot;
   final VoidCallback onTap;
 
-  const _SlotCard({
-    required this.slot,
-    required this.onTap,
-  });
+  const _SlotCard({required this.slot, required this.onTap});
 
   Color _stateColor() {
     switch (slot.state) {
@@ -266,11 +265,52 @@ class _SlotCard extends StatelessWidget {
           'Slot ${slot.slotNumber}',
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
-          'Floor: ${slot.floor.isNotEmpty ? slot.floor : '-'} | '
-          '${slot.slotType.toUpperCase()} | '
-          '\u20B9${slot.hourlyRate}/hr',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Floor: ${slot.floor.isNotEmpty ? slot.floor : '-'} | '
+              '${slot.slotType.toUpperCase()} | '
+              '\u20B9${slot.hourlyRate}/hr',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            if (slot.ownerName != null && slot.ownerName!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Owner: ${slot.ownerName}',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )
+            else if (slot.ownershipType == 'society')
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'Owner: Society Admin',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            if (slot.isPendingApproval)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Pending admin approval',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.warning,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

@@ -103,8 +103,11 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              QRCodePage(booking: booking, qrCode: {'code': cachedCode}, paymentId: paymentId),
+          builder: (_) => QRCodePage(
+            booking: booking,
+            qrCode: {'code': cachedCode},
+            paymentId: paymentId,
+          ),
         ),
       );
       return;
@@ -124,7 +127,11 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => QRCodePage(booking: booking, qrCode: {'code': qrCode}, paymentId: paymentId),
+        builder: (_) => QRCodePage(
+          booking: booking,
+          qrCode: {'code': qrCode},
+          paymentId: paymentId,
+        ),
       ),
     );
   }

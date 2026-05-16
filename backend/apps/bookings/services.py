@@ -177,6 +177,15 @@ def create_booking(user, slot_id, vehicle, start_time, end_time):
         if not slot_is_available(slot, vehicle.vehicle_type, start_time, end_time):
             raise ValidationError("Slot is not available for the requested time range.")
 
+        if slot.approval_status != ParkingSlot.ApprovalStatus.APPROVED:
+            raise ValidationError("Slot is not approved for booking yet.")
+
+        if vehicle.vehicle_type != slot.slot_type:
+            raise ValidationError(
+                f"Vehicle type '{vehicle.vehicle_type}' does not match "
+                f"slot type '{slot.slot_type}'."
+            )
+
         return _build_pending_booking(user, slot, vehicle, start_time, end_time)
 
 

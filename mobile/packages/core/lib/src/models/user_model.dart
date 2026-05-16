@@ -19,6 +19,14 @@ class UserModel {
   final String? society;
   @JsonKey(name: 'society_name')
   final String? societyName;
+  @JsonKey(name: 'flat_number')
+  final String? flatNumber;
+  @JsonKey(name: 'floor_number')
+  final String? floorNumber;
+  @JsonKey(name: 'can_scan_entry', defaultValue: false)
+  final bool canScanEntry;
+  @JsonKey(name: 'can_scan_exit', defaultValue: false)
+  final bool canScanExit;
   @JsonKey(name: 'created_at')
   final String createdAt;
 
@@ -33,6 +41,10 @@ class UserModel {
     this.approvedAt,
     this.society,
     this.societyName,
+    this.flatNumber,
+    this.floorNumber,
+    this.canScanEntry = false,
+    this.canScanExit = false,
     required this.createdAt,
   });
 

@@ -7,7 +7,7 @@ import 'dart:ui_web' as ui;
 
 import 'package:flutter/material.dart';
 
-const bool supportsEmbeddedCheckout = false;
+const bool supportsEmbeddedCheckout = true;
 
 class EmbeddedCheckoutView extends StatefulWidget {
   final String publishableKey;

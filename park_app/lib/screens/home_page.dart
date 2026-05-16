@@ -43,10 +43,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _cardAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic));
+    _cardAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _cardController, curve: Curves.easeOutCubic),
+        );
 
     Future.delayed(const Duration(milliseconds: 300), () {
       _cardController.forward();
@@ -109,9 +109,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Center(
-            child: CircularProgressIndicator(color: primaryGreen),
-          ),
+          child: Center(child: CircularProgressIndicator(color: primaryGreen)),
         ),
       );
     }
@@ -151,10 +149,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
 
         // 🗺️ Decorative map grid lines
-        CustomPaint(
-          size: Size.infinite,
-          painter: _MapGridPainter(),
-        ),
+        CustomPaint(size: Size.infinite, painter: _MapGridPainter()),
 
         // 📍 Parking markers
         _buildMarker(
@@ -296,7 +291,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 color: primaryGreen,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.tune_rounded, color: Colors.white, size: 16),
+              child: const Icon(
+                Icons.tune_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -316,7 +315,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          _statChip(Icons.local_parking_rounded, "24 spots nearby", primaryGreen),
+          _statChip(
+            Icons.local_parking_rounded,
+            "24 spots nearby",
+            primaryGreen,
+          ),
           const SizedBox(width: 10),
           _statChip(Icons.access_time_rounded, "Open now", Colors.orange),
         ],
@@ -444,7 +447,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   color: primaryGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.local_parking_rounded, color: primaryGreen, size: 32),
+                child: Icon(
+                  Icons.local_parking_rounded,
+                  color: primaryGreen,
+                  size: 32,
+                ),
               ),
               const SizedBox(width: 16),
 
@@ -463,14 +470,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.location_on_rounded, size: 13, color: textGrey),
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 13,
+                          color: textGrey,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           selectedDistance,
                           style: TextStyle(color: textGrey, fontSize: 12),
                         ),
                         const SizedBox(width: 10),
-                        Icon(Icons.directions_car_rounded, size: 13, color: textGrey),
+                        Icon(
+                          Icons.directions_car_rounded,
+                          size: 13,
+                          color: textGrey,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           "$selectedSlots slots",
@@ -483,7 +498,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
 
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: primaryGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -510,7 +528,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ParkingListPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const ParkingListPage(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -529,10 +549,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   SizedBox(width: 8),
                   Text(
                     "Book This Spot",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ],
               ),
@@ -565,12 +582,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+        ),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_rounded), label: "Bookings"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: "Wallet"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: "Profile"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: "Home",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_rounded),
+            label: "Bookings",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: "Wallet",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: "Profile",
+          ),
         ],
       ),
     );

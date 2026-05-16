@@ -82,10 +82,10 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
     try {
       if (isEditing) {
         await context.read<SlotsCubit>().updateSlot(
-              societyId,
-              widget.slotId!,
-              data,
-            );
+          societyId,
+          widget.slotId!,
+          data,
+        );
       } else {
         await context.read<SlotsCubit>().createSlot(societyId, data);
       }
@@ -120,9 +120,7 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? 'Edit Slot' : 'Create Slot'),
-      ),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Slot' : 'Create Slot')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -170,7 +168,9 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
                 label: 'Hourly Rate (\u20B9)',
                 hint: 'e.g. 50.00',
                 prefixIcon: Icons.currency_rupee,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the hourly rate';
@@ -190,7 +190,7 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
                 ),
                 items: const [
                   DropdownMenuItem(value: 'society', child: Text('Society')),
-                  DropdownMenuItem(value: 'private', child: Text('Private')),
+                  DropdownMenuItem(value: 'resident', child: Text('Resident')),
                 ],
                 onChanged: (value) {
                   if (value != null) setState(() => _ownershipType = value);

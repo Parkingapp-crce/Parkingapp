@@ -18,10 +18,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required AuthService authService,
     required TokenManager tokenManager,
     ApiClient? apiClient,
-  })  : _authService = authService,
-        _tokenManager = tokenManager,
-        _apiClient = apiClient,
-        super(const AuthInitial()) {
+  }) : _authService = authService,
+       _tokenManager = tokenManager,
+       _apiClient = apiClient,
+       super(const AuthInitial()) {
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthBiometricLoginRequested>(_onBiometricLoginRequested);
@@ -47,7 +47,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       try {
         if (_apiClient != null) {
           final response = await _apiClient!.get(ApiEndpoints.profile);
-          final user = UserModel.fromJson(response.data as Map<String, dynamic>);
+          final user = UserModel.fromJson(
+            response.data as Map<String, dynamic>,
+          );
           emit(Authenticated(user));
         } else {
           final user = await _authService.getProfile();
@@ -71,16 +73,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       final email = await _tokenManager.getEmail();
       final password = await _tokenManager.getPassword();
-      
-      if (email == null || email.isEmpty || password == null || password.isEmpty) {
-        emit(const AuthError('No saved credentials found. Please login with password first.'));
+
+      if (email == null ||
+          email.isEmpty ||
+          password == null ||
+          password.isEmpty) {
+        emit(
+          const AuthError(
+            'No saved credentials found. Please login with password first.',
+          ),
+        );
         return;
       }
 
-      final data = await _authService.login(
-        email: email,
-        password: password,
-      );
+      final data = await _authService.login(email: email, password: password);
 
       final access = data['access'] as String;
       final refresh = data['refresh'] as String;
@@ -146,6 +152,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         phone: event.phone,
         fullName: event.fullName,
         password: event.password,
+        role: event.role,
+        societyJoinCode: event.societyJoinCode,
+        societyName: event.societyName,
+        societyAddress: event.societyAddress,
+        societyCity: event.societyCity,
+        societyState: event.societyState,
+        societyPincode: event.societyPincode,
+        societyLatitude: event.societyLatitude,
+        societyLongitude: event.societyLongitude,
       );
 
       final tokens = data['tokens'] as Map<String, dynamic>;

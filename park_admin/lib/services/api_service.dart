@@ -1,9 +1,16 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = "http://localhost:8000";
+  static String get baseUrl {
+    if (kIsWeb) return "http://localhost:8000";
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return "http://10.0.2.2:8000";
+    }
+    return "http://localhost:8000";
+  }
   // Web: http://localhost:8000
   // Emulator: http://10.0.2.2:8000
   // Real device: your PC IP e.g. http://192.168.0.103:8000
@@ -15,7 +22,9 @@ class ApiService {
 
   /// 🔹 LOGIN (all roles)
   static Future<Map<String, dynamic>> loginUser(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     final response = await http.post(
       Uri.parse("$baseUrl/login"),
       headers: {"Content-Type": "application/json"},
@@ -26,7 +35,10 @@ class ApiService {
 
   /// 🔹 REGISTER (Customer)
   static Future<Map<String, dynamic>> registerUser(
-      String name, String email, String password) async {
+    String name,
+    String email,
+    String password,
+  ) async {
     final response = await http.post(
       Uri.parse("$baseUrl/register"),
       headers: {"Content-Type": "application/json"},
@@ -55,7 +67,7 @@ class ApiService {
         "name": name,
         "email": email,
         "password": password,
-        "parking_name": lotName,   // ✅ Fixed: Django expects parking_name
+        "parking_name": lotName, // ✅ Fixed: Django expects parking_name
         "address": address,
         "city": city,
         "total_slots": totalSlots,
@@ -69,7 +81,9 @@ class ApiService {
 
   /// 🔥 GOOGLE LOGIN
   static Future<Map<String, dynamic>> googleLogin(
-      String email, String name) async {
+    String email,
+    String name,
+  ) async {
     final response = await http.post(
       Uri.parse("$baseUrl/google-login"),
       headers: {"Content-Type": "application/json"},
@@ -138,7 +152,9 @@ class ApiService {
 
   /// 🔹 VERIFY OTP
   static Future<Map<String, dynamic>> verifyOTP(
-      String email, String otp) async {
+    String email,
+    String otp,
+  ) async {
     final response = await http.post(
       Uri.parse("$baseUrl/verify-otp"),
       headers: {"Content-Type": "application/json"},
@@ -149,7 +165,9 @@ class ApiService {
 
   /// 🔹 RESET PASSWORD
   static Future<Map<String, dynamic>> resetPassword(
-      String email, String newPassword) async {
+    String email,
+    String newPassword,
+  ) async {
     final response = await http.post(
       Uri.parse("$baseUrl/reset-password"),
       headers: {"Content-Type": "application/json"},

@@ -95,24 +95,24 @@ class _ParkingListPageState extends State<ParkingListPage> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator(color: primaryGreen))
                 : filteredLots.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No parking lots found.',
-                          style: TextStyle(color: textGrey),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: fetchLots,
-                        color: primaryGreen,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredLots.length,
-                          itemBuilder: (context, index) {
-                            final lot = filteredLots[index];
-                            return _buildLotCard(lot);
-                          },
-                        ),
-                      ),
+                ? Center(
+                    child: Text(
+                      'No parking lots found.',
+                      style: TextStyle(color: textGrey),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: fetchLots,
+                    color: primaryGreen,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredLots.length,
+                      itemBuilder: (context, index) {
+                        final lot = filteredLots[index];
+                        return _buildLotCard(lot);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -151,8 +151,11 @@ class _ParkingListPageState extends State<ParkingListPage> {
                     color: primaryGreen.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(Icons.local_parking_rounded,
-                      color: primaryGreen, size: 28),
+                  child: Icon(
+                    Icons.local_parking_rounded,
+                    color: primaryGreen,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -170,13 +173,15 @@ class _ParkingListPageState extends State<ParkingListPage> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on_rounded,
-                              size: 13, color: textGrey),
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 13,
+                            color: textGrey,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             '${lot['address']}, ${lot['city']}',
-                            style:
-                                TextStyle(color: textGrey, fontSize: 12),
+                            style: TextStyle(color: textGrey, fontSize: 12),
                           ),
                         ],
                       ),
@@ -184,8 +189,10 @@ class _ParkingListPageState extends State<ParkingListPage> {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: primaryGreen.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
@@ -206,9 +213,11 @@ class _ParkingListPageState extends State<ParkingListPage> {
             const SizedBox(height: 14),
             Row(
               children: [
-                _infoChip(Icons.access_time_rounded,
-                    '${lot['opening_time']} - ${lot['closing_time']}',
-                    Colors.orange),
+                _infoChip(
+                  Icons.access_time_rounded,
+                  '${lot['opening_time']} - ${lot['closing_time']}',
+                  Colors.orange,
+                ),
                 const SizedBox(width: 10),
                 _infoChip(
                   Icons.directions_car_rounded,
@@ -244,7 +253,9 @@ class _ParkingListPageState extends State<ParkingListPage> {
                 child: Text(
                   isFull ? 'Fully Booked' : 'Book Now',
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -269,7 +280,10 @@ class _ParkingListPageState extends State<ParkingListPage> {
           Text(
             label,
             style: TextStyle(
-                fontSize: 12, color: color, fontWeight: FontWeight.w600),
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

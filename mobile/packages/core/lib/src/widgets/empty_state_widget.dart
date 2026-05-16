@@ -34,8 +34,8 @@ class EmptyStateWidget extends StatelessWidget {
               Text(
                 subtitle!,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],

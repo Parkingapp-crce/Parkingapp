@@ -1,6 +1,5 @@
 import 'token_store.dart';
-import 'token_store_native.dart'
-    if (dart.library.html) 'token_store_web.dart';
+import 'token_store_native.dart' if (dart.library.html) 'token_store_web.dart';
 
 class SecureStorageService {
   static const _accessTokenKey = 'access_token';
@@ -11,7 +10,7 @@ class SecureStorageService {
   final TokenStore _store;
 
   SecureStorageService({TokenStore? store})
-      : _store = store ?? createTokenStore();
+    : _store = store ?? createTokenStore();
 
   Future<String?> getAccessToken() => _safeRead(_accessTokenKey);
   Future<String?> getRefreshToken() => _safeRead(_refreshTokenKey);
@@ -23,8 +22,8 @@ class SecureStorageService {
     required String refresh,
   }) async {
     await Future.wait([
-      _store.write(_accessTokenKey, access),
-      _store.write(_refreshTokenKey, refresh),
+      _safeWrite(_accessTokenKey, access),
+      _safeWrite(_refreshTokenKey, refresh),
     ]);
   }
 
@@ -33,8 +32,8 @@ class SecureStorageService {
     required String password,
   }) async {
     await Future.wait([
-      _store.write(_emailKey, email),
-      _store.write(_passwordKey, password),
+      _safeWrite(_emailKey, email),
+      _safeWrite(_passwordKey, password),
     ]);
   }
 
@@ -46,10 +45,7 @@ class SecureStorageService {
   }
 
   Future<void> clearCredentials() async {
-    await Future.wait([
-      _safeDelete(_emailKey),
-      _safeDelete(_passwordKey),
-    ]);
+    await Future.wait([_safeDelete(_emailKey), _safeDelete(_passwordKey)]);
   }
 
   Future<bool> hasTokens() async {
@@ -63,6 +59,14 @@ class SecureStorageService {
     } catch (_) {
       await clearTokens();
       return null;
+    }
+  }
+
+  Future<void> _safeWrite(String key, String value) async {
+    try {
+      await _store.write(key, value);
+    } catch (_) {
+      await clearTokens();
     }
   }
 

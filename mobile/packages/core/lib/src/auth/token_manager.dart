@@ -10,17 +10,13 @@ class TokenManager {
   Future<String?> getEmail() => _storage.getEmail();
   Future<String?> getPassword() => _storage.getPassword();
 
-  Future<void> saveTokens({
-    required String access,
-    required String refresh,
-  }) =>
+  Future<void> saveTokens({required String access, required String refresh}) =>
       _storage.saveTokens(access: access, refresh: refresh);
 
   Future<void> saveCredentials({
     required String email,
     required String password,
-  }) =>
-      _storage.saveCredentials(email: email, password: password);
+  }) => _storage.saveCredentials(email: email, password: password);
 
   Future<void> clearTokens() => _storage.clearTokens();
   Future<void> clearCredentials() => _storage.clearCredentials();

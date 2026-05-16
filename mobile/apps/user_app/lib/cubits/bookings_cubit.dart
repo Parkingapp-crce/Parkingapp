@@ -364,6 +364,11 @@ class BookingCreateState {
     if (hours <= 0) return null;
     return rate * hours;
   }
+
+  List<VehicleModel> get compatibleVehicles {
+    if (slot == null) return vehicles;
+    return vehicles.where((v) => v.vehicleType == slot!.slotType).toList();
+  }
 }
 
 class BookingCreateCubit extends Cubit<BookingCreateState> {
@@ -464,6 +469,12 @@ class BookingCreateCubit extends Cubit<BookingCreateState> {
   }
 
   Future<void> createBooking() async {
+    if (state.slot == null) {
+      emit(
+        state.copyWith(error: 'Slot details are missing. Please try again.'),
+      );
+      return;
+    }
     if (state.selectedVehicleId == null) {
       emit(state.copyWith(error: 'Please select a vehicle'));
       return;
@@ -475,6 +486,60 @@ class BookingCreateCubit extends Cubit<BookingCreateState> {
     if (state.endTime!.isBefore(state.startTime!) ||
         state.endTime!.isAtSameMomentAs(state.startTime!)) {
       emit(state.copyWith(error: 'End time must be after start time'));
+      return;
+    }
+
+    final slot = state.slot!;
+    if (slot.availableFrom != null && slot.availableTo != null) {
+      final fromParts = slot.availableFrom!.split(':');
+      final toParts = slot.availableTo!.split(':');
+
+      if (fromParts.length >= 2 && toParts.length >= 2) {
+        final availFromHour = int.tryParse(fromParts[0]) ?? 0;
+        final availFromMin = int.tryParse(fromParts[1]) ?? 0;
+        final availToHour = int.tryParse(toParts[0]) ?? 23;
+        final availToMin = int.tryParse(toParts[1]) ?? 59;
+
+        final startHour = state.startTime!.hour;
+        final startMin = state.startTime!.minute;
+        final endHour = state.endTime!.hour;
+        final endMin = state.endTime!.minute;
+
+        final availFromVal = availFromHour * 60 + availFromMin;
+        final availToVal = availToHour * 60 + availToMin;
+        final startVal = startHour * 60 + startMin;
+        final endVal = endHour * 60 + endMin;
+
+        if (startVal < availFromVal || endVal > availToVal) {
+          emit(
+            state.copyWith(
+              error:
+                  'Booking must be within availability hours (${slot.availableFrom} to ${slot.availableTo})',
+            ),
+          );
+          return;
+        }
+      }
+    }
+
+    VehicleModel? selectedVehicle;
+    for (final vehicle in state.vehicles) {
+      if (vehicle.id == state.selectedVehicleId) {
+        selectedVehicle = vehicle;
+        break;
+      }
+    }
+    if (selectedVehicle == null) {
+      emit(state.copyWith(error: 'Selected vehicle not found.'));
+      return;
+    }
+    if (selectedVehicle.vehicleType != state.slot!.slotType) {
+      emit(
+        state.copyWith(
+          error:
+              'Selected vehicle type does not match this slot. Please choose a ${state.slot!.slotType} vehicle.',
+        ),
+      );
       return;
     }
 

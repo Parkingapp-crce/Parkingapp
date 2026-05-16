@@ -67,9 +67,9 @@ class _BookingPageState extends State<BookingPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: primaryGreen),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: ColorScheme.light(primary: primaryGreen)),
         child: child!,
       ),
     );
@@ -79,16 +79,21 @@ class _BookingPageState extends State<BookingPage> {
       context: context,
       initialTime: TimeOfDay.now(),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.light(primary: primaryGreen),
-        ),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: ColorScheme.light(primary: primaryGreen)),
         child: child!,
       ),
     );
     if (time == null) return;
 
-    final picked =
-        DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final picked = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
 
     setState(() {
       if (isStart) {
@@ -117,14 +122,12 @@ class _BookingPageState extends State<BookingPage> {
     setState(() => isLoading = true);
 
     var options = {
-      'key': 'rzp_test_Si0o1H1Ewco24k', // TODO: Replace with your actual Razorpay key
+      'key':
+          'rzp_test_Si0o1H1Ewco24k', // TODO: Replace with your actual Razorpay key
       'amount': (totalAmount * 100).toInt(),
       'name': 'Park App',
       'description': 'Booking for ${widget.lot['name']}',
-      'prefill': {
-        'contact': '9876543210',
-        'email': 'user@example.com'
-      }
+      'prefill': {'contact': '9876543210', 'email': 'user@example.com'},
     };
 
     try {
@@ -177,8 +180,7 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   void _snack(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   String formatDt(DateTime? dt) {
@@ -193,11 +195,14 @@ class _BookingPageState extends State<BookingPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text('Book Parking',
-            style: TextStyle(
-                color: textDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 20)),
+        title: Text(
+          'Book Parking',
+          style: TextStyle(
+            color: textDark,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+          ),
+        ),
         iconTheme: IconThemeData(color: textDark),
       ),
       body: SingleChildScrollView(
@@ -216,31 +221,41 @@ class _BookingPageState extends State<BookingPage> {
                       color: primaryGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(Icons.local_parking_rounded,
-                        color: primaryGreen, size: 28),
+                    child: Icon(
+                      Icons.local_parking_rounded,
+                      color: primaryGreen,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.lot['name'],
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: textDark)),
+                        Text(
+                          widget.lot['name'],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            color: textDark,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
-                            '${widget.lot['address']}, ${widget.lot['city']}',
-                            style: TextStyle(color: textGrey, fontSize: 13)),
+                          '${widget.lot['address']}, ${widget.lot['city']}',
+                          style: TextStyle(color: textGrey, fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
-                  Text('₹${widget.lot['price_per_hour']}/hr',
-                      style: TextStyle(
-                          color: primaryGreen,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15)),
+                  Text(
+                    '₹${widget.lot['price_per_hour']}/hr',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -324,31 +339,37 @@ class _BookingPageState extends State<BookingPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Duration',
-                            style: TextStyle(color: textGrey, fontSize: 13)),
+                        Text(
+                          'Duration',
+                          style: TextStyle(color: textGrey, fontSize: 13),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           '${endTime!.difference(startTime!).inMinutes ~/ 60}h '
                           '${endTime!.difference(startTime!).inMinutes % 60}m',
                           style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: textDark),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: textDark,
+                          ),
                         ),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('Total Amount',
-                            style: TextStyle(color: textGrey, fontSize: 13)),
+                        Text(
+                          'Total Amount',
+                          style: TextStyle(color: textGrey, fontSize: 13),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           '₹${totalAmount.toStringAsFixed(2)}',
                           style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 20,
-                              color: primaryGreen),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                            color: primaryGreen,
+                          ),
                         ),
                       ],
                     ),
@@ -368,7 +389,8 @@ class _BookingPageState extends State<BookingPage> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: isLoading
@@ -376,10 +398,17 @@ class _BookingPageState extends State<BookingPage> {
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text('Confirm Booking',
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Confirm Booking',
                         style: TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 16)),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
 
@@ -411,11 +440,7 @@ class _BookingPageState extends State<BookingPage> {
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                color: isSelected ? Colors.white : textGrey,
-                size: 26,
-              ),
+              Icon(icon, color: isSelected ? Colors.white : textGrey, size: 26),
               const SizedBox(height: 6),
               Text(
                 label,
@@ -432,25 +457,31 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: TextStyle(
-          color: textDark, fontWeight: FontWeight.w700, fontSize: 14));
+  Widget _label(String text) => Text(
+    text,
+    style: TextStyle(
+      color: textDark,
+      fontWeight: FontWeight.w700,
+      fontSize: 14,
+    ),
+  );
 
   Widget _sectionCard({required Widget child}) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 4))
-          ],
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
         ),
-        child: child,
-      );
+      ],
+    ),
+    child: child,
+  );
 
   Widget _timePicker({required String label, required VoidCallback onTap}) =>
       GestureDetector(
@@ -463,20 +494,24 @@ class _BookingPageState extends State<BookingPage> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4))
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
             ],
           ),
           child: Row(
             children: [
               Icon(Icons.access_time_rounded, color: primaryGreen),
               const SizedBox(width: 12),
-              Text(label,
-                  style: TextStyle(
-                      color: label == 'Tap to select' ? textGrey : textDark,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: label == 'Tap to select' ? textGrey : textDark,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),

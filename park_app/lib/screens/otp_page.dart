@@ -12,8 +12,10 @@ class OtpPage extends StatefulWidget {
 }
 
 class _OtpPageState extends State<OtpPage> {
-  final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   final Color primaryGreen = const Color(0xFF1E7E34);
@@ -80,7 +82,9 @@ class _OtpPageState extends State<OtpPage> {
     try {
       await ApiService.forgotPassword(widget.email);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("A new code has been sent to your email.")),
+        const SnackBar(
+          content: Text("A new code has been sent to your email."),
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,7 +108,10 @@ class _OtpPageState extends State<OtpPage> {
                 onTap: () => Navigator.pop(context),
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
                   child: const Icon(Icons.arrow_back_ios_new, size: 18),
                 ),
               ),
@@ -118,14 +125,24 @@ class _OtpPageState extends State<OtpPage> {
                     color: primaryGreen.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Icon(Icons.mark_email_read_outlined, size: 45, color: primaryGreen),
+                  child: Icon(
+                    Icons.mark_email_read_outlined,
+                    size: 45,
+                    color: primaryGreen,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
 
               // Title
-              Text('Enter Reset Code',
-                  style: TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.w800)),
+              Text(
+                'Enter Reset Code',
+                style: TextStyle(
+                  color: textDark,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 12),
               RichText(
                 text: TextSpan(
@@ -134,7 +151,10 @@ class _OtpPageState extends State<OtpPage> {
                     const TextSpan(text: "We sent a 6-digit code to "),
                     TextSpan(
                       text: widget.email,
-                      style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: primaryGreen,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const TextSpan(text: ". Enter it below."),
                   ],
@@ -167,7 +187,10 @@ class _OtpPageState extends State<OtpPage> {
                         fillColor: Colors.white,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: borderColor, width: 1.5),
+                          borderSide: BorderSide(
+                            color: borderColor,
+                            width: 1.5,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -191,17 +214,27 @@ class _OtpPageState extends State<OtpPage> {
                     backgroundColor: primaryGreen,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
-                      : const Text('Verify Code',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Verify Code',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 
@@ -212,12 +245,20 @@ class _OtpPageState extends State<OtpPage> {
                 child: Wrap(
                   alignment: WrapAlignment.center,
                   children: [
-                    Text("Didn't receive the code? ", style: TextStyle(color: textGrey, fontSize: 14)),
+                    Text(
+                      "Didn't receive the code? ",
+                      style: TextStyle(color: textGrey, fontSize: 14),
+                    ),
                     GestureDetector(
                       onTap: _resendOtp,
-                      child: Text('Resend',
-                          style: TextStyle(
-                              color: primaryGreen, fontSize: 14, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        'Resend',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ],
                 ),

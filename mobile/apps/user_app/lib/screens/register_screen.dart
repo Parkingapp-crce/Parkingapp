@@ -15,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _joinCodeController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
@@ -25,6 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _joinCodeController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -33,13 +35,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _onRegister() {
     if (!_formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
-          AuthRegisterRequested(
-            fullName: _nameController.text.trim(),
-            email: _emailController.text.trim(),
-            phone: _phoneController.text.trim(),
-            password: _passwordController.text,
-          ),
-        );
+      AuthRegisterRequested(
+        fullName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
   }
 
   @override
@@ -73,15 +75,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text(
                     'Create Account',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign up to get started',
+                    'Create an account to book parking slots',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   AppTextField(
@@ -207,18 +209,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Text(
                         'Already have an account? ',
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       GestureDetector(
                         onTap: () => context.go('/login'),
                         child: Text(
                           'Sign In',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,

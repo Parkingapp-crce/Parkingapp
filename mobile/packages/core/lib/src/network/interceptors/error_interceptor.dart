@@ -21,7 +21,12 @@ String? _extractErrorMessage(dynamic data) {
   }
 
   if (data is Map<String, dynamic>) {
-    for (final key in const ['error', 'detail', 'message', 'non_field_errors']) {
+    for (final key in const [
+      'error',
+      'detail',
+      'message',
+      'non_field_errors',
+    ]) {
       final message = _extractErrorMessage(data[key]);
       if (message != null) {
         return message;

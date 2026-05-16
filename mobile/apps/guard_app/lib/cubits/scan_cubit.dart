@@ -41,8 +41,8 @@ class ScanCubit extends Cubit<ScanState> {
   final ApiClient _apiClient;
 
   ScanCubit({required ApiClient apiClient})
-      : _apiClient = apiClient,
-        super(const ScanInitial());
+    : _apiClient = apiClient,
+      super(const ScanInitial());
 
   Future<void> validateEntry(String qrToken) async {
     emit(const ScanLoading());

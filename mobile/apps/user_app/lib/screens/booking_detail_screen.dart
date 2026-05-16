@@ -170,8 +170,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           'email': booking.ownerEmail ?? '',
         },
         'external': {
-          'wallets': ['paytm']
-        }
+          'wallets': ['paytm'],
+        },
       };
 
       try {
@@ -307,9 +307,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           children: [
             Text(
               'Select Payment Gateway',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -349,10 +349,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         body: BlocConsumer<BookingDetailCubit, BookingDetailState>(
           listener: (context, state) {
             final booking = state.booking;
-            
-            if (widget.autoPay && 
-                !_hasAutoPaid && 
-                booking != null && 
+
+            if (widget.autoPay &&
+                !_hasAutoPaid &&
+                booking != null &&
                 booking.isPendingPayment) {
               _hasAutoPaid = true;
               Future.microtask(() {
@@ -406,9 +406,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             return Stack(
               children: [
                 RefreshIndicator(
-                  onRefresh: () => context.read<BookingDetailCubit>().loadBooking(
-                    widget.bookingId,
-                  ),
+                  onRefresh: () => context
+                      .read<BookingDetailCubit>()
+                      .loadBooking(widget.bookingId),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
@@ -451,7 +451,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       color: Colors.black.withValues(alpha: 0.6),
                       alignment: Alignment.center,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 800),
+                        constraints: const BoxConstraints(
+                          maxWidth: 500,
+                          maxHeight: 800,
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: _EmbeddedCheckoutPanel(
@@ -473,7 +476,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             onClose: _isCompletingEmbeddedCheckout
                                 ? null
                                 : () {
-                                    setState(() => _activeEmbeddedPayment = null);
+                                    setState(
+                                      () => _activeEmbeddedPayment = null,
+                                    );
                                   },
                           ),
                         ),

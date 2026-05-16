@@ -19,19 +19,25 @@ class _LandingPageState extends State<LandingPage>
   void initState() {
     super.initState();
     _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
     _slideController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
 
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
     _slideAnim = Tween<Offset>(
-            begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
-            CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
 
     _fadeController.forward();
-    Future.delayed(const Duration(milliseconds: 200),
-        () => _slideController.forward());
+    Future.delayed(
+      const Duration(milliseconds: 200),
+      () => _slideController.forward(),
+    );
   }
 
   @override
@@ -65,8 +71,11 @@ class _LandingPageState extends State<LandingPage>
                       color: const Color(0xFFFF6B00),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.local_parking,
-                        color: Colors.white, size: 30),
+                    child: const Icon(
+                      Icons.local_parking,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
 
                   const SizedBox(height: 36),
@@ -104,8 +113,7 @@ class _LandingPageState extends State<LandingPage>
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (_) => LoginPage()),
+                          MaterialPageRoute(builder: (_) => LoginPage()),
                         );
                       },
                       style: ElevatedButton.styleFrom(

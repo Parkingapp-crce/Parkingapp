@@ -1,6 +1,8 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../cubits/dashboard_cubit.dart';
 import '../models/admin_dashboard_model.dart';
@@ -13,6 +15,9 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  String? _joinCode;
+  bool _isJoinCodeLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -22,6 +27,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _loadData() {
     context.read<DashboardCubit>().loadDashboard();
+    final authState = context.read<AuthBloc>().state;
+    if (authState is Authenticated && authState.user.society != null) {
+      _loadJoinCode(authState.user.society!);
+    }
+  }
+
+  Future<void> _loadJoinCode(String societyId) async {
+    setState(() => _isJoinCodeLoading = true);
+    try {
+      final response = await context.read<ApiClient>().get(
+        ApiEndpoints.society(societyId),
+      );
+      final data = response.data;
+      if (!mounted) return;
+      setState(() {
+        _joinCode = data is Map<String, dynamic>
+            ? data['join_code'] as String?
+            : null;
+        _isJoinCodeLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _joinCode = null;
+        _isJoinCodeLoading = false;
+      });
+    }
   }
 
   @override
@@ -30,6 +62,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Society Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () => context.go('/notifications'),
+          ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -62,6 +98,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                _AdminActionsCard(
+                  joinCode: _joinCode,
+                  isJoinCodeLoading: _isJoinCodeLoading,
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'Today at a glance',
                   style: Theme.of(
@@ -78,13 +119,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (dashboard.currentlyParked.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text(
-                        'No vehicles are currently marked as parked.',
-                      ),
-                    ),
+                  const _EmptyCard(
+                    'No vehicles are currently marked as parked.',
                   )
                 else
                   ...dashboard.currentlyParked.map(
@@ -97,12 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (dashboard.recentGateActivity.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No gate activity has been recorded yet.'),
-                    ),
-                  )
+                  const _EmptyCard('No gate activity has been recorded yet.')
                 else
                   ...dashboard.recentGateActivity.map(
                     (activity) => _GateActivityCard(activity: activity),
@@ -112,6 +143,119 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _AdminActionsCard extends StatelessWidget {
+  final String? joinCode;
+  final bool isJoinCodeLoading;
+
+  const _AdminActionsCard({
+    required this.joinCode,
+    required this.isJoinCodeLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayCode = isJoinCodeLoading
+        ? 'Loading...'
+        : (joinCode?.isNotEmpty == true ? joinCode! : 'Unavailable');
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.vpn_key, color: AppColors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Society Join Code',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        displayCode,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copy code',
+                  onPressed: joinCode?.isNotEmpty == true
+                      ? () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: joinCode!),
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Join code copied')),
+                          );
+                        }
+                      : null,
+                  icon: const Icon(Icons.copy),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _ActionButton(
+                  icon: Icons.how_to_reg,
+                  label: 'Join Requests',
+                  onPressed: () => context.go('/join-requests'),
+                ),
+                _ActionButton(
+                  icon: Icons.security,
+                  label: 'Manage Guards',
+                  onPressed: () => context.go('/guards'),
+                ),
+                _ActionButton(
+                  icon: Icons.people_alt,
+                  label: 'Owners',
+                  onPressed: () => context.go('/owners'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 }
@@ -255,6 +399,19 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+class _EmptyCard extends StatelessWidget {
+  final String message;
+
+  const _EmptyCard(this.message);
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(padding: const EdgeInsets.all(16), child: Text(message)),
+    );
+  }
+}
+
 class _ParkedVehicleCard extends StatelessWidget {
   final BookingModel booking;
 
@@ -375,18 +532,6 @@ class _GateActivityCard extends StatelessWidget {
               label: 'Scanned At',
               value: _formatDateTime(activity.scannedAt),
             ),
-            if (activity.entryTime != null)
-              _InfoRow(
-                icon: Icons.login,
-                label: 'Entry',
-                value: _formatDateTime(activity.entryTime!),
-              ),
-            if (activity.exitTime != null)
-              _InfoRow(
-                icon: Icons.logout,
-                label: 'Exit',
-                value: _formatDateTime(activity.exitTime!),
-              ),
             _InfoRow(
               icon: Icons.currency_rupee,
               label: 'Payment',
@@ -486,6 +631,7 @@ Color _paymentStatusColor(String? status) {
     case 'captured':
       return AppColors.success;
     case 'created':
+    case 'unpaid':
       return AppColors.warning;
     case 'failed':
       return AppColors.error;

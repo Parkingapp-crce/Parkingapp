@@ -29,9 +29,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _checkBiometrics() async {
     bool canCheckBiometrics;
     try {
-      canCheckBiometrics = await _localAuth.canCheckBiometrics ||
+      canCheckBiometrics =
+          await _localAuth.canCheckBiometrics ||
           await _localAuth.isDeviceSupported();
-    } on PlatformException catch (e) {
+    } on PlatformException catch (_) {
       canCheckBiometrics = false;
     }
     if (!mounted) return;
@@ -77,11 +78,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onLogin() {
     if (!_formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
-          AuthLoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          ),
-        );
+      AuthLoginRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ),
+    );
   }
 
   @override
@@ -117,19 +118,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'ParkEase',
                       textAlign: TextAlign.center,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Sign in to your account',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 40),
                     AppTextField(
@@ -190,11 +191,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (_canCheckBiometrics) ...[
                               const SizedBox(height: 16),
                               OutlinedButton.icon(
-                                onPressed: state is AuthLoading ? null : _authenticateWithBiometrics,
+                                onPressed: state is AuthLoading
+                                    ? null
+                                    : _authenticateWithBiometrics,
                                 icon: const Icon(Icons.fingerprint, size: 24),
                                 label: const Text('Login with Biometrics'),
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -211,18 +216,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           "Don't have an account? ",
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                         GestureDetector(
                           onTap: () => context.go('/register'),
                           child: Text(
                             'Sign Up',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w600,
