@@ -44,3 +44,7 @@ Thumbs.db
 # Coverage
 htmlcov/
 .coverage
+
+# Temporary Scratch Scripts
+backend/scratch/
+scratch/
