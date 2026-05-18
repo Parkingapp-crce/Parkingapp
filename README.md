@@ -91,11 +91,11 @@ flutter run
 
 ## 🔌 API Endpoints
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/register` | Register new user | ❌ |
-| POST | `/login` | Login + get JWT token | ❌ |
-| GET | `/profile` | Get user profile | ✅ Bearer token |
+The current backend uses versioned endpoints under `/api/v1/*`.
+
+- Human-readable reference: [`docs/API_DOCUMENTATION.md`](docs/API_DOCUMENTATION.md)
+- Local Swagger UI: `http://127.0.0.1:8000/api/docs/`
+- OpenAPI schema: `http://127.0.0.1:8000/api/schema/`
 
 ---
 
