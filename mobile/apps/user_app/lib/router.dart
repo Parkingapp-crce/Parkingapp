@@ -28,7 +28,6 @@ GoRouter createRouter(AuthBloc authBloc) {
       final isAuthRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
-      final isPendingRoute = state.matchedLocation == '/pending-approval';
 
       if (authState is AuthInitial || authState is AuthLoading) {
         return null;
@@ -38,13 +37,7 @@ GoRouter createRouter(AuthBloc authBloc) {
         return '/login';
       }
 
-      if (isAuth && authState.user.society == null && !isPendingRoute) {
-        return '/pending-approval';
-      }
 
-      if (isAuth && authState.user.society != null && isPendingRoute) {
-        return '/home';
-      }
 
       if (isAuth && isAuthRoute) {
         return '/home';
