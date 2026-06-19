@@ -776,6 +776,32 @@ class _BookingInfoCard extends StatelessWidget {
                 label: 'Slot',
                 value: booking.slotNumber!,
               ),
+            const Divider(height: 24),
+            Text(
+              'Invoice Breakdown',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            if (booking.baseAmount != null)
+              _DetailTile(
+                icon: Icons.currency_rupee,
+                label: 'Base Amount',
+                value: '\u20B9${booking.baseAmount}',
+              ),
+            if (booking.surgeAmount != null && double.tryParse(booking.surgeAmount!) != 0)
+              _DetailTile(
+                icon: Icons.trending_up,
+                label: 'Surge Amount',
+                value: '+\u20B9${booking.surgeAmount} (x${booking.surgeMultiplier})',
+              ),
+            const Divider(),
+            _DetailTile(
+              icon: Icons.account_balance_wallet,
+              label: 'Total Amount',
+              value: '\u20B9${booking.amount}',
+            ),
           ],
         ),
       ),

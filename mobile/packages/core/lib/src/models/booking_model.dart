@@ -41,6 +41,12 @@ class BookingModel {
   @JsonKey(name: 'actual_exit')
   final String? actualExit;
   final String status;
+  @JsonKey(name: 'base_amount')
+  final String? baseAmount;
+  @JsonKey(name: 'surge_amount')
+  final String? surgeAmount;
+  @JsonKey(name: 'surge_multiplier')
+  final String? surgeMultiplier;
   final String amount;
   @JsonKey(name: 'amount_paid')
   final String? amountPaid;
@@ -72,6 +78,9 @@ class BookingModel {
     this.actualEntry,
     this.actualExit,
     required this.status,
+    this.baseAmount,
+    this.surgeAmount,
+    this.surgeMultiplier,
     required this.amount,
     this.amountPaid,
     this.paymentStatus,
