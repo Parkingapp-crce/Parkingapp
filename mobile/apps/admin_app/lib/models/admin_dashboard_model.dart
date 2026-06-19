@@ -57,6 +57,7 @@ class GateActivityModel {
 }
 
 class AdminDashboardModel {
+  final String joinCode;
   final int totalSlots;
   final int availableSlots;
   final int reservedSlots;
@@ -70,6 +71,7 @@ class AdminDashboardModel {
   final List<GateActivityModel> recentGateActivity;
 
   const AdminDashboardModel({
+    required this.joinCode,
     required this.totalSlots,
     required this.availableSlots,
     required this.reservedSlots,
@@ -85,6 +87,7 @@ class AdminDashboardModel {
 
   factory AdminDashboardModel.fromJson(Map<String, dynamic> json) {
     return AdminDashboardModel(
+      joinCode: json['join_code'] as String? ?? '',
       totalSlots: _asInt(json['total_slots']),
       availableSlots: _asInt(json['available_slots']),
       reservedSlots: _asInt(json['reserved_slots']),

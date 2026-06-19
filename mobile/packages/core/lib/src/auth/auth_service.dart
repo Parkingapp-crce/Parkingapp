@@ -65,8 +65,8 @@ class AuthService {
         data['society_city'] = societyCity;
         data['society_state'] = societyState;
         data['society_pincode'] = societyPincode;
-        data['society_latitude'] = societyLatitude;
-        data['society_longitude'] = societyLongitude;
+        data['society_latitude'] = societyLatitude?.toStringAsFixed(6);
+        data['society_longitude'] = societyLongitude?.toStringAsFixed(6);
       }
 
       final response = await _dio.post(ApiEndpoints.register, data: data);

@@ -88,7 +88,7 @@ class _OwnersScreenState extends State<OwnersScreen> {
                     Text(
                       'Manage approved parking owners and view their slots.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -135,8 +135,8 @@ class _OwnerCard extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: CircleAvatar(
-          backgroundColor: AppColors.primaryLight,
-          child: Icon(Icons.person, color: AppColors.primary),
+          backgroundColor: Theme.of(context).colorScheme.tertiary,
+          child: Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
         ),
         title: Text(
           owner['user_name'] ?? 'Owner',

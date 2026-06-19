@@ -52,7 +52,7 @@ class BookingsCubit extends Cubit<BookingsState> {
 
   void startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       loadBookings(silent: true);
     });
   }
@@ -251,6 +251,7 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
           'booking_id': bookingId,
           'embedded': embedded,
           'gateway': gateway,
+          'bypass': true,
         },
       );
       emit(state.copyWith(isInitiatingPayment: false));

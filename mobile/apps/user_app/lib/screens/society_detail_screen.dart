@@ -180,9 +180,9 @@ class _SocietyHeader extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,17 +190,17 @@ class _SocietyHeader extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.location_on_outlined,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   '${society.address}, ${society.city}, ${society.state} - ${society.pincode}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -209,16 +209,16 @@ class _SocietyHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.phone_outlined,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
                 society.contactPhone,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -226,17 +226,17 @@ class _SocietyHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.email_outlined,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   society.contactEmail,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -249,7 +249,7 @@ class _SocietyHeader extends StatelessWidget {
             children: [
               _InfoChip(
                 label: 'Total: ${society.totalSlots ?? 0}',
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               _InfoChip(
                 label: matchingSlots != null
@@ -294,7 +294,7 @@ class _AvailabilitySummaryCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: Theme.of(context).colorScheme.tertiary,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -311,8 +311,8 @@ class _AvailabilitySummaryCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _InfoChip(label: dateLabel, color: AppColors.primary),
-              _InfoChip(label: timeLabel, color: AppColors.primary),
+              _InfoChip(label: dateLabel, color: Theme.of(context).colorScheme.primary),
+              _InfoChip(label: timeLabel, color: Theme.of(context).colorScheme.primary),
               _InfoChip(
                 label: vehicleType.toUpperCase(),
                 color: AppColors.success,
@@ -370,11 +370,11 @@ class _FilterBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              const Text(
+              Text(
                 'Type: ',
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(width: 4),
@@ -394,41 +394,6 @@ class _FilterBar extends StatelessWidget {
                 label: 'Bike',
                 selected: state.filterType == 'bike',
                 onTap: () => context.read<SlotsCubit>().setFilterType('bike'),
-              ),
-              const SizedBox(width: 16),
-              const Text(
-                'State: ',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              _FilterChip(
-                label: 'All',
-                selected: state.filterState == null,
-                onTap: () => context.read<SlotsCubit>().setFilterState(null),
-              ),
-              const SizedBox(width: 6),
-              _FilterChip(
-                label: 'Available',
-                selected: state.filterState == 'available',
-                onTap: () =>
-                    context.read<SlotsCubit>().setFilterState('available'),
-              ),
-              const SizedBox(width: 6),
-              _FilterChip(
-                label: 'Occupied',
-                selected: state.filterState == 'occupied',
-                onTap: () =>
-                    context.read<SlotsCubit>().setFilterState('occupied'),
-              ),
-              const SizedBox(width: 6),
-              _FilterChip(
-                label: 'Reserved',
-                selected: state.filterState == 'reserved',
-                onTap: () =>
-                    context.read<SlotsCubit>().setFilterState('reserved'),
               ),
             ],
           ),
@@ -456,17 +421,17 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
+          color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.divider,
+            color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            color: selected ? Colors.white : AppColors.textSecondary,
+            color: selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
         ),

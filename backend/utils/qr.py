@@ -2,20 +2,15 @@ import io
 
 import jwt
 import qrcode
+from qrcode.constants import ERROR_CORRECT_M
 from django.conf import settings
 from django.utils import timezone
 
 
 def generate_qr_token(booking):
+    # Keep payload minimal so rendered QR remains easy to scan across devices.
     payload = {
         "booking_id": str(booking.id),
-        "booking_number": booking.booking_number,
-        "user_id": str(booking.user_id),
-        "vehicle_reg": booking.vehicle.registration_no,
-        "slot_id": str(booking.slot_id),
-        "slot_number": booking.slot.slot_number,
-        "start_time": booking.start_time.isoformat(),
-        "end_time": booking.end_time.isoformat(),
         "iat": int(timezone.now().timestamp()),
     }
     return jwt.encode(payload, settings.QR_SIGNING_SECRET, algorithm="HS256")
@@ -26,7 +21,15 @@ def decode_qr_token(token):
 
 
 def generate_qr_image(qr_token):
-    img = qrcode.make(qr_token)
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_token)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     buffer.seek(0)

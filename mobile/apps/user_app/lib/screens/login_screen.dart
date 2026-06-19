@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -27,22 +28,33 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkBiometrics() async {
+    if (kIsWeb) {
+      if (!mounted) return;
+      setState(() => _canCheckBiometrics = false);
+      return;
+    }
+
     bool canCheckBiometrics;
     try {
-      canCheckBiometrics =
-          await _localAuth.canCheckBiometrics ||
+      canCheckBiometrics = await _localAuth.canCheckBiometrics ||
           await _localAuth.isDeviceSupported();
     } on PlatformException catch (_) {
       canCheckBiometrics = false;
+    } on MissingPluginException catch (_) {
+      canCheckBiometrics = false;
     }
     if (!mounted) return;
-
-    setState(() {
-      _canCheckBiometrics = canCheckBiometrics;
-    });
+    setState(() => _canCheckBiometrics = canCheckBiometrics);
   }
 
   Future<void> _authenticateWithBiometrics() async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Biometric login is not available on web.')),
+      );
+      return;
+    }
+
     bool authenticated = false;
     try {
       authenticated = await _localAuth.authenticate(
@@ -53,16 +65,19 @@ class _LoginScreenState extends State<LoginScreen> {
     } on PlatformException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Biometric auth failed: ${e.message}'),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text('Biometric auth failed: ${e.message}')),
+        );
+      }
+      return;
+    } on MissingPluginException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Biometric auth failed: ${e.message}')),
         );
       }
       return;
     }
     if (!mounted) return;
-
     if (authenticated) {
       context.read<AuthBloc>().add(const AuthBiometricLoginRequested());
     }
@@ -78,23 +93,24 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onLogin() {
     if (!_formKey.currentState!.validate()) return;
     context.read<AuthBloc>().add(
-      AuthLoginRequested(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      ),
-    );
+          AuthLoginRequested(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          ),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
               ),
             );
           }
@@ -102,41 +118,76 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
               child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.local_parking_rounded,
-                      size: 80,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'ParkEase',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sign in to your account',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
+                    // ── Brand capsule ──────────────────────────────────────────
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.local_parking_rounded,
+                                size: 14, color: Theme.of(context).colorScheme.tertiary),
+                            SizedBox(width: 6),
+                            Text(
+                              'PARKWISE',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.tertiary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 36),
+
+                    // ── Headline ───────────────────────────────────────────────
+                    Text(
+                      'Welcome back',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Find a secure parking spot in seconds',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+
+                    // ── Email ──────────────────────────────────────────────────
                     AppTextField(
                       controller: _emailController,
-                      label: 'Email',
-                      hint: 'Enter your email',
+                      label: 'EMAIL ADDRESS',
+                      hint: 'you@example.com',
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
@@ -149,24 +200,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
+
+                    // ── Password ───────────────────────────────────────────────
                     AppTextField(
                       controller: _passwordController,
-                      label: 'Password',
-                      hint: 'Enter your password',
-                      prefixIcon: Icons.lock_outline,
+                      label: 'PASSWORD',
+                      hint: '••••••••',
+                      prefixIcon: Icons.lock_outline_rounded,
                       obscureText: _obscurePassword,
                       suffix: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                        onTap: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                         child: Icon(
                           _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          size: 20,
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       validator: (value) {
@@ -176,58 +227,58 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
+
+                    // ── Actions ────────────────────────────────────────────────
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             PrimaryButton(
-                              label: 'Sign In',
+                              label: 'SIGN IN',
                               isLoading: state is AuthLoading,
                               onPressed: _onLogin,
-                              icon: Icons.login,
                             ),
                             if (_canCheckBiometrics) ...[
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               OutlinedButton.icon(
                                 onPressed: state is AuthLoading
                                     ? null
                                     : _authenticateWithBiometrics,
-                                icon: const Icon(Icons.fingerprint, size: 24),
-                                label: const Text('Login with Biometrics'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                                icon: const Icon(Icons.fingerprint_rounded,
+                                    size: 20),
+                                label: const Text('BIOMETRIC SIGN IN'),
                               ),
                             ],
                           ],
                         );
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
+
+                    // ── Register link ──────────────────────────────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Don't have an account? ",
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                            fontFamily: 'Inter',
+                          ),
                         ),
                         GestureDetector(
                           onTap: () => context.go('/register'),
                           child: Text(
                             'Sign Up',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.tertiary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Inter',
+                            ),
                           ),
                         ),
                       ],

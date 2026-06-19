@@ -1,5 +1,8 @@
 from django.http import HttpResponse
 from django.db.models import Prefetch
+from django.utils import timezone
+from decimal import Decimal
+import math
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -162,3 +165,58 @@ class BookingQRView(APIView):
         qr_image = generate_qr_image(booking.qr_code_token)
         print("QR image generated successfully")
         return HttpResponse(qr_image.getvalue(), content_type="image/png")
+
+
+OVERSTAY_PENALTY_RATE = Decimal("0.20")  # 20% of booking amount per hour
+
+
+class BookingOvertimeView(APIView):
+    """Read-only: returns live overtime status for an active booking.
+    Does NOT create a penalty — that only happens when the exit QR is scanned.
+    The Flutter app uses this to show the red overtime counter and estimated charge.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            booking = Booking.objects.select_related("slot").get(
+                id=pk, user=request.user
+            )
+        except Booking.DoesNotExist:
+            return Response(
+                {"error": "Booking not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Only active bookings (entry scanned, not yet exited) can be in overtime
+        if booking.status != Booking.Status.ACTIVE:
+            return Response(
+                {
+                    "is_overtime": False,
+                    "overstay_minutes": 0,
+                    "estimated_penalty_amount": "0.00",
+                    "penalty_rate_per_hour": "0.00",
+                }
+            )
+
+        now = timezone.now()
+        is_overtime = now > booking.end_time
+        overstay_minutes = 0
+        estimated_penalty = Decimal("0.00")
+        penalty_per_hour = Decimal("0.00")
+
+        if is_overtime:
+            overstay_minutes = int((now - booking.end_time).total_seconds() / 60)
+            # 20% of booking amount per overstay hour (ceil hours)
+            penalty_per_hour = booking.amount * OVERSTAY_PENALTY_RATE
+            overstay_hours = Decimal(str(math.ceil(max(overstay_minutes, 1) / 60)))
+            estimated_penalty = penalty_per_hour * overstay_hours
+
+        return Response(
+            {
+                "is_overtime": is_overtime,
+                "overstay_minutes": overstay_minutes,
+                "estimated_penalty_amount": str(estimated_penalty.quantize(Decimal("0.01"))),
+                "penalty_rate_per_hour": str(penalty_per_hour.quantize(Decimal("0.01"))),
+            }
+        )

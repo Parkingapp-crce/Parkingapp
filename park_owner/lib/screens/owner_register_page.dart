@@ -55,8 +55,8 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
           response['user'] != null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Registration successful! Please login.'),
+          const SnackBar(
+            content: Text('Registration successful! Please sign in.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -81,33 +81,57 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
-          'Owner Registration',
-          style: TextStyle(fontWeight: FontWeight.w700),
+          'Create Account',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Inter',
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: AppColors.divider),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10),
-            if (_error != null)
+            // ── Error banner ─────────────────────────────────────────────────
+            if (_error != null) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
+                  color: AppColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  border:
+                      Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   _error!,
-                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                  style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 13,
+                      fontFamily: 'Inter'),
                 ),
               ),
-            _sectionLabel('Personal Info'),
+              const SizedBox(height: 20),
+            ],
+
+            // ── Personal info section ────────────────────────────────────────
+            _SectionLabel(label: 'Personal Info'),
             AppTextField(
               label: 'Full Name',
               hint: 'Enter full name',
@@ -130,7 +154,7 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
             const SizedBox(height: 12),
             AppTextField(
               label: 'Password',
-              hint: 'Enter password',
+              hint: 'Create a password',
               controller: passwordCtrl,
               obscureText: _obscure,
               suffix: IconButton(
@@ -139,15 +163,18 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
                   size: 20,
+                  color: AppColors.textSecondary,
                 ),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            const SizedBox(height: 24),
-            _sectionLabel('Society Info'),
+            const SizedBox(height: 28),
+
+            // ── Society info section ─────────────────────────────────────────
+            _SectionLabel(label: 'Society Info'),
             AppTextField(
               label: 'Society Join Code',
-              hint: 'Enter 6-digit code',
+              hint: 'Enter 6-digit code from your society admin',
               controller: joinCodeCtrl,
             ),
             const SizedBox(height: 12),
@@ -170,29 +197,37 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 36),
+
             PrimaryButton(
-              label: 'Register as Owner',
+              label: 'Register as Resident',
               onPressed: _register,
               isLoading: _loading,
+              icon: Icons.arrow_forward_rounded,
             ),
-            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _sectionLabel(String label) {
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Text(
-        label,
-        style: TextStyle(
-          color: AppColors.primary,
-          fontSize: 12,
+        label.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.primaryLight,
+          fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
+          fontFamily: 'Inter',
         ),
       ),
     );

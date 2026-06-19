@@ -156,7 +156,7 @@ class _SlotListScreenState extends State<SlotListScreen> {
                 },
               ),
               const SizedBox(width: 16),
-              Container(width: 1, height: 24, color: AppColors.divider),
+              Container(width: 1, height: 24, color: Theme.of(context).colorScheme.outlineVariant),
               const SizedBox(width: 16),
               _FilterChip(
                 label: 'Car',
@@ -210,8 +210,8 @@ class _FilterChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: (_) => onSelected(),
-      selectedColor: color?.withOpacity(0.2) ?? AppColors.primaryLight,
-      checkmarkColor: color ?? AppColors.primary,
+      selectedColor: color?.withOpacity(0.2) ?? Theme.of(context).colorScheme.tertiary,
+      checkmarkColor: color ?? Theme.of(context).colorScheme.primary,
     );
   }
 }
@@ -233,7 +233,7 @@ class _SlotCard extends StatelessWidget {
       case 'blocked':
         return AppColors.slotBlocked;
       default:
-        return AppColors.textSecondary;
+        return const Color(0xFF64748B);
     }
   }
 
@@ -273,7 +273,7 @@ class _SlotCard extends StatelessWidget {
               'Floor: ${slot.floor.isNotEmpty ? slot.floor : '-'} | '
               '${slot.slotType.toUpperCase()} | '
               '\u20B9${slot.hourlyRate}/hr',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
             ),
             if (slot.ownerName != null && slot.ownerName!.isNotEmpty)
               Padding(
@@ -281,7 +281,7 @@ class _SlotCard extends StatelessWidget {
                 child: Text(
                   'Owner: ${slot.ownerName}',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -293,7 +293,7 @@ class _SlotCard extends StatelessWidget {
                 child: Text(
                   'Owner: Society Admin',
                   style: TextStyle(
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),

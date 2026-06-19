@@ -28,6 +28,8 @@ class UserModel extends Equatable {
   final bool canScanEntry;
   @JsonKey(name: 'can_scan_exit', defaultValue: false)
   final bool canScanExit;
+  @JsonKey(name: 'temporary_password')
+  final String? temporaryPassword;
   @JsonKey(name: 'created_at')
   final String? createdAt; // Made nullable for safety
 
@@ -46,6 +48,7 @@ class UserModel extends Equatable {
     this.floorNumber,
     this.canScanEntry = false,
     this.canScanExit = false,
+    this.temporaryPassword,
     this.createdAt,
   });
 
@@ -65,6 +68,7 @@ class UserModel extends Equatable {
     floorNumber,
     canScanEntry,
     canScanExit,
+    temporaryPassword,
     createdAt,
   ];
 
@@ -80,6 +84,7 @@ class UserModel extends Equatable {
         fullName: json['full_name']?.toString() ?? 'Unknown User',
         role: json['role']?.toString() ?? 'user',
         approvalStatus: json['approval_status']?.toString() ?? 'pending',
+        temporaryPassword: json['temporary_password']?.toString(),
         createdAt: json['created_at']?.toString(),
       );
     }

@@ -45,7 +45,10 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => RepositoryProvider.value(
+          value: apiClient,
+          child: const RegisterScreen(),
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -158,50 +161,58 @@ class _AdminShellState extends State<AdminShell> {
           BlocProvider(create: (_) => GuardsCubit(widget.apiClient)),
         ],
         child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
           body: widget.child,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: currentIndex,
-            onDestinationSelected: (index) {
-              switch (index) {
-                case 0:
-                  context.go('/dashboard');
-                case 1:
-                  context.go('/slots');
-                case 2:
-                  context.go('/guards');
-                case 3:
-                  context.go('/owners');
-                case 4:
-                  context.go('/bookings');
-              }
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: 'Dashboard',
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
               ),
-              NavigationDestination(
-                icon: Icon(Icons.local_parking_outlined),
-                selectedIcon: Icon(Icons.local_parking),
-                label: 'Slots',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.security_outlined),
-                selectedIcon: Icon(Icons.security),
-                label: 'Guards',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.people_alt_outlined),
-                selectedIcon: Icon(Icons.people_alt),
-                label: 'Owners',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.book_online_outlined),
-                selectedIcon: Icon(Icons.book_online),
-                label: 'Bookings',
-              ),
-            ],
+            ),
+            child: NavigationBar(
+              selectedIndex: currentIndex,
+              onDestinationSelected: (index) {
+                switch (index) {
+                  case 0:
+                    context.go('/dashboard');
+                  case 1:
+                    context.go('/slots');
+                  case 2:
+                    context.go('/guards');
+                  case 3:
+                    context.go('/owners');
+                  case 4:
+                    context.go('/bookings');
+                }
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
+                  label: 'Dashboard',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.local_parking_outlined),
+                  selectedIcon: Icon(Icons.local_parking_rounded),
+                  label: 'Slots',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.shield_outlined),
+                  selectedIcon: Icon(Icons.shield_rounded),
+                  label: 'Guards',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.people_alt_outlined),
+                  selectedIcon: Icon(Icons.people_alt_rounded),
+                  label: 'Owners',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long_rounded),
+                  label: 'Bookings',
+                ),
+              ],
+            ),
           ),
         ),
       ),

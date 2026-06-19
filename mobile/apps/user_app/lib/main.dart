@@ -8,8 +8,11 @@ import 'router.dart';
 
 final getIt = GetIt.instance;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final themeNotifier = await ThemeNotifier.create();
+
   final storage = SecureStorageService();
   final tokenManager = TokenManager(storage);
 
@@ -40,17 +43,23 @@ void main() {
     getIt.unregister<ApiClient>();
   }
   getIt.registerSingleton<ApiClient>(apiClient);
+  getIt.registerSingleton<ThemeNotifier>(themeNotifier);
 
   authBloc.setApiClient(apiClient);
   authBloc.add(const AuthCheckRequested());
 
-  runApp(ParkingApp(authBloc: authBloc));
+  runApp(ParkingApp(authBloc: authBloc, themeNotifier: themeNotifier));
 }
 
 class ParkingApp extends StatelessWidget {
   final AuthBloc authBloc;
+  final ThemeNotifier themeNotifier;
 
-  const ParkingApp({super.key, required this.authBloc});
+  const ParkingApp({
+    super.key,
+    required this.authBloc,
+    required this.themeNotifier,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +67,16 @@ class ParkingApp extends StatelessWidget {
 
     return BlocProvider.value(
       value: authBloc,
-      child: MaterialApp.router(
-        title: 'ParkEase',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        routerConfig: router,
+      child: ListenableBuilder(
+        listenable: themeNotifier,
+        builder: (context, _) => MaterialApp.router(
+          title: 'ParkEase',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeNotifier.themeMode,
+          routerConfig: router,
+        ),
       ),
     );
   }

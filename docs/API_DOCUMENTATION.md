@@ -121,7 +121,7 @@ Guard login is blocked unless the guard approval status is `approved`.
 
 Auth: public
 
-Registers a normal user or a society admin. A user can optionally submit a `society_join_code`; this creates a pending membership request for the society admin to approve. A society admin must provide society details and gets linked to the newly created society.
+Registers a normal user or a society admin. A user can optionally submit a `society_join_code`; this links the user to the matching society when the code is valid. A society admin must provide society details and gets linked to the newly created society.
 
 Request for user:
 
@@ -130,7 +130,7 @@ Request for user:
   "email": "user@example.com",
   "phone": "9876543210",
   "full_name": "Example User",
-  "password": "Password@123",
+  "password": "<password>",
   "role": "user",
   "society_join_code": "AB12CD34",
   "flat_number": "A-401",
@@ -145,7 +145,7 @@ Request for society admin:
   "email": "admin@example.com",
   "phone": "9876543211",
   "full_name": "Society Admin",
-  "password": "Password@123",
+  "password": "<password>",
   "role": "society_admin",
   "society_name": "Green Heights",
   "society_address": "MG Road",
@@ -192,7 +192,7 @@ Creates a guard account in `pending` approval state.
   "full_name": "Gate Guard",
   "email": "guard@example.com",
   "phone": "9876543222",
-  "password": "Password@123",
+  "password": "<password>",
   "society_id": "{{society_id}}"
 }
 ```
@@ -206,7 +206,7 @@ Auth: public
 ```json
 {
   "email": "user@example.com",
-  "password": "Password@123"
+  "password": "<password>"
 }
 ```
 
@@ -364,7 +364,7 @@ Create request:
   "admin_full_name": "Society Admin",
   "admin_email": "admin@example.com",
   "admin_phone": "9876543211",
-  "admin_password": "Password@123"
+  "admin_password": "<password>"
 }
 ```
 

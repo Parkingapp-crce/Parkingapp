@@ -92,6 +92,12 @@ def validate_entry(qr_token, guard):
             if now > booking.end_time:
                 raise ValidationError("Booking has expired. Entry denied.")
 
+            halfway_point = booking.start_time + (booking.end_time - booking.start_time) / 2
+            if now > halfway_point and booking.actual_entry is None:
+                raise ValidationError(
+                    "Entry window has expired. This booking is marked as no-show."
+                )
+
             # Mark entry
             booking.status = Booking.Status.ACTIVE
             booking.actual_entry = now

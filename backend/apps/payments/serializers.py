@@ -7,6 +7,7 @@ from .models import Payment
 class PaymentInitiateSerializer(serializers.Serializer):
     booking_id = serializers.UUIDField()
     embedded = serializers.BooleanField(required=False, default=False)
+    bypass = serializers.BooleanField(required=False, default=False)
     gateway = serializers.ChoiceField(
         choices=["stripe", "razorpay"],
         required=False,

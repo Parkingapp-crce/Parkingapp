@@ -9,7 +9,10 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../cubits/bookings_cubit.dart';
+import '../cubits/penalties_cubit.dart';
 import '../cubits/societies_cubit.dart';
 import 'destination_picker_screen.dart';
 
@@ -18,8 +21,19 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => SocietiesCubit(GetIt.instance<ApiClient>()),
+    final apiClient = GetIt.instance<ApiClient>();
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => SocietiesCubit(apiClient)),
+        BlocProvider(
+          create: (_) => BookingsCubit(apiClient)
+            ..loadBookings()
+            ..startPolling(),
+        ),
+        BlocProvider(
+          create: (_) => PenaltiesCubit(apiClient)..load(status: 'unpaid'),
+        ),
+      ],
       child: const _HomeScreenContent(),
     );
   }
@@ -36,6 +50,8 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   final _destinationController = TextEditingController();
 
   Timer? _autocompleteDebounce;
+  Timer? _clockTimer;
+  DateTime _now = DateTime.now();
   late DateTime _bookingDate;
   late TimeOfDay _startTime;
   bool _useDuration = true;
@@ -51,11 +67,17 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
     _bookingDate = DateTime(now.year, now.month, now.day);
     _startTime = _nextHour(now);
     _endTime = _addMinutes(_startTime, _durationMinutes);
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() => _now = DateTime.now());
+      }
+    });
   }
 
   @override
   void dispose() {
     _autocompleteDebounce?.cancel();
+    _clockTimer?.cancel();
     _destinationController.dispose();
     super.dispose();
   }
@@ -63,37 +85,200 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Find Parking')),
-      body: BlocBuilder<SocietiesCubit, SocietiesState>(
-        builder: (context, state) {
-          return RefreshIndicator(
-            onRefresh: () => context.read<SocietiesCubit>().refresh(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Search nearby societies',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 0,
+        title: Text(
+          'PARKWISE',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            fontFamily: 'Inter',
+          ),
+        ),
+        actions: [
+          BlocBuilder<BookingsCubit, BookingsState>(
+            builder: (context, bookingState) {
+              final blockingBooking = _blockingBooking(bookingState.bookings);
+              if (blockingBooking != null) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Choose a destination from suggestions or map, then search by booking window and vehicle type.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_parking_rounded,
+                          color: Theme.of(context).colorScheme.tertiary, size: 12),
+                      SizedBox(width: 4),
+                      Text(
+                        'PARKING ACTIVE',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.tertiary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildSearchCard(context, state),
-                const SizedBox(height: 16),
-                _buildResultsSection(context, state),
-              ],
-            ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+      ),
+      body: BlocBuilder<PenaltiesCubit, PenaltiesState>(
+        builder: (context, penaltyState) {
+          return BlocBuilder<BookingsCubit, BookingsState>(
+            builder: (context, bookingState) {
+              final blockingBooking = _blockingBooking(bookingState.bookings);
+
+              return BlocBuilder<SocietiesCubit, SocietiesState>(
+                builder: (context, state) {
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      await Future.wait([
+                        context.read<PenaltiesCubit>().load(status: 'unpaid'),
+                        context.read<SocietiesCubit>().refresh(),
+                        context.read<BookingsCubit>().loadBookings(),
+                      ]);
+                    },
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        if (blockingBooking != null) ...[
+                          _ParkingInProgressCard(
+                            booking: blockingBooking,
+                            now: _now,
+                            onNavigate: () => _openNavigation(blockingBooking),
+                            onOpenBooking: () =>
+                                context.push('/bookings/${blockingBooking.id}'),
+                          ),
+                        ] else if (penaltyState.penalties.isNotEmpty) ...[
+                          Card(
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, size: 48, color: Theme.of(context).colorScheme.error),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Action Required',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.error,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'You have an unpaid overstay penalty on your profile. You cannot book new slots until all dues are cleared.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  PrimaryButton(
+                                    label: 'Go to Booking to Pay Penalty',
+                                    onPressed: () {
+                                      final firstPenalty = penaltyState.penalties.first;
+                                      context.push('/bookings/${firstPenalty.booking}');
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          Text(
+                            'Search nearby societies',
+                            style:
+                                Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Choose a destination from suggestions or map, then search by booking window and vehicle type.',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildSearchCard(context, state),
+                          const SizedBox(height: 16),
+                          _buildResultsSection(context, state),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  BookingModel? _blockingBooking(List<BookingModel> bookings) {
+    final now = DateTime.now();
+    for (final booking in bookings) {
+      if (_bookingBlocksUser(booking, now)) {
+        return booking;
+      }
+    }
+    return null;
+  }
+
+  bool _bookingBlocksUser(BookingModel booking, DateTime now) {
+    if (booking.isPendingPayment) {
+      return true;
+    }
+
+    if (booking.isConfirmed) {
+      return false;
+    }
+
+    if (booking.isActive) {
+      final hasExitTime = booking.actualExit != null && booking.actualExit!.isNotEmpty;
+      return !hasExitTime;
+    }
+
+    return false;
+  }
+
+  Future<void> _openNavigation(BookingModel booking) async {
+    final lat = booking.societyLatitude;
+    final lng = booking.societyLongitude;
+    if (lat == null || lng == null) {
+      return;
+    }
+
+    final mapsUri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=${lat.toStringAsFixed(6)},${lng.toStringAsFixed(6)}',
+    );
+    await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
   }
 
   Widget _buildSearchCard(BuildContext context, SocietiesState state) {
@@ -143,15 +328,15 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                 ),
                 child: Column(
                   children: state.destinationSuggestions
                       .map(
                         (suggestion) => ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.location_on_outlined,
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           title: Text(suggestion.title),
                           subtitle: suggestion.subtitle.isNotEmpty
@@ -221,9 +406,9 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(
+              leading: Icon(
                 Icons.calendar_today,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               title: const Text('Booking Date'),
               subtitle: Text(dateFormat.format(_bookingDate)),
@@ -248,7 +433,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
             const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.schedule, color: AppColors.primary),
+              leading: Icon(Icons.schedule, color: Theme.of(context).colorScheme.primary),
               title: const Text('Start Time'),
               subtitle: Text(_startTime.format(context)),
               onTap: () async {
@@ -320,9 +505,9 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
             else
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(
+                leading: Icon(
                   Icons.access_time_filled,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 title: const Text('End Time'),
                 subtitle: Text(_endTime?.format(context) ?? 'Select end time'),
@@ -425,7 +610,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                     Text(
                       'Sorted by distance${state.searchRadiusKm != null ? ' within ${state.searchRadiusKm!.toStringAsFixed(0)} km' : ''}.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -495,9 +680,9 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.location_on,
-              color: AppColors.error,
+              color: Theme.of(context).colorScheme.error,
               size: 32,
             ),
           ),
@@ -517,7 +702,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               LatLng(destination.latitude, destination.longitude),
               societyPoint,
             ],
-            color: AppColors.primary.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             strokeWidth: 3,
             borderColor: Colors.white,
             borderStrokeWidth: 1,
@@ -538,7 +723,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -550,10 +735,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
               child: Center(
                 child: Text(
                   '${s.distanceKm.toStringAsFixed(1)} km',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
@@ -589,8 +774,8 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                     horizontal: 8,
                     vertical: 4,
                   ),
-                  decoration: const ShapeDecoration(
-                    color: AppColors.primary,
+                  decoration: ShapeDecoration(
+                    color: Theme.of(context).colorScheme.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(16),
@@ -618,7 +803,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.divider),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.1),
@@ -629,10 +814,10 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                   ),
                   child: Text(
                     '₹${s.startingHourlyRate}/hr',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -873,14 +1058,14 @@ class _LocationSummaryCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.primary),
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -901,7 +1086,7 @@ class _LocationSummaryCard extends StatelessWidget {
                 Text(
                   'Lat ${location.latitude.toStringAsFixed(6)}  |  Lng ${location.longitude.toStringAsFixed(6)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -948,12 +1133,12 @@ class _SocietyCard extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
+                      color: Theme.of(context).colorScheme.tertiary,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.apartment,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -970,7 +1155,7 @@ class _SocietyCard extends StatelessWidget {
                         Text(
                           '${society.address}, ${society.city}',
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
+                              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -980,7 +1165,7 @@ class _SocietyCard extends StatelessWidget {
                     '${society.distanceKm.toStringAsFixed(1)} km',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -998,20 +1183,513 @@ class _SocietyCard extends StatelessWidget {
                   _InfoPill(
                     icon: Icons.currency_rupee,
                     label: 'From ${society.startingHourlyRate}/hr',
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   _InfoPill(
                     icon: society.vehicleType == 'bike'
                         ? Icons.two_wheeler
                         : Icons.directions_car,
                     label: society.vehicleType.toUpperCase(),
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ParkingInProgressCard extends StatelessWidget {
+  final BookingModel booking;
+  final DateTime now;
+  final VoidCallback onNavigate;
+  final VoidCallback onOpenBooking;
+
+  const _ParkingInProgressCard({
+    required this.booking,
+    required this.now,
+    required this.onNavigate,
+    required this.onOpenBooking,
+  });
+
+  /// Format a duration as HH:MM:SS
+  String _formatDuration(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  /// Compute the estimated penalty accrued right now.
+  /// Rate = 20% of booking amount per *started* hour of overstay (ceil).
+  double _estimatedPenalty(Duration overstay) {
+    if (!overstay.isNegative && overstay.inSeconds <= 0) return 0;
+    final bookingAmount = double.tryParse(booking.amount) ?? 0;
+    final penaltyPerHour = bookingAmount * 0.20;
+    // ceil every started hour
+    final hoursStarted = (overstay.inSeconds / 3600).ceil();
+    return penaltyPerHour * hoursStarted;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // ── Parse dates ────────────────────────────────────────────────────────
+    DateTime? endTime;
+    DateTime? actualEntry;
+    DateTime? actualExit;
+    try {
+      endTime = DateTime.parse(booking.endTime).toLocal();
+      if (booking.actualEntry?.isNotEmpty == true) {
+        actualEntry = DateTime.parse(booking.actualEntry!).toLocal();
+      }
+      if (booking.actualExit?.isNotEmpty == true) {
+        actualExit = DateTime.parse(booking.actualExit!).toLocal();
+      }
+    } catch (_) {}
+
+    final hasEntryScan = actualEntry != null;
+    final isActive = booking.isActive || hasEntryScan;
+    final isConfirmed = booking.isConfirmed && !hasEntryScan;
+
+    // ── Overtime detection ─────────────────────────────────────────────────
+    final isOvertime = isActive &&
+        actualExit == null &&
+        endTime != null &&
+        now.isAfter(endTime);
+
+    final remaining = endTime == null ? null : endTime.difference(now);
+    final overstay = endTime == null ? Duration.zero : now.difference(endTime);
+    final estimatedPenalty = isOvertime ? _estimatedPenalty(overstay) : 0.0;
+
+    // ── Status label ───────────────────────────────────────────────────────
+    final statusLabel = isOvertime
+        ? 'OVERTIME — EXIT IMMEDIATELY'
+        : isActive
+            ? 'Parking in progress'
+            : isConfirmed
+                ? 'Reserved, waiting for entry'
+                : 'Payment pending';
+
+    // ── Card gradient — danger red in overtime, default navy otherwise ─────
+    final cardGradient = isOvertime
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1A0A0A), Color(0xFF3B1111), Color(0xFF1A0505)],
+          )
+        : const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0B1220)],
+          );
+
+    final accentColor =
+        isOvertime ? Color(0xFFFF4444) : Theme.of(context).colorScheme.tertiary;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        gradient: cardGradient,
+        borderRadius: BorderRadius.circular(24),
+        border: isOvertime
+            ? Border.all(color: const Color(0xFFFF4444).withValues(alpha: 0.45), width: 1.5)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: (isOvertime ? const Color(0xFFFF2222) : Colors.black)
+                .withValues(alpha: 0.22),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Overtime warning banner ──────────────────────────────────────
+          if (isOvertime)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFF2222),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'PENALTY ACCRUING — SCAN EXIT QR NOW',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header row ──────────────────────────────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        isOvertime
+                            ? Icons.warning_amber_rounded
+                            : Icons.local_parking_rounded,
+                        color: accentColor,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: isOvertime
+                                  ? const Color(0xFFFF6B6B)
+                                  : Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            booking.societyName ?? 'Parking destination',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 13,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Status badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: accentColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        isOvertime
+                            ? 'OVERTIME'
+                            : booking.status
+                                .replaceAll('_', ' ')
+                                .toUpperCase(),
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // ── Timer row ────────────────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: isOvertime
+                          // Overtime counter counting UP in red
+                          ? _OvertimeCounter(
+                              overstayText: _formatDuration(overstay),
+                            )
+                          : _MetricTile(
+                              label: isActive ? 'Time remaining' : 'Entry status',
+                              value: isActive
+                                  ? (remaining != null
+                                      ? _formatDuration(
+                                          remaining.isNegative
+                                              ? Duration.zero
+                                              : remaining)
+                                      : '--:--:--')
+                                  : 'Waiting for scan',
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: isOvertime
+                          // Estimated penalty display
+                          ? _PenaltyTile(
+                              amount: estimatedPenalty,
+                              overstayMinutes: overstay.inMinutes,
+                            )
+                          : _MetricTile(
+                              label: 'Slot',
+                              value: booking.slotNumber ?? '--',
+                            ),
+                    ),
+                  ],
+                ),
+
+                // ── Slot pill when in overtime (since we use both tiles for timer/penalty) ──
+                if (isOvertime && booking.slotNumber != null) ...[
+                  const SizedBox(height: 10),
+                  _MiniPill(
+                    icon: Icons.local_parking_outlined,
+                    text: 'Slot ${booking.slotNumber}',
+                  ),
+                ],
+
+                // ── Entry / exit pills ────────────────────────────────────────
+                if (actualEntry != null || actualExit != null) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (actualEntry != null)
+                        _MiniPill(
+                          icon: Icons.login_rounded,
+                          text:
+                              'Entered ${DateFormat('hh:mm a').format(actualEntry)}',
+                        ),
+                      if (actualExit != null)
+                        _MiniPill(
+                          icon: Icons.logout_rounded,
+                          text:
+                              'Exited ${DateFormat('hh:mm a').format(actualExit)}',
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
+
+                // ── Contextual body copy ──────────────────────────────────────
+                Text(
+                  isOvertime
+                      ? 'Your booked time has ended. A penalty of ₹${estimatedPenalty.toStringAsFixed(2)} has accrued (20% of booking amount per started hour). Ask the guard to scan your exit QR now to stop further charges.'
+                      : isActive
+                          ? 'Your parking session is live. Use the route button if you need directions back to the spot.'
+                          : 'Your slot is reserved. Keep this card handy until the entry scan starts your countdown.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        height: 1.35,
+                        fontFamily: 'Inter',
+                      ),
+                ),
+                const SizedBox(height: 18),
+
+                // ── Action buttons ───────────────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: booking.societyLatitude != null &&
+                                booking.societyLongitude != null
+                            ? onNavigate
+                            : null,
+                        icon: const Icon(Icons.navigation_rounded),
+                        label: const Text('Navigate'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.35)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: PrimaryButton(
+                        label: isOvertime ? 'Show QR' : 'Open Booking',
+                        onPressed: onOpenBooking,
+                        icon: isOvertime
+                            ? Icons.qr_code_rounded
+                            : Icons.receipt_long_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Red pulsing overtime counter widget (counts UP).
+class _OvertimeCounter extends StatefulWidget {
+  final String overstayText;
+
+  const _OvertimeCounter({required this.overstayText});
+
+  @override
+  State<_OvertimeCounter> createState() => _OvertimeCounterState();
+}
+
+class _OvertimeCounterState extends State<_OvertimeCounter>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulse;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.45, end: 1.0).animate(
+      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF2222).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border:
+            Border.all(color: const Color(0xFFFF4444).withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AnimatedBuilder(
+                animation: _opacity,
+                builder: (_, child) => Opacity(
+                  opacity: _opacity.value,
+                  child: child,
+                ),
+                child: const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFF4444), size: 13),
+              ),
+              const SizedBox(width: 5),
+              const Text(
+                'OVERTIME',
+                style: TextStyle(
+                  color: Color(0xFFFF6B6B),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          AnimatedBuilder(
+            animation: _opacity,
+            builder: (_, __) => Text(
+              widget.overstayText,
+              style: TextStyle(
+                color: Color.lerp(
+                    const Color(0xFFFF6B6B), const Color(0xFFFFAAAA), _opacity.value),
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'Inter',
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Estimated penalty accrual tile.
+class _PenaltyTile extends StatelessWidget {
+  final double amount;
+  final int overstayMinutes;
+
+  const _PenaltyTile({required this.amount, required this.overstayMinutes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF2222).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border:
+            Border.all(color: const Color(0xFFFF4444).withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'EST. PENALTY',
+            style: TextStyle(
+              color: Color(0xFFFF6B6B),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+              fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '₹${amount.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Color(0xFFFFAAAA),
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$overstayMinutes min over',
+            style: const TextStyle(
+              color: Color(0xFFFF6B6B),
+              fontSize: 10,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1053,3 +1731,77 @@ class _InfoPill extends StatelessWidget {
     );
   }
 }
+
+class _MetricTile extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MetricTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.65),
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniPill extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _MiniPill({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.9)),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

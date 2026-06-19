@@ -70,6 +70,9 @@ class SlotsState {
       if (filterType != null && slot.slotType != filterType) {
         return false;
       }
+      if (!slot.isAvailable) {
+        return false;
+      }
       if (filterState != null && slot.state != filterState) {
         return false;
       }

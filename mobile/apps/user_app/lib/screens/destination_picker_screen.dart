@@ -57,10 +57,10 @@ class _DestinationPickerScreenState extends State<DestinationPickerScreen> {
                       point: _selectedPoint,
                       width: 48,
                       height: 48,
-                      child: const Icon(
+                      child: Icon(
                         Icons.location_pin,
                         size: 42,
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ],
@@ -87,14 +87,14 @@ class _DestinationPickerScreenState extends State<DestinationPickerScreen> {
                 Text(
                   'Tap anywhere on the map to move the pin.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Lat: ${_selectedPoint.latitude.toStringAsFixed(6)}  |  Lng: ${_selectedPoint.longitude.toStringAsFixed(6)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 16),

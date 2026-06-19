@@ -238,7 +238,54 @@ def create_razorpay_order(booking, request=None):
     return payment, razorpay_order["id"]
 
 
-def create_stripe_penalty_checkout_session(penalty, request=None):
+def create_bypass_payment(booking, request=None, gateway='stripe'):
+    """Create a test payment that bypasses external gateways and marks booking confirmed.
+
+    This is intended for local/dev setups where payment gateway credentials are not
+    yet configured. It creates a Payment with status CAPTURED and runs the same
+    confirmation logic so the booking and slot become reserved and a QR token exists.
+    """
+    with transaction.atomic():
+        provider = Payment.Provider.RAZORPAY if gateway == 'razorpay' else Payment.Provider.STRIPE
+        payment = Payment.objects.create(
+            booking=booking,
+            payment_type=Payment.PaymentType.BOOKING,
+            amount=booking.amount,
+            currency=(booking.amount and "INR") or "INR",
+            provider=provider,
+            stripe_checkout_session_id=f"bypass-{booking.booking_number}" if provider == Payment.Provider.STRIPE else None,
+            stripe_payment_intent_id=f"bypass-{booking.booking_number}" if provider == Payment.Provider.STRIPE else None,
+            razorpay_order_id=f"bypass-rzp-{booking.booking_number}" if provider == Payment.Provider.RAZORPAY else None,
+            status=Payment.Status.CAPTURED,
+        )
+
+        # Reuse existing confirmation logic to reserve slot and set booking status
+        _mark_booking_as_confirmed(payment)
+
+    return payment
+
+
+def create_bypass_penalty_payment(penalty, request=None, gateway='stripe'):
+    """Create a test payment that bypasses external gateways and marks penalty as paid.
+    """
+    with transaction.atomic():
+        payment = Payment.objects.create(
+            penalty=penalty,
+            payment_type=Payment.PaymentType.PENALTY,
+            amount=penalty.amount,
+            currency=(penalty.amount and "INR") or "INR",
+            provider=Payment.Provider.STRIPE,
+            stripe_checkout_session_id=f"bypass-pen-{penalty.id}",
+            stripe_payment_intent_id=f"bypass-pen-{penalty.id}",
+            status=Payment.Status.CAPTURED,
+        )
+
+        _mark_penalty_as_paid(payment)
+
+    return payment
+
+
+def create_stripe_penalty_checkout_session(penalty, request=None, embedded=False):
     stripe_client = _get_stripe_client()
     frontend_base_url = _resolve_frontend_base_url(request)
 
@@ -248,10 +295,8 @@ def create_stripe_penalty_checkout_session(penalty, request=None):
     )
     cancel_url = f"{frontend_base_url}/bookings/{penalty.booking_id}?checkout=cancelled"
 
-    checkout_session = stripe_client.checkout.Session.create(
+    session_params = dict(
         mode="payment",
-        success_url=success_url,
-        cancel_url=cancel_url,
         client_reference_id=str(penalty.id),
         customer_email=penalty.user.email or None,
         metadata={
@@ -281,6 +326,19 @@ def create_stripe_penalty_checkout_session(penalty, request=None):
         ],
     )
 
+    if embedded:
+        session_params.update(
+            ui_mode="embedded",
+            redirect_on_completion="never",
+        )
+    else:
+        session_params.update(
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+
+    checkout_session = stripe_client.checkout.Session.create(**session_params)
+
     payment = Payment.objects.create(
         penalty=penalty,
         payment_type=Payment.PaymentType.PENALTY,
@@ -291,7 +349,39 @@ def create_stripe_penalty_checkout_session(penalty, request=None):
         stripe_payment_intent_id=_payment_intent_id(checkout_session.payment_intent),
     )
 
-    return payment, checkout_session.url
+    return (
+        payment,
+        checkout_session.url,
+        getattr(checkout_session, "client_secret", None),
+    )
+
+
+def create_razorpay_penalty_order(penalty, request=None):
+    client = _get_razorpay_client()
+
+    order_params = {
+        "amount": _amount_in_smallest_unit(penalty.amount),
+        "currency": "INR",
+        "receipt": f"pen_{penalty.id}",
+        "notes": {
+            "penalty_id": str(penalty.id),
+            "booking_id": str(penalty.booking_id),
+            "user_email": penalty.user.email,
+        },
+    }
+
+    razorpay_order = client.order.create(data=order_params)
+
+    payment = Payment.objects.create(
+        penalty=penalty,
+        payment_type=Payment.PaymentType.PENALTY,
+        amount=penalty.amount,
+        currency="INR",
+        provider=Payment.Provider.RAZORPAY,
+        razorpay_order_id=razorpay_order["id"],
+    )
+
+    return payment, razorpay_order["id"]
 
 
 def verify_checkout_session(checkout_session_id, user=None):

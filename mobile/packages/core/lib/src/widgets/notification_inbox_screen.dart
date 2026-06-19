@@ -120,7 +120,7 @@ class _NotificationInboxScreenState extends State<NotificationInboxScreen> {
                 child: Text(
                   '$unreadCount unread',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -205,8 +205,8 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accentColor = notification.isRead
-        ? AppColors.textSecondary
-        : AppColors.primary;
+        ? Theme.of(context).colorScheme.onSurfaceVariant
+        : Theme.of(context).colorScheme.primary;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -227,15 +227,15 @@ class _NotificationCard extends StatelessWidget {
           child: Text(notification.message),
         ),
         trailing: notification.isRead
-            ? const Icon(
+            ? Icon(
                 Icons.done_all,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               )
-            : const Icon(
+            : Icon(
                 Icons.fiber_manual_record,
                 size: 12,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
       ),
     );

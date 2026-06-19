@@ -11,10 +11,6 @@ class EntryLogsPage extends StatefulWidget {
 }
 
 class _EntryLogsPageState extends State<EntryLogsPage> {
-  final Color primaryGreen = AppColors.primary;
-  final Color textDark = AppColors.textPrimary;
-  final Color textGrey = AppColors.textSecondary;
-
   List<dynamic> logs = [];
   bool isLoading = true;
 
@@ -48,84 +44,81 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F9F5),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
-        title: Text(
-          'Entry Logs',
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Scan Logs',
           style: TextStyle(
-            color: textDark,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            fontFamily: 'Inter',
           ),
         ),
-        iconTheme: IconThemeData(color: textDark),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: AppColors.divider),
+        ),
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator(color: primaryGreen))
+          ? const LoadingWidget(message: 'Fetching logs...')
           : logs.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history_rounded, size: 56, color: textGrey),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No entry logs yet',
-                    style: TextStyle(
-                      color: textGrey,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+              ? const EmptyStateWidget(
+                  icon: Icons.history_rounded,
+                  title: 'No logs found',
+                  subtitle: 'You haven\'t scanned any QRs yet.',
+                )
+              : RefreshIndicator(
+                  onRefresh: fetchLogs,
+                  color: AppColors.primaryLight,
+                  backgroundColor: AppColors.surfaceContainerHigh,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 24),
+                    itemCount: logs.length,
+                    itemBuilder: (context, index) =>
+                        _buildLogCard(logs[index]),
                   ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: fetchLogs,
-              color: primaryGreen,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: logs.length,
-                itemBuilder: (context, index) => _buildLogCard(logs[index]),
-              ),
-            ),
+                ),
     );
   }
 
   Widget _buildLogCard(Map<String, dynamic> log) {
     final isAllowed = log['entry_status'] == 'allowed';
-    final statusColor = isAllowed ? primaryGreen : Colors.red;
+    final statusColor =
+        isAllowed ? AppColors.success : const Color(0xFFFF4444);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.divider),
       ),
       child: Row(
         children: [
           // Status icon
           Container(
-            width: 46,
-            height: 46,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isAllowed ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              isAllowed
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.cancel_outlined,
               color: statusColor,
-              size: 24,
+              size: 22,
             ),
           ),
           const SizedBox(width: 14),
@@ -143,27 +136,38 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
                       style: TextStyle(
                         color: statusColor,
                         fontWeight: FontWeight.w800,
-                        fontSize: 13,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                        fontFamily: 'Inter',
                       ),
                     ),
                     Text(
                       '#${log['id']}',
-                      style: TextStyle(color: textGrey, fontSize: 12),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontFamily: 'Inter',
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   formatTime(log['scanned_at'] ?? ''),
-                  style: TextStyle(color: textGrey, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Scanned by: ${log['scanned_by_name'] ?? '-'}',
-                  style: TextStyle(
-                    color: textDark,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
+                    fontFamily: 'Inter',
                   ),
                 ),
               ],

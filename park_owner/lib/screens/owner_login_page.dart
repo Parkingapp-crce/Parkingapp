@@ -35,7 +35,7 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
         final role = response['user']?['role'] ?? 'user';
         if (role != 'user') {
           setState(() {
-            _error = 'This account is not a user account.';
+            _error = 'This account is not a resident account.';
             _loading = false;
           });
           return;
@@ -66,56 +66,81 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.business_rounded,
-                  size: 80,
-                  color: AppColors.primary,
+                // ── Brand capsule ────────────────────────────────────────────
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.divider),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'PARKWISE · RESIDENT',
+                      style: TextStyle(
+                        color: AppColors.primaryLight,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.4,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Owner Login',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                const SizedBox(height: 32),
+
+                // ── Headline ─────────────────────────────────────────────────
+                const Text(
+                  'Welcome back.',
+                  style: TextStyle(
                     color: AppColors.textPrimary,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
+                    fontFamily: 'Inter',
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Manage your parking lot',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                const SizedBox(height: 6),
+                const Text(
+                  'Sign in to manage your parking slots.',
+                  style: TextStyle(
                     color: AppColors.textSecondary,
+                    fontSize: 15,
+                    fontFamily: 'Inter',
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40),
-                if (_error != null)
+                const SizedBox(height: 36),
+
+                // ── Error banner ─────────────────────────────────────────────
+                if (_error != null) ...[
                   Container(
-                    margin: const EdgeInsets.only(bottom: 20),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
+                      color: AppColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.error.withOpacity(0.3),
-                      ),
+                          color: AppColors.error.withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       _error!,
                       style: const TextStyle(
-                        color: AppColors.error,
-                        fontSize: 13,
-                      ),
+                          color: AppColors.error,
+                          fontSize: 13,
+                          fontFamily: 'Inter'),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Fields ───────────────────────────────────────────────────
                 AppTextField(
                   controller: emailController,
                   label: 'Email',
@@ -123,7 +148,7 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 AppTextField(
                   controller: passwordController,
                   label: 'Password',
@@ -136,30 +161,49 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
                       size: 20,
+                      color: AppColors.textSecondary,
                     ),
-                    onPressed: () {
-                      setState(() => _obscure = !_obscure);
-                    },
+                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
+
+                // ── Sign in button ───────────────────────────────────────────
                 PrimaryButton(
                   label: 'Sign In',
                   onPressed: _login,
                   isLoading: _loading,
-                  icon: Icons.login,
+                  icon: Icons.arrow_forward_rounded,
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.push(
+                const SizedBox(height: 20),
+
+                // ── Register link ────────────────────────────────────────────
+                Center(
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const OwnerRegisterPage(),
+                          builder: (_) => const OwnerRegisterPage()),
+                    ),
+                    child: RichText(
+                      text: const TextSpan(
+                        text: 'New resident? ',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                          fontFamily: 'Inter',
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'Create account',
+                            style: TextStyle(
+                              color: AppColors.primaryLight,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Text('New Owner? Create Account'),
                   ),
                 ),
               ],

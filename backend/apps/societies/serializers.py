@@ -5,6 +5,9 @@ from django.db import transaction
 from rest_framework import serializers
 from django.utils import timezone
 
+from apps.bookings.models import Booking
+from apps.bookings.services import _booking_blocks_user
+
 from .models import ParkingSlot, SlotAvailabilityWindow, Society, SocietyMembershipRequest
 
 User = get_user_model()
@@ -103,6 +106,15 @@ class ParkingSlotSerializer(serializers.ModelSerializer):
     available_to_write = serializers.TimeField(write_only=True, required=False)
     available_from = serializers.SerializerMethodField()
     available_to = serializers.SerializerMethodField()
+    current_booking_number = serializers.SerializerMethodField()
+    current_booking_status = serializers.SerializerMethodField()
+    current_booking_start_time = serializers.SerializerMethodField()
+    current_booking_end_time = serializers.SerializerMethodField()
+    current_booking_actual_entry = serializers.SerializerMethodField()
+    current_booking_actual_exit = serializers.SerializerMethodField()
+    next_free_at = serializers.SerializerMethodField()
+    freeing_up_note = serializers.SerializerMethodField()
+    bookings = serializers.SerializerMethodField()
 
     class Meta:
         model = ParkingSlot
@@ -113,6 +125,10 @@ class ParkingSlotSerializer(serializers.ModelSerializer):
             "approved_by", "approved_at", "is_active", "created_at",
             "owner_name", "approval_owner", "available_from_write", "available_to_write",
             "available_from", "available_to",
+            "current_booking_number", "current_booking_status",
+            "current_booking_start_time", "current_booking_end_time",
+            "current_booking_actual_entry", "current_booking_actual_exit",
+            "next_free_at", "freeing_up_note", "bookings",
         ]
         read_only_fields = [
             "id",
@@ -129,7 +145,45 @@ class ParkingSlotSerializer(serializers.ModelSerializer):
             "approval_owner",
             "available_from",
             "available_to",
+            "current_booking_number",
+            "current_booking_status",
+            "current_booking_start_time",
+            "current_booking_end_time",
+            "current_booking_actual_entry",
+            "current_booking_actual_exit",
+            "next_free_at",
+            "freeing_up_note",
+            "bookings",
         ]
+
+    def _current_booking(self, obj):
+        now = timezone.now()
+        bookings = (
+            obj.bookings.filter(
+                status__in=[
+                    Booking.Status.PENDING_PAYMENT,
+                    Booking.Status.CONFIRMED,
+                    Booking.Status.ACTIVE,
+                ]
+            )
+            .select_related("vehicle", "user")
+            .order_by("-created_at")
+        )
+        for booking in bookings:
+            if _booking_blocks_user(booking, now):
+                return booking
+        return None
+
+    def _booking_eta(self, booking):
+        if booking is None:
+            return None
+        if booking.status == Booking.Status.PENDING_PAYMENT:
+            return booking.lock_expires_at
+        if booking.status == Booking.Status.CONFIRMED and booking.actual_entry is None:
+            return booking.start_time + (booking.end_time - booking.start_time) / 2
+        if booking.status == Booking.Status.ACTIVE and booking.actual_exit is None:
+            return booking.end_time
+        return None
 
     def get_available_from(self, obj):
         window = obj.availability_windows.first()
@@ -138,6 +192,87 @@ class ParkingSlotSerializer(serializers.ModelSerializer):
     def get_available_to(self, obj):
         window = obj.availability_windows.first()
         return window.end_time.strftime("%H:%M:%S") if window else "23:59:59"
+
+    def get_current_booking_number(self, obj):
+        booking = self._current_booking(obj)
+        return booking.booking_number if booking else None
+
+    def get_current_booking_status(self, obj):
+        booking = self._current_booking(obj)
+        return booking.status if booking else None
+
+    def get_current_booking_start_time(self, obj):
+        booking = self._current_booking(obj)
+        return booking.start_time if booking else None
+
+    def get_current_booking_end_time(self, obj):
+        booking = self._current_booking(obj)
+        return booking.end_time if booking else None
+
+    def get_current_booking_actual_entry(self, obj):
+        booking = self._current_booking(obj)
+        return booking.actual_entry if booking else None
+
+    def get_current_booking_actual_exit(self, obj):
+        booking = self._current_booking(obj)
+        return booking.actual_exit if booking else None
+
+    def get_next_free_at(self, obj):
+        booking = self._current_booking(obj)
+        eta = self._booking_eta(booking)
+        return eta
+
+    def get_freeing_up_note(self, obj):
+        booking = self._current_booking(obj)
+        if booking is None:
+            return None
+
+        if booking.status == Booking.Status.PENDING_PAYMENT:
+            return "Waiting for payment lock to expire."
+        if booking.status == Booking.Status.CONFIRMED and booking.actual_entry is None:
+            return "Marked no-show if entry QR is not scanned by halfway point."
+        if booking.status == Booking.Status.ACTIVE and booking.actual_exit is None:
+            return "Occupied until the exit QR is scanned."
+        return None
+
+    def get_bookings(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return []
+
+        user = getattr(request, "user", None)
+        is_owner = user is not None and getattr(obj, "owner_id", None) == getattr(user, "id", None)
+        is_staff_view = user is not None and getattr(user, "role", None) in (
+            User.Role.SOCIETY_ADMIN,
+            User.Role.GUARD,
+        )
+        if not (is_owner or is_staff_view):
+            return []
+
+        bookings = getattr(obj, "prefetched_bookings", None)
+        if bookings is None:
+            bookings = obj.bookings.select_related("user", "vehicle").order_by(
+                "-start_time",
+                "-created_at",
+            )
+
+        timeline = []
+        for booking in bookings:
+            timeline.append(
+                {
+                    "id": str(booking.id),
+                    "booking_number": booking.booking_number,
+                    "status": booking.status,
+                    "start_time": booking.start_time,
+                    "end_time": booking.end_time,
+                    "actual_entry": booking.actual_entry,
+                    "actual_exit": booking.actual_exit,
+                    "vehicle_number": booking.vehicle.registration_no,
+                    "vehicle_type": booking.vehicle.vehicle_type,
+                    "owner_name": booking.user.full_name,
+                }
+            )
+        return timeline
 
     def _update_availability_windows(self, instance, available_from, available_to):
         if available_from and available_to:

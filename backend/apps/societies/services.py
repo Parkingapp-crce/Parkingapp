@@ -3,6 +3,8 @@ import math
 from decimal import Decimal
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+import ssl
+import certifi
 
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
@@ -28,7 +30,8 @@ def _request_location_json(base_url, query_params):
     try:
         import urllib.error
         import logging
-        with urlopen(request, timeout=settings.GEOCODING_TIMEOUT_SECONDS) as response:
+        context = ssl.create_default_context(cafile=certifi.where())
+        with urlopen(request, timeout=settings.GEOCODING_TIMEOUT_SECONDS, context=context) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.URLError as e:
         logging.getLogger(__name__).error(f"Geocoding req failed: {e}")
@@ -39,12 +42,35 @@ def _format_location_result(raw_result, *, fallback_label=""):
     label = raw_result.get("display_name") or fallback_label
     title, separator, remainder = label.partition(",")
     subtitle = remainder.strip() if separator else ""
+    address_details = raw_result.get("address") or {}
+    address_line_parts = [
+        address_details.get("house_number"),
+        address_details.get("road"),
+        address_details.get("neighbourhood"),
+        address_details.get("suburb"),
+    ]
+    address_line = ", ".join(part for part in address_line_parts if part)
+
+    city = (
+        address_details.get("city")
+        or address_details.get("town")
+        or address_details.get("village")
+        or address_details.get("municipality")
+        or address_details.get("hamlet")
+        or ""
+    )
+    state = address_details.get("state") or address_details.get("state_district") or ""
+    pincode = address_details.get("postcode") or ""
 
     return {
         "place_id": str(raw_result.get("place_id", "")),
         "title": title.strip() or fallback_label,
         "subtitle": subtitle,
         "label": label,
+        "address": address_line or label,
+        "city": city,
+        "state": state,
+        "pincode": str(pincode),
         "latitude": float(raw_result["lat"]),
         "longitude": float(raw_result["lon"]),
     }

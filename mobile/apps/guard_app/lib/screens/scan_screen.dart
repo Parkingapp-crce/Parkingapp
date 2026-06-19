@@ -21,6 +21,24 @@ class _ScanScreenState extends State<ScanScreen> {
   late final ScanCubit _scanCubit;
   bool _hasScanned = false;
 
+  String _normalizeScannedValue(String raw) {
+    final value = raw.trim();
+    // If scanner reads a URL, try token query param first, then last path segment.
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      final uri = Uri.tryParse(value);
+      if (uri != null) {
+        final token = uri.queryParameters['qr_token'] ?? uri.queryParameters['token'];
+        if (token != null && token.isNotEmpty) {
+          return token.trim();
+        }
+        if (uri.pathSegments.isNotEmpty) {
+          return uri.pathSegments.last.trim();
+        }
+      }
+    }
+    return value;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -44,8 +62,10 @@ class _ScanScreenState extends State<ScanScreen> {
     final barcodes = capture.barcodes;
     if (barcodes.isEmpty) return;
 
-    final value = barcodes.first.rawValue;
-    if (value == null || value.isEmpty) return;
+    final rawValue = barcodes.first.rawValue;
+    if (rawValue == null || rawValue.isEmpty) return;
+    final value = _normalizeScannedValue(rawValue);
+    if (value.isEmpty) return;
 
     setState(() {
       _hasScanned = true;

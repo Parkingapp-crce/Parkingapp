@@ -100,12 +100,12 @@ class _JoinRequestsScreenState extends State<JoinRequestsScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.message), backgroundColor: Theme.of(context).colorScheme.error),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error),
       );
     }
   }
@@ -132,7 +132,7 @@ class _JoinRequestsScreenState extends State<JoinRequestsScreen> {
                     Text(
                       'Approve residents before they can access parking features.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -213,7 +213,7 @@ class _JoinRequestCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.person_outline, color: AppColors.primary),
+                Icon(Icons.person_outline, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -229,13 +229,13 @@ class _JoinRequestCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
+                    color: Theme.of(context).colorScheme.tertiary,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     request.status.toUpperCase(),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -252,7 +252,7 @@ class _JoinRequestCard extends StatelessWidget {
                 request.notes!,
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
             const SizedBox(height: 12),
@@ -261,13 +261,13 @@ class _JoinRequestCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onReject,
-                    icon: const Icon(Icons.close, color: AppColors.error),
-                    label: const Text(
+                    icon: Icon(Icons.close, color: Theme.of(context).colorScheme.error),
+                    label: Text(
                       'Reject',
-                      style: TextStyle(color: AppColors.error),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
+                      side: BorderSide(color: Theme.of(context).colorScheme.error),
                     ),
                   ),
                 ),

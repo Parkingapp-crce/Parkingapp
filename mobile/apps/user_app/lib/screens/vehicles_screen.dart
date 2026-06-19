@@ -28,7 +28,7 @@ class _VehiclesContent extends StatelessWidget {
         onPressed: () => _showAddVehicleDialog(context),
         icon: const Icon(Icons.add),
         label: const Text('Add Vehicle'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: BlocBuilder<VehiclesCubit, VehiclesState>(
@@ -133,6 +133,14 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
 
     if (success && mounted) {
       Navigator.of(context).pop(true);
+    } else if (mounted) {
+      final error = context.read<VehiclesCubit>().state.error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Could not add vehicle. Please try again.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -145,66 +153,83 @@ class _AddVehicleSheetState extends State<_AddVehicleSheet> {
         24,
         24 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Add Vehicle',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Vehicle Type',
-                prefixIcon: Icon(Icons.category),
+      child: BlocBuilder<VehiclesCubit, VehiclesState>(
+        builder: (context, state) => Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Add Vehicle',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
-              items: const [
-                DropdownMenuItem(value: 'car', child: Text('Car')),
-                DropdownMenuItem(value: 'bike', child: Text('Bike')),
+              const SizedBox(height: 20),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedType,
+                decoration: const InputDecoration(
+                  labelText: 'Vehicle Type',
+                  prefixIcon: Icon(Icons.category),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'car', child: Text('Car')),
+                  DropdownMenuItem(value: 'bike', child: Text('Bike')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedType = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _regController,
+                label: 'Registration Number',
+                hint: 'e.g., MH01AB1234',
+                prefixIcon: Icons.confirmation_number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Registration number is required';
+                  }
+                  if (value.trim().length < 6) {
+                    return 'Enter a valid registration number';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                controller: _makeController,
+                label: 'Make & Model',
+                hint: 'e.g., Honda City',
+                prefixIcon: Icons.info_outline,
+              ),
+              if (state.error != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.25)),
+                  ),
+                  child: Text(
+                    state.error!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
               ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedType = value);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _regController,
-              label: 'Registration Number',
-              hint: 'e.g., MH01AB1234',
-              prefixIcon: Icons.confirmation_number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Registration number is required';
-                }
-                if (value.trim().length < 6) {
-                  return 'Enter a valid registration number';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _makeController,
-              label: 'Make & Model',
-              hint: 'e.g., Honda City',
-              prefixIcon: Icons.info_outline,
-            ),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: 'Add Vehicle',
-              isLoading: _isSubmitting,
-              onPressed: _submit,
-              icon: Icons.add,
-            ),
-          ],
+              const SizedBox(height: 24),
+              PrimaryButton(
+                label: 'Add Vehicle',
+                isLoading: _isSubmitting || state.isAdding,
+                onPressed: _submit,
+                icon: Icons.add,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -228,14 +253,14 @@ class _VehicleCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: Theme.of(context).colorScheme.tertiary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 vehicle.vehicleType == 'bike'
                     ? Icons.two_wheeler
                     : Icons.directions_car,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 size: 24,
               ),
             ),
@@ -254,7 +279,7 @@ class _VehicleCard extends StatelessWidget {
                   Text(
                     '${vehicle.vehicleType.toUpperCase()}${vehicle.makeModel.isNotEmpty ? ' - ${vehicle.makeModel}' : ''}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -262,22 +287,22 @@ class _VehicleCard extends StatelessWidget {
             ),
             if (vehicle.isActive)
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
                 onPressed: () => _showDeleteDialog(context, vehicle),
               ),
             if (!vehicle.isActive)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
+                child: Text(
                   'INACTIVE',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.error,
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 ),
               ),
@@ -305,7 +330,7 @@ class _VehicleCard extends StatelessWidget {
               Navigator.of(dialogContext).pop();
               context.read<VehiclesCubit>().deleteVehicle(vehicle.id);
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],

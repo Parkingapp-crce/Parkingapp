@@ -25,30 +25,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onLogin() {
     if (!_formKey.currentState!.validate()) return;
-
     context.read<AuthBloc>().add(
-      AuthLoginRequested(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      ),
-    );
+          AuthLoginRequested(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          ),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      resizeToAvoidBottomInset: true,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
             if (state.user.role != 'guard') {
               context.read<AuthBloc>().add(const AuthLoggedOut());
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'This app can only be used with approved guard accounts.',
-                  ),
-                  backgroundColor: AppColors.error,
+                SnackBar(
+                  content:
+                      Text('This app can only be used with approved gate accounts.'),
+                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
                 ),
               );
               return;
@@ -58,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
               ),
             );
           }
@@ -66,72 +65,101 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
               child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // App icon
-                    Icon(Icons.security, size: 80, color: AppColors.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Guard App',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                    // ── Brand header ───────────────────────────────────────────
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.shield_rounded,
+                                size: 14, color: Theme.of(context).colorScheme.tertiary),
+                            SizedBox(width: 6),
+                            Text(
+                              'PARKWISE · GATE',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.tertiary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 36),
                     Text(
-                      'Parking Security Scanner',
+                      'Gate Access',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Sign in with your approved guard account',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
                       ),
                     ),
                     const SizedBox(height: 48),
 
-                    // Email field
+                    // ── Email ──────────────────────────────────────────────────
                     AppTextField(
                       controller: _emailController,
-                      label: 'Email',
-                      hint: 'Enter your email',
+                      label: 'EMAIL ADDRESS',
+                      hint: 'guard@example.com',
                       keyboardType: TextInputType.emailAddress,
                       prefixIcon: Icons.email_outlined,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Email is required';
                         }
-                        if (!value.contains('@')) {
-                          return 'Enter a valid email';
-                        }
+                        if (!value.contains('@')) return 'Enter a valid email';
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
-                    // Password field
+                    // ── Password ───────────────────────────────────────────────
                     AppTextField(
                       controller: _passwordController,
-                      label: 'Password',
-                      hint: 'Enter your password',
+                      label: 'PASSWORD',
+                      hint: '••••••••',
                       obscureText: _obscurePassword,
-                      prefixIcon: Icons.lock_outlined,
+                      prefixIcon: Icons.lock_outline_rounded,
                       suffix: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                        onTap: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                         child: Icon(
                           _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: AppColors.textSecondary,
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       validator: (value) {
@@ -143,21 +171,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Login button
+                    // ── Submit ─────────────────────────────────────────────────
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         return PrimaryButton(
-                          label: 'Login',
-                          onPressed: _onLogin,
+                          label: 'SIGN IN',
                           isLoading: state is AuthLoading,
-                          icon: Icons.login,
+                          onPressed: _onLogin,
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => context.go('/apply'),
-                      child: const Text('Apply for guard access'),
+                    const SizedBox(height: 24),
+
+                    // ── Apply link ─────────────────────────────────────────────
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => context.go('/apply'),
+                        child: Text(
+                          'Apply for gate access →',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.tertiary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

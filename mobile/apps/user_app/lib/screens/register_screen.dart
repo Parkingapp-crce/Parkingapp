@@ -62,7 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
               ),
             );
           }
@@ -85,7 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text(
                     'Create an account to book parking slots',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -220,7 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text(
                         'Already have an account? ',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       GestureDetector(
@@ -229,7 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           'Sign In',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
-                                color: AppColors.primary,
+                                color: Theme.of(context).colorScheme.tertiary,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),

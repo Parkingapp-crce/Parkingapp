@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from urllib.request import Request, urlopen
@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import UserNotification
 from apps.accounts.permissions import IsSocietyAdmin, IsSuperAdmin
+from apps.bookings.models import Booking
 from apps.bookings.services import get_available_slots, validate_booking_window
 
 from .models import ParkingSlot, SlotAvailabilityWindow, Society, SocietyMembershipRequest
@@ -226,7 +227,7 @@ class DestinationAutocompleteView(APIView):
 
 
 class DestinationReverseGeocodeView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         serializer = ReverseGeocodeSerializer(data=request.query_params)
@@ -276,7 +277,17 @@ class SlotListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         society_id = self.kwargs["society_id"]
-        qs = ParkingSlot.objects.filter(society_id=society_id, is_active=True)
+        booking_prefetch = Prefetch(
+            "bookings",
+            queryset=Booking.objects.select_related("user", "vehicle").order_by(
+                "-start_time",
+                "-created_at",
+            ),
+            to_attr="prefetched_bookings",
+        )
+        qs = ParkingSlot.objects.filter(society_id=society_id).prefetch_related(
+            booking_prefetch
+        )
 
         params = self.request.query_params
         if {
@@ -324,12 +335,12 @@ class SlotListCreateView(generics.ListCreateAPIView):
         if user.role == User.Role.SOCIETY_ADMIN and user.society_id == society_id:
             return qs
         if user.role == User.Role.GUARD and user.society_id == society_id:
-            return qs.filter(approval_status=ParkingSlot.ApprovalStatus.APPROVED)
+            return qs.filter(approval_status=ParkingSlot.ApprovalStatus.APPROVED, is_active=True)
 
         # For USER role
         if owner_id and str(owner_id) == str(user.id):
             return qs
-        return qs.filter(approval_status=ParkingSlot.ApprovalStatus.APPROVED)
+        return qs.filter(approval_status=ParkingSlot.ApprovalStatus.APPROVED, is_active=True)
 
     def perform_create(self, serializer):
         society_id = self.kwargs["society_id"]
@@ -619,6 +630,69 @@ class SlotUnblockView(APIView):
 
         slot.state = ParkingSlot.SlotState.AVAILABLE
         slot.save(update_fields=["state", "updated_at"])
+        return Response(ParkingSlotSerializer(slot).data)
+
+
+class SlotToggleActiveView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, society_id, pk):
+        try:
+            slot = ParkingSlot.objects.get(id=pk, society_id=society_id)
+        except ParkingSlot.DoesNotExist:
+            return Response({"error": "Slot not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if str(slot.owner_id) != str(request.user.id):
+            return Response(
+                {"error": "You can only toggle your own slots"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        is_active = request.data.get("is_active", True)
+
+        if not is_active:
+            from datetime import timedelta
+            now = timezone.now()
+            one_hour_from_now = now + timedelta(hours=1)
+            
+            # Check for active bookings
+            active_bookings = Booking.objects.filter(
+                slot=slot,
+                status=Booking.Status.ACTIVE
+            ).exists()
+            if active_bookings:
+                return Response(
+                    {"error": "Cannot deactivate slot while a vehicle is parked."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Check for confirmed bookings starting within the next hour
+            upcoming_bookings = Booking.objects.filter(
+                slot=slot,
+                status=Booking.Status.CONFIRMED,
+                start_time__lt=one_hour_from_now,
+                end_time__gt=now
+            ).exists()
+            if upcoming_bookings:
+                return Response(
+                    {"error": "Cannot deactivate: a booking is scheduled within the next hour."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                
+            # Check for any future confirmed bookings
+            future_bookings = Booking.objects.filter(
+                slot=slot,
+                status=Booking.Status.CONFIRMED,
+                start_time__gt=now
+            ).exists()
+            if future_bookings:
+                return Response(
+                    {"error": "Cannot deactivate: there are upcoming scheduled bookings for this slot."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        slot.is_active = is_active
+        slot.save(update_fields=["is_active", "updated_at"])
         return Response(ParkingSlotSerializer(slot).data)
 
 

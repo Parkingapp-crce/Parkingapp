@@ -17,6 +17,7 @@ from .services import (
     create_razorpay_order,
     verify_razorpay_payment,
 )
+from .services import create_bypass_payment
 
 
 class PaymentInitiateView(APIView):
@@ -43,6 +44,16 @@ class PaymentInitiateView(APIView):
 
         gateway = serializer.validated_data.get("gateway", "stripe")
         embedded = serializer.validated_data.get("embedded", False)
+        # Allow bypass when explicitly requested and server allows bypassing
+        allow_bypass = getattr(
+            settings,
+            "PAYMENT_BYPASS",
+            getattr(settings, "DEBUG", False),
+        )
+        if allow_bypass:
+            payment = create_bypass_payment(booking, request, gateway=gateway)
+            serializer = PaymentSerializer(payment)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if gateway == "stripe":
             payment, checkout_url, checkout_client_secret = create_stripe_checkout_session(

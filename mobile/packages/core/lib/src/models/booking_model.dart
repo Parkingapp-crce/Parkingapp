@@ -16,6 +16,16 @@ class BookingModel {
   final String? slotNumber;
   @JsonKey(name: 'society_name')
   final String? societyName;
+  @JsonKey(name: 'society_address')
+  final String? societyAddress;
+  @JsonKey(name: 'society_city')
+  final String? societyCity;
+  @JsonKey(name: 'society_state')
+  final String? societyState;
+  @JsonKey(name: 'society_latitude', fromJson: _toDouble)
+  final double? societyLatitude;
+  @JsonKey(name: 'society_longitude', fromJson: _toDouble)
+  final double? societyLongitude;
   @JsonKey(name: 'owner_name')
   final String? ownerName;
   @JsonKey(name: 'owner_email')
@@ -32,6 +42,8 @@ class BookingModel {
   final String? actualExit;
   final String status;
   final String amount;
+  @JsonKey(name: 'amount_paid')
+  final String? amountPaid;
   @JsonKey(name: 'payment_status')
   final String? paymentStatus;
   @JsonKey(name: 'lock_expires_at')
@@ -47,6 +59,11 @@ class BookingModel {
     required this.slot,
     this.slotNumber,
     this.societyName,
+    this.societyAddress,
+    this.societyCity,
+    this.societyState,
+    this.societyLatitude,
+    this.societyLongitude,
     this.ownerName,
     this.ownerEmail,
     this.ownerPhone,
@@ -56,12 +73,14 @@ class BookingModel {
     this.actualExit,
     required this.status,
     required this.amount,
+    this.amountPaid,
     this.paymentStatus,
     this.lockExpiresAt,
     required this.createdAt,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) =>
+
       _$BookingModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$BookingModelToJson(this);
@@ -90,5 +109,12 @@ class BookingModel {
       default:
         return paymentStatus!.replaceAll('_', ' ').toUpperCase();
     }
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

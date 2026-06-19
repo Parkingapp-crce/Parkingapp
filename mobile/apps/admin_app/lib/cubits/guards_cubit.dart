@@ -8,6 +8,8 @@ class GuardsState {
   final String? error;
   final UserModel? latestGuard;
   final String? temporaryPassword;
+  final String? savedGuardEmail;
+  final String? savedGuardPassword;
 
   const GuardsState({
     this.isLoading = false,
@@ -16,6 +18,8 @@ class GuardsState {
     this.error,
     this.latestGuard,
     this.temporaryPassword,
+    this.savedGuardEmail,
+    this.savedGuardPassword,
   });
 
   GuardsState copyWith({
@@ -25,6 +29,8 @@ class GuardsState {
     String? error,
     UserModel? latestGuard,
     String? temporaryPassword,
+    String? savedGuardEmail,
+    String? savedGuardPassword,
     bool clearError = false,
     bool clearLatest = false,
   }) {
@@ -37,6 +43,8 @@ class GuardsState {
       temporaryPassword: clearLatest
           ? null
           : (temporaryPassword ?? this.temporaryPassword),
+      savedGuardEmail: savedGuardEmail ?? this.savedGuardEmail,
+      savedGuardPassword: savedGuardPassword ?? this.savedGuardPassword,
     );
   }
 
@@ -52,8 +60,54 @@ class GuardsState {
 
 class GuardsCubit extends Cubit<GuardsState> {
   final ApiClient _apiClient;
+  final SecureStorageService _storage;
 
-  GuardsCubit(this._apiClient) : super(const GuardsState());
+  GuardsCubit(this._apiClient)
+      : _storage = SecureStorageService(),
+        super(const GuardsState());
+
+  Future<void> loadSavedGuardCredentials() async {
+    final email = await _storage.getGuardEmail();
+    final password = await _storage.getGuardPassword();
+
+    if (email == null || email.isEmpty || password == null || password.isEmpty) {
+      final legacyEmail = await _storage.getEmail();
+      final legacyPassword = await _storage.getPassword();
+
+      if (legacyEmail == null ||
+          legacyEmail.isEmpty ||
+          legacyPassword == null ||
+          legacyPassword.isEmpty) {
+        return;
+      }
+
+      final looksLikeGuardEmail = legacyEmail.toLowerCase().startsWith('gate-');
+      if (!looksLikeGuardEmail) {
+        return;
+      }
+
+      await _storage.saveGuardCredentials(
+        email: legacyEmail,
+        password: legacyPassword,
+      );
+      await _storage.clearCredentials();
+
+      emit(
+        state.copyWith(
+          savedGuardEmail: legacyEmail,
+          savedGuardPassword: legacyPassword,
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        savedGuardEmail: email,
+        savedGuardPassword: password,
+      ),
+    );
+  }
 
   Future<void> loadGuards() async {
     emit(state.copyWith(isLoading: true, clearError: true));
@@ -75,6 +129,35 @@ class GuardsCubit extends Cubit<GuardsState> {
       }
 
       emit(state.copyWith(isLoading: false, guards: guards));
+
+      final hasSavedGuardCredentials =
+          (state.savedGuardEmail != null && state.savedGuardPassword != null);
+      if (!hasSavedGuardCredentials) {
+        final latestGuardWithPassword = guards.firstWhere(
+          (guard) =>
+              (guard.temporaryPassword != null && guard.temporaryPassword!.isNotEmpty),
+          orElse: () => UserModel(
+            id: '',
+            email: '',
+            phone: '',
+            fullName: '',
+            role: '',
+          ),
+        );
+
+        if (latestGuardWithPassword.id.isNotEmpty) {
+          await _storage.saveGuardCredentials(
+            email: latestGuardWithPassword.email,
+            password: latestGuardWithPassword.temporaryPassword!,
+          );
+          emit(
+            state.copyWith(
+              savedGuardEmail: latestGuardWithPassword.email,
+              savedGuardPassword: latestGuardWithPassword.temporaryPassword!,
+            ),
+          );
+        }
+      }
     } on ApiException catch (e) {
       emit(state.copyWith(isLoading: false, error: e.message));
     } catch (e) {
@@ -103,19 +186,25 @@ class GuardsCubit extends Cubit<GuardsState> {
       );
 
       final data = response.data as Map<String, dynamic>;
-      final guard = UserModel.fromJson(data['guard'] as Map<String, dynamic>);
+      final deviceJson = (data['device'] as Map<String, dynamic>?) ??
+          (data['guard'] as Map<String, dynamic>);
+      final guard = UserModel.fromJson(deviceJson);
       final credentials = data['credentials'] as Map<String, dynamic>;
       final password = credentials['temporary_password'] as String;
+
+      await _storage.saveGuardCredentials(email: guard.email, password: password);
 
       emit(
         state.copyWith(
           isSubmitting: false,
           latestGuard: guard,
           temporaryPassword: password,
+          savedGuardEmail: guard.email,
+          savedGuardPassword: password,
         ),
       );
       await loadGuards();
-      return {'guard': guard, 'password': password};
+      return {'guard': guard, 'device': guard, 'password': password};
     } on ApiException catch (e) {
       emit(state.copyWith(isSubmitting: false, error: e.message));
       rethrow;
@@ -138,6 +227,35 @@ class GuardsCubit extends Cubit<GuardsState> {
       );
 
       emit(state.copyWith(isSubmitting: false));
+      await loadGuards();
+    } on ApiException catch (e) {
+      emit(state.copyWith(isSubmitting: false, error: e.message));
+      rethrow;
+    } catch (e) {
+      emit(state.copyWith(isSubmitting: false, error: e.toString()));
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGuard(String guardId) async {
+    emit(state.copyWith(isSubmitting: true, clearError: true));
+    try {
+      await _apiClient.delete(ApiEndpoints.guard(guardId));
+
+      final shouldClearSaved = state.latestGuard?.id == guardId;
+      if (shouldClearSaved) {
+        await _storage.clearGuardCredentials();
+      }
+
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          clearLatest: shouldClearSaved,
+          savedGuardEmail: shouldClearSaved ? null : state.savedGuardEmail,
+          savedGuardPassword:
+              shouldClearSaved ? null : state.savedGuardPassword,
+        ),
+      );
       await loadGuards();
     } on ApiException catch (e) {
       emit(state.copyWith(isSubmitting: false, error: e.message));

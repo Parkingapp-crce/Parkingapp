@@ -43,6 +43,7 @@ dependencies:
   google_sign_in: ^6.2.1
   mobile_scanner: ^3.5.6      # ← ADD THIS (QR scanner)
   intl: ^0.20.2
+  get_it: ^8.3.0
 
 dev_dependencies:
   flutter_test:

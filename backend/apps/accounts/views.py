@@ -55,7 +55,7 @@ class GuardRegisterView(generics.CreateAPIView):
         guard = serializer.save()
         return Response(
             {
-                "message": "Guard access request submitted successfully.",
+                "message": "Gate access request submitted successfully.",
                 "guard": UserProfileSerializer(guard).data,
             },
             status=status.HTTP_201_CREATED,
@@ -91,7 +91,10 @@ class GuardCredentialView(generics.ListCreateAPIView):
     permission_classes = [IsSocietyAdmin]
 
     def get_queryset(self):
-        return self.request.user.society.members.filter(role="guard").order_by("-created_at")
+        return self.request.user.society.members.filter(
+            role="guard",
+            is_active=True,
+        ).order_by("-created_at")
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -107,6 +110,7 @@ class GuardCredentialView(generics.ListCreateAPIView):
         return Response(
             {
                 "guard": GuardProfileSerializer(user).data,
+                "device": GuardProfileSerializer(user).data,
                 "credentials": {
                     "email": user.email,
                     "temporary_password": result["temporary_password"],
@@ -116,16 +120,20 @@ class GuardCredentialView(generics.ListCreateAPIView):
         )
 
 
-class GuardCredentialDetailView(generics.RetrieveUpdateAPIView):
+class GuardCredentialDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsSocietyAdmin]
 
     def get_queryset(self):
-        return self.request.user.society.members.filter(role="guard")
+        return self.request.user.society.members.filter(role="guard", is_active=True)
 
     def get_serializer_class(self):
         if self.request.method in ["PUT", "PATCH"]:
             return GuardPermissionUpdateSerializer
         return GuardProfileSerializer
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
 
 
 class NotificationListView(generics.ListAPIView):

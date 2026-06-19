@@ -29,7 +29,7 @@ class SlotDetailScreen extends StatelessWidget {
       case 'blocked':
         return AppColors.slotBlocked;
       default:
-        return AppColors.textSecondary;
+        return const Color(0xFF64748B);
     }
   }
 
@@ -189,13 +189,13 @@ class SlotDetailScreen extends StatelessWidget {
                         );
                       }
                     },
-                    icon: const Icon(Icons.close, color: AppColors.error),
-                    label: const Text(
+                    icon: Icon(Icons.close, color: Theme.of(context).colorScheme.error),
+                    label: Text(
                       'Reject Slot',
-                      style: TextStyle(color: AppColors.error),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
+                      side: BorderSide(color: Theme.of(context).colorScheme.error),
                     ),
                   ),
                 ),
@@ -247,7 +247,7 @@ class SlotDetailScreen extends StatelessWidget {
                             TextButton(
                               onPressed: () => Navigator.pop(context, true),
                               style: TextButton.styleFrom(
-                                foregroundColor: AppColors.error,
+                                foregroundColor: Theme.of(context).colorScheme.error,
                               ),
                               child: const Text('Block'),
                             ),
@@ -273,13 +273,13 @@ class SlotDetailScreen extends StatelessWidget {
                         }
                       }
                     },
-                    icon: const Icon(Icons.block, color: AppColors.error),
-                    label: const Text(
+                    icon: Icon(Icons.block, color: Theme.of(context).colorScheme.error),
+                    label: Text(
                       'Block Slot',
-                      style: TextStyle(color: AppColors.error),
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
+                      side: BorderSide(color: Theme.of(context).colorScheme.error),
                     ),
                   ),
                 ),
@@ -304,7 +304,7 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: AppColors.textSecondary)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),

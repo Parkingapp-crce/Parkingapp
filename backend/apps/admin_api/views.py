@@ -171,6 +171,7 @@ class SocietyAdminDashboardView(APIView):
         ).count()
 
         payload = {
+            "join_code": Society.objects.get(id=society_id).join_code,
             "total_slots": slot_counts["total_slots"] or 0,
             "available_slots": slot_counts["available_slots"] or 0,
             "reserved_slots": slot_counts["reserved_slots"] or 0,
@@ -206,6 +207,7 @@ class SocietyGuardListView(APIView):
         guards = User.objects.filter(
             society_id=request.user.society_id,
             role=User.Role.GUARD,
+            is_active=True,
         ).order_by("approval_status", "full_name")
         if status_filter:
             guards = guards.filter(approval_status=status_filter)

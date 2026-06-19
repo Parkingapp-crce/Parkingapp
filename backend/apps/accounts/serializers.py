@@ -125,36 +125,14 @@ class RegisterSerializer(serializers.ModelSerializer):
                     contact_phone=validated_data["phone"],
                     is_active=True,
                 )
+            elif role == User.Role.USER and target_society is not None:
+                society = target_society
 
             user = User.objects.create_user(
                 **validated_data,
                 role=role,
                 society=society,
             )
-
-            if role == User.Role.USER and target_society is not None:
-                join_request = SocietyMembershipRequest.objects.create(
-                    society=target_society,
-                    user=user,
-                    status=SocietyMembershipRequest.Status.PENDING,
-                )
-                admins = User.objects.filter(
-                    role=User.Role.SOCIETY_ADMIN,
-                    society=target_society,
-                    is_active=True,
-                )
-                for admin in admins:
-                    UserNotification.objects.create(
-                        user=admin,
-                        notification_type=UserNotification.NotificationType.JOIN_REQUEST,
-                        title="New member join request",
-                        message=f"{user.full_name} requested to join {target_society.name}.",
-                        payload={
-                            "join_request_id": str(join_request.id),
-                            "user_id": str(user.id),
-                            "society_id": str(target_society.id),
-                        },
-                    )
 
             return user
 
@@ -253,14 +231,14 @@ class GuardCredentialSerializer(serializers.Serializer):
         admin = request.user
 
         if not admin.is_authenticated or admin.role != User.Role.SOCIETY_ADMIN:
-            raise serializers.ValidationError("Only society admins can create guard credentials.")
+            raise serializers.ValidationError("Only society admins can create gate credentials.")
 
         if admin.society_id is None:
-            raise serializers.ValidationError("Admin must be linked to a society before creating guards.")
+            raise serializers.ValidationError("Admin must be linked to a society before creating gate devices.")
 
         if not attrs.get("can_scan_entry") and not attrs.get("can_scan_exit"):
             raise serializers.ValidationError(
-                "Select at least one scan permission for the guard."
+                "Select at least one scan permission for the gate device."
             )
 
         email = attrs.get("email")
@@ -278,7 +256,7 @@ class GuardCredentialSerializer(serializers.Serializer):
     def _build_email(self, society_id):
         society_prefix = str(society_id).replace("-", "")[:8]
         suffix = secrets.token_hex(2)
-        return f"guard-{society_prefix}-{suffix}@parking.local"
+        return f"gate-{society_prefix}-{suffix}@parking.local"
 
     def _build_password(self):
         alphabet = string.ascii_letters + string.digits + "@#$%"
@@ -298,6 +276,8 @@ class GuardCredentialSerializer(serializers.Serializer):
             can_scan_entry=validated_data.get("can_scan_entry", True),
             can_scan_exit=validated_data.get("can_scan_exit", True),
         )
+        user.temporary_password = password
+        user.save(update_fields=["temporary_password"])
 
         return {
             "user": user,
@@ -307,6 +287,8 @@ class GuardCredentialSerializer(serializers.Serializer):
 
 class GuardProfileSerializer(serializers.ModelSerializer):
     society_name = serializers.CharField(source="society.name", read_only=True)
+    device_name = serializers.CharField(source="full_name", read_only=True)
+    temporary_password = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -315,8 +297,10 @@ class GuardProfileSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "full_name",
+            "device_name",
             "can_scan_entry",
             "can_scan_exit",
+            "temporary_password",
             "society_name",
             "created_at",
         ]
@@ -333,7 +317,7 @@ class GuardPermissionUpdateSerializer(serializers.ModelSerializer):
 
         if not can_scan_entry and not can_scan_exit:
             raise serializers.ValidationError(
-                "Guard must have at least one scan permission enabled."
+                "Gate device must have at least one scan permission enabled."
             )
 
         return attrs

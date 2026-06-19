@@ -259,6 +259,11 @@ class _SocietyFormScreenState extends State<SocietyFormScreen> {
     setState(() {
       _selectedLocation = location;
       _locationSearchController.text = location.label;
+      _addressController.text =
+          location.address.isNotEmpty ? location.address : location.label;
+      _cityController.text = location.city;
+      _stateController.text = location.state;
+      _pincodeController.text = location.pincode;
       _locationSuggestions.clear();
     });
     FocusScope.of(context).unfocus();
@@ -268,7 +273,7 @@ class _SocietyFormScreenState extends State<SocietyFormScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? AppColors.error : null,
+        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
       ),
     );
   }
@@ -375,7 +380,7 @@ class _SocietyFormScreenState extends State<SocietyFormScreen> {
                 'Search for the society address or pin the exact spot on the map. These coordinates power user-side parking search.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -405,15 +410,15 @@ class _SocietyFormScreenState extends State<SocietyFormScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.divider),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Column(
                     children: _locationSuggestions
                         .map(
                           (location) => ListTile(
-                            leading: const Icon(
+                            leading: Icon(
                               Icons.location_on_outlined,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                             title: Text(location.title),
                             subtitle: location.subtitle.isNotEmpty
@@ -489,7 +494,7 @@ class _SocietyFormScreenState extends State<SocietyFormScreen> {
                 Text(
                   'These credentials will be used in the admin app to manage slots for this society.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -592,9 +597,9 @@ class _LocationSummaryCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,7 +617,7 @@ class _LocationSummaryCard extends StatelessWidget {
             'Lat ${location.latitude.toStringAsFixed(6)}  |  Lng ${location.longitude.toStringAsFixed(6)}',
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),

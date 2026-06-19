@@ -132,12 +132,12 @@ class _SocietyCard extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: society.isActive
               ? AppColors.success.withOpacity(0.1)
-              : AppColors.textSecondary.withOpacity(0.1),
+              : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
           child: Icon(
             Icons.apartment,
             color: society.isActive
                 ? AppColors.success
-                : AppColors.textSecondary,
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         title: Text(
@@ -150,7 +150,7 @@ class _SocietyCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${society.city}, ${society.state}',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
             ),
             const SizedBox(height: 2),
             Row(
@@ -158,13 +158,13 @@ class _SocietyCard extends StatelessWidget {
                 Icon(
                   Icons.local_parking,
                   size: 14,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Total: ${society.totalSlots ?? 0}',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -178,7 +178,7 @@ class _SocietyCard extends StatelessWidget {
                 Text(
                   'Available: ${society.availableSlots ?? 0}',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -191,7 +191,7 @@ class _SocietyCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: society.isActive
                 ? AppColors.success.withOpacity(0.1)
-                : AppColors.textSecondary.withOpacity(0.1),
+                : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -199,7 +199,7 @@ class _SocietyCard extends StatelessWidget {
             style: TextStyle(
               color: society.isActive
                   ? AppColors.success
-                  : AppColors.textSecondary,
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),

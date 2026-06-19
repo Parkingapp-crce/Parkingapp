@@ -25,6 +25,43 @@ ACTIVE_BOOKING_STATUSES = [
 ]
 
 
+def _booking_halfway_point(booking):
+    return booking.start_time + (booking.end_time - booking.start_time) / 2
+
+
+def _booking_blocks_user(booking, now):
+    if booking.status == Booking.Status.PENDING_PAYMENT:
+        return True
+
+    if booking.status == Booking.Status.CONFIRMED:
+        if booking.actual_entry is not None:
+            return False
+        return now <= _booking_halfway_point(booking)
+
+    if booking.status == Booking.Status.ACTIVE:
+        return booking.actual_exit is None
+
+    return False
+
+
+def _user_has_blocking_booking(user):
+    now = timezone.now()
+    bookings = Booking.objects.filter(
+        user=user,
+        status__in=ACTIVE_BOOKING_STATUSES,
+    )
+    return any(
+        _booking_blocks_user(booking, now)
+        for booking in bookings.only(
+            "status",
+            "actual_entry",
+            "actual_exit",
+            "start_time",
+            "end_time",
+        )
+    )
+
+
 def _generate_booking_number():
     date_part = timezone.now().strftime("%Y%m%d")
     random_part = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -88,14 +125,23 @@ def slot_is_available(slot, vehicle_type, start_time, end_time):
         # Residents MUST have a window defined to be available
         return False
 
-    buffer = timedelta(minutes=BUFFER_MINUTES)
+    now = timezone.now()
     overlapping = Booking.objects.filter(
         slot=slot,
         status__in=ACTIVE_BOOKING_STATUSES,
     ).filter(
-        Q(start_time__lt=end_time + buffer) & Q(end_time__gt=start_time - buffer)
+        Q(start_time__lt=end_time) & Q(end_time__gt=start_time)
     )
-    return not overlapping.exists()
+    return not any(
+        _booking_blocks_user(booking, now)
+        for booking in overlapping.only(
+            "status",
+            "actual_entry",
+            "actual_exit",
+            "start_time",
+            "end_time",
+        )
+    )
 
 
 def get_available_slots(*, society_id, vehicle_type, start_time, end_time, for_update=False):
@@ -136,7 +182,7 @@ def _build_pending_booking(user, slot, vehicle, start_time, end_time):
         end_time=end_time,
         status=Booking.Status.PENDING_PAYMENT,
         amount=amount,
-        qr_code_token="placeholder",
+        qr_code_token=booking_number,
         lock_expires_at=now + timedelta(seconds=LOCK_DURATION_SECONDS),
     )
     booking.save()
@@ -166,6 +212,11 @@ def create_booking(user, slot_id, vehicle, start_time, end_time):
     validate_booking_window(start_time, end_time)
 
     with transaction.atomic():
+        if _user_has_blocking_booking(user):
+            raise ValidationError(
+                "You already have an active parking booking. Please finish or cancel it before reserving another slot."
+            )
+
         try:
             slot = (
                 ParkingSlot.objects.select_for_update()
@@ -195,6 +246,11 @@ def create_booking_for_society(user, society_id, vehicle, start_time, end_time):
     validate_booking_window(start_time, end_time)
 
     with transaction.atomic():
+        if _user_has_blocking_booking(user):
+            raise ValidationError(
+                "You already have an active parking booking. Please finish or cancel it before reserving another slot."
+            )
+
         valid_slots = get_available_slots(
             society_id=society_id,
             vehicle_type=vehicle.vehicle_type,

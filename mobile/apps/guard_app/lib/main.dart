@@ -10,22 +10,14 @@ import 'router.dart';
 final getIt = GetIt.instance;
 
 void _setupDependencies() {
-  // Storage
   getIt.registerLazySingleton<SecureStorageService>(
     () => SecureStorageService(),
   );
 
-  // Token Manager
   getIt.registerLazySingleton<TokenManager>(
     () => TokenManager(getIt<SecureStorageService>()),
   );
 
-  // We need a late-initialized AuthBloc for DioFactory, so we create Dio manually
-  // and then register AuthBloc with it.
-
-  // Using a factory approach to break the circular dependency:
-
-  // 1. Create a bare Dio for AuthService (login doesn't need auth interceptor initially)
   final baseDio = Dio(
     BaseOptions(
       baseUrl: EnvConfig.dev.apiBaseUrl,
@@ -35,12 +27,10 @@ void _setupDependencies() {
     ),
   );
 
-  // Auth Service (uses base dio for login, profile will use intercepted dio)
   getIt.registerLazySingleton<AuthService>(
     () => AuthService(baseDio, getIt<TokenManager>()),
   );
 
-  // Auth Bloc
   getIt.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
       authService: getIt<AuthService>(),
@@ -48,7 +38,6 @@ void _setupDependencies() {
     ),
   );
 
-  // Authenticated Dio (with interceptors)
   getIt.registerLazySingleton<Dio>(
     () => DioFactory.create(
       config: EnvConfig.dev,
@@ -57,10 +46,7 @@ void _setupDependencies() {
     ),
   );
 
-  // ApiClient (uses authenticated Dio)
   getIt.registerLazySingleton<ApiClient>(() => ApiClient(getIt<Dio>()));
-
-  // ✅ Wire ApiClient into AuthBloc so profile requests use the authenticated Dio
   getIt<AuthBloc>().setApiClient(getIt<ApiClient>());
 }
 
@@ -68,12 +54,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _setupDependencies();
 
+  final themeNotifier = await ThemeNotifier.create();
+  getIt.registerSingleton<ThemeNotifier>(themeNotifier);
+
   await getIt<TokenManager>().clearTokens();
-  runApp(const GuardApp());
+  runApp(GuardApp(themeNotifier: themeNotifier));
 }
 
 class GuardApp extends StatefulWidget {
-  const GuardApp({super.key});
+  final ThemeNotifier themeNotifier;
+  const GuardApp({super.key, required this.themeNotifier});
 
   @override
   State<GuardApp> createState() => _GuardAppState();
@@ -92,11 +82,16 @@ class _GuardAppState extends State<GuardApp> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: getIt<AuthBloc>(),
-      child: MaterialApp.router(
-        title: 'Guard App',
-        theme: AppTheme.light,
-        routerConfig: _router,
-        debugShowCheckedModeBanner: false,
+      child: ListenableBuilder(
+        listenable: widget.themeNotifier,
+        builder: (context, _) => MaterialApp.router(
+          title: 'Gate App',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: widget.themeNotifier.themeMode,
+          routerConfig: _router,
+          debugShowCheckedModeBanner: false,
+        ),
       ),
     );
   }

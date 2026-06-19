@@ -30,42 +30,49 @@ class ScanResultScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              const Spacer(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+                      // Status icon
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: (isSuccess ? AppColors.success : Theme.of(context).colorScheme.error)
+                              .withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isSuccess ? Icons.check_circle : Icons.cancel,
+                          size: 96,
+                          color: isSuccess ? AppColors.success : Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-              // Status icon
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: (isSuccess ? AppColors.success : AppColors.error)
-                      .withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isSuccess ? Icons.check_circle : Icons.cancel,
-                  size: 96,
-                  color: isSuccess ? AppColors.success : AppColors.error,
+                      // Status text
+                      Text(
+                        isSuccess ? '$scanType Approved' : '$scanType Denied',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isSuccess ? AppColors.success : Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Details
+                      if (isSuccess && data != null)
+                        _SuccessDetails(data: data!, isEntry: isEntry),
+
+                      if (!isSuccess && errorMessage != null)
+                        _ErrorDetails(message: errorMessage!),
+                      
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // Status text
-              Text(
-                isSuccess ? '$scanType Approved' : '$scanType Denied',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isSuccess ? AppColors.success : AppColors.error,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Details
-              if (isSuccess && data != null)
-                _SuccessDetails(data: data!, isEntry: isEntry),
-
-              if (!isSuccess && errorMessage != null)
-                _ErrorDetails(message: errorMessage!),
-
-              const Spacer(),
 
               // Scan another button
               SizedBox(
@@ -79,7 +86,7 @@ class ScanResultScreen extends StatelessWidget {
                     style: TextStyle(fontSize: 18),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -140,9 +147,9 @@ class _SuccessDetails extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -176,7 +183,7 @@ class _SuccessDetails extends StatelessWidget {
             _DetailRow(
               label: 'Overstay Penalty',
               value: 'Rs. $penaltyAmount',
-              valueColor: AppColors.error,
+              valueColor: Theme.of(context).colorScheme.error,
             ),
           ],
         ],
@@ -196,19 +203,19 @@ class _ErrorDetails extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.05),
+        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.info_outline, color: AppColors.error, size: 28),
+          Icon(Icons.info_outline, color: Theme.of(context).colorScheme.error, size: 28),
           const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.error,
+              color: Theme.of(context).colorScheme.error,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -234,7 +241,7 @@ class _DetailRow extends StatelessWidget {
           label,
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         Flexible(
           child: Text(
@@ -242,7 +249,7 @@ class _DetailRow extends StatelessWidget {
             textAlign: TextAlign.end,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueColor ?? Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),

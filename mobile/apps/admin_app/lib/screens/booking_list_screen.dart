@@ -42,15 +42,15 @@ class _BookingListScreenState extends State<BookingListScreen> {
       case 'confirmed':
         return AppColors.success;
       case 'active':
-        return AppColors.primary;
+        return Theme.of(context).colorScheme.primary;
       case 'completed':
-        return AppColors.textSecondary;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
       case 'cancelled':
-        return AppColors.error;
+        return Theme.of(context).colorScheme.error;
       case 'pending_payment':
         return AppColors.warning;
       default:
-        return AppColors.textSecondary;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 
@@ -213,12 +213,12 @@ class _BookingInfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
             ),
           ),
         ],

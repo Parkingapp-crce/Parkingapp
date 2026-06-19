@@ -8,4 +8,5 @@ urlpatterns = [
     path("<uuid:pk>/", views.BookingDetailView.as_view(), name="booking-detail"),
     path("<uuid:pk>/cancel/", views.BookingCancelView.as_view(), name="booking-cancel"),
     path("<uuid:pk>/qr/", views.BookingQRView.as_view(), name="booking-qr"),
+    path("<uuid:pk>/overtime/", views.BookingOvertimeView.as_view(), name="booking-overtime"),
 ]

@@ -41,6 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     floor_number = models.CharField(max_length=10, blank=True, default="")
     can_scan_entry = models.BooleanField(default=False)
     can_scan_exit = models.BooleanField(default=False)
+    temporary_password = models.CharField(max_length=128, blank=True, default="")
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -61,7 +61,7 @@ class _BookingCreateContent extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.error!),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -89,11 +89,11 @@ class _BookingCreateContent extends StatelessWidget {
                 _AmountDisplay(state: state),
                 const SizedBox(height: 24),
                 PrimaryButton(
-                  label: 'Confirm Booking',
+                  label: 'Proceed to Checkout',
                   isLoading: state.isCreating,
                   onPressed: () =>
                       context.read<BookingCreateCubit>().createBooking(),
-                  icon: Icons.check_circle_outline,
+                  icon: Icons.payment,
                 ),
               ],
             ),
@@ -182,13 +182,13 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textSecondary),
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
             '$label: ',
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           Text(
             value,
@@ -244,7 +244,7 @@ class _DateTimeSection extends StatelessWidget {
                 'This booking uses the slot availability window you selected in search.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -269,9 +269,9 @@ class _DateTimeSection extends StatelessWidget {
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(
+              leading: Icon(
                 Icons.calendar_today,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               title: const Text('Date'),
               subtitle: Text(
@@ -294,7 +294,7 @@ class _DateTimeSection extends StatelessWidget {
             const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.access_time, color: AppColors.primary),
+              leading: Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
               title: const Text('Start Time'),
               subtitle: Text(
                 state.startTime != null
@@ -325,9 +325,9 @@ class _DateTimeSection extends StatelessWidget {
             const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(
+              leading: Icon(
                 Icons.access_time_filled,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               title: const Text('End Time'),
               subtitle: Text(
@@ -391,14 +391,14 @@ class _VehicleSelector extends StatelessWidget {
               'Only ${state.slot?.slotType.toUpperCase() ?? ''} vehicles are shown for this slot.',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 4),
             Text(
               'This slot accepts only ${requiredType.toUpperCase()} vehicles.',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
             if (state.vehicles.isEmpty)
@@ -409,7 +409,7 @@ class _VehicleSelector extends StatelessWidget {
                     Text(
                       'No vehicles found. Add a vehicle first.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -430,7 +430,7 @@ class _VehicleSelector extends StatelessWidget {
                       'No ${requiredType.toUpperCase()} vehicle found. Add one in Settings to continue.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -478,7 +478,7 @@ class _AmountDisplay extends StatelessWidget {
     final amount = state.estimatedAmount;
 
     return Card(
-      color: AppColors.primaryLight,
+      color: Theme.of(context).colorScheme.tertiary,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -494,7 +494,7 @@ class _AmountDisplay extends StatelessWidget {
               amount != null ? '\u20B9${amount.toStringAsFixed(2)}' : '--',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ],

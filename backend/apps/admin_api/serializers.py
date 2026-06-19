@@ -78,6 +78,7 @@ class ScanEventSerializer(serializers.ModelSerializer):
 
 
 class SocietyAdminDashboardSerializer(serializers.Serializer):
+    join_code = serializers.CharField()
     total_slots = serializers.IntegerField()
     available_slots = serializers.IntegerField()
     reserved_slots = serializers.IntegerField()
@@ -93,4 +94,4 @@ class SocietyAdminDashboardSerializer(serializers.Serializer):
 
 class GuardAccountSerializer(UserProfileSerializer):
     class Meta(UserProfileSerializer.Meta):
-        fields = UserProfileSerializer.Meta.fields
+        fields = UserProfileSerializer.Meta.fields + ["temporary_password"]

@@ -127,7 +127,7 @@ class _SlotFormScreenState extends State<SlotFormScreen> {
             content: Text(
               context.read<SlotsCubit>().state.error ?? 'An error occurred',
             ),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }

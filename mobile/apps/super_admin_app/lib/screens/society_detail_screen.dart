@@ -78,12 +78,12 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                 decoration: BoxDecoration(
                   color: society.isActive
                       ? AppColors.success.withOpacity(0.1)
-                      : AppColors.textSecondary.withOpacity(0.1),
+                      : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: society.isActive
                         ? AppColors.success.withOpacity(0.3)
-                        : AppColors.textSecondary.withOpacity(0.3),
+                        : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
                   ),
                 ),
                 child: Row(
@@ -93,7 +93,7 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                       size: 48,
                       color: society.isActive
                           ? AppColors.success
-                          : AppColors.textSecondary,
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -111,7 +111,7 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                             style: TextStyle(
                               color: society.isActive
                                   ? AppColors.success
-                                  : AppColors.textSecondary,
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -179,16 +179,16 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                 child: society.isActive
                     ? OutlinedButton.icon(
                         onPressed: () => _toggleActive(society),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.pause_circle_outline,
-                          color: AppColors.error,
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                        label: const Text(
+                        label: Text(
                           'Deactivate Society',
-                          style: TextStyle(color: AppColors.error),
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.error),
+                          side: BorderSide(color: Theme.of(context).colorScheme.error),
                         ),
                       )
                     : PrimaryButton(
@@ -227,7 +227,7 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                   child: _StatItem(
                     label: 'Total Slots',
                     value: '$total',
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 Expanded(
@@ -253,9 +253,9 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                 child: LinearProgressIndicator(
                   value: total > 0 ? (total - available) / total : 0,
                   minHeight: 8,
-                  backgroundColor: AppColors.divider,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.primary,
+                  backgroundColor: Theme.of(context).colorScheme.outlineVariant,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
@@ -323,7 +323,7 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
-              foregroundColor: newStatus ? AppColors.success : AppColors.error,
+              foregroundColor: newStatus ? AppColors.success : Theme.of(context).colorScheme.error,
             ),
             child: Text(action[0].toUpperCase() + action.substring(1)),
           ),
@@ -367,7 +367,7 @@ class _StatItem extends StatelessWidget {
           label,
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       ],
@@ -389,7 +389,7 @@ class _DetailRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: AppColors.textSecondary)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(width: 16),
           Flexible(
             child: Text(

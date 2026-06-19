@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:get_it/get_it.dart';
 import 'package:core/core.dart';
 import '../services/api_service.dart';
 import 'owner_login_page.dart';
+import 'qr_scanner_page.dart';
 
 class OwnerDashboard extends StatefulWidget {
   const OwnerDashboard({super.key});
@@ -12,11 +15,6 @@ class OwnerDashboard extends StatefulWidget {
 }
 
 class _OwnerDashboardState extends State<OwnerDashboard> {
-  final Color primary = AppColors.primary;
-  final Color primaryLight = AppColors.primaryLight;
-  final Color textDark = AppColors.textPrimary;
-  final Color textGrey = AppColors.textSecondary;
-
   Map<String, dynamic>? _profile;
   List<dynamic> _slots = [];
   bool _loading = true;
@@ -66,6 +64,42 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     );
   }
 
+  Future<void> _toggleSlotActive(String slotId, bool currentIsActive) async {
+    if (_profile == null || _profile!['society'] == null) return;
+    
+    // Optimistic UI update
+    setState(() {
+      final idx = _slots.indexWhere((s) => s['id'] == slotId);
+      if (idx != -1) {
+        _slots[idx]['is_active'] = !currentIsActive;
+      }
+    });
+    
+    try {
+      await ApiService.toggleSlotActive(
+        _profile!['society'].toString(),
+        slotId,
+        !currentIsActive,
+      );
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        final idx = _slots.indexWhere((s) => s['id'] == slotId);
+        if (idx != -1) {
+          _slots[idx]['is_active'] = currentIsActive;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   void _showAddSlotModal() {
     final slotNumCtrl = TextEditingController();
     final floorCtrl = TextEditingController(
@@ -79,30 +113,54 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
           padding: EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            MediaQuery.of(context).viewInsets.bottom + 20,
+            24,
+            24,
+            24,
+            MediaQuery.of(context).viewInsets.bottom + 32,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Add New Slot',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: textDark,
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              const Text(
+                'ADD NEW SLOT',
+                style: TextStyle(
+                  color: AppColors.primaryLight,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'List your parking space',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 20),
               AppTextField(
                 label: 'Slot Number',
                 hint: 'e.g. A-101',
@@ -114,32 +172,74 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                 hint: 'e.g. 1st',
                 controller: floorCtrl,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              const Text(
+                'VEHICLE TYPE',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
-                    child: RadioListTile(
-                      title: const Text('Car'),
-                      value: 'car',
-                      groupValue: slotType,
-                      onChanged: (v) =>
-                          setModalState(() => slotType = v.toString()),
-                      contentPadding: EdgeInsets.zero,
+                    child: GestureDetector(
+                      onTap: () => setModalState(() => slotType = 'car'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: slotType == 'car'
+                              ? AppColors.primary.withOpacity(0.1)
+                              : AppColors.surfaceVariant,
+                          border: Border.all(
+                            color: slotType == 'car'
+                                ? AppColors.primary
+                                : Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.directions_car_rounded,
+                          color: slotType == 'car'
+                              ? AppColors.primaryLight
+                              : AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: RadioListTile(
-                      title: const Text('Bike'),
-                      value: 'bike',
-                      groupValue: slotType,
-                      onChanged: (v) =>
-                          setModalState(() => slotType = v.toString()),
-                      contentPadding: EdgeInsets.zero,
+                    child: GestureDetector(
+                      onTap: () => setModalState(() => slotType = 'bike'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: slotType == 'bike'
+                              ? AppColors.primary.withOpacity(0.1)
+                              : AppColors.surfaceVariant,
+                          border: Border.all(
+                            color: slotType == 'bike'
+                                ? AppColors.primary
+                                : Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.pedal_bike_rounded,
+                          color: slotType == 'bike'
+                              ? AppColors.primaryLight
+                              : AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               AppTextField(
                 label: 'Hourly Rate (₹)',
                 hint: 'e.g. 50',
@@ -147,71 +247,154 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Availability Timings',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.access_time, size: 16),
-                      label: Text('From: ${availableFrom.format(context)}'),
-                      onPressed: () async {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: availableFrom,
-                        );
-                        if (time != null)
-                          setModalState(() => availableFrom = time);
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'AVAILABLE FROM',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: availableFrom,
+                            );
+                            if (time != null) {
+                              setModalState(() => availableFrom = time);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  availableFrom.format(context),
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const Icon(Icons.access_time_rounded,
+                                    color: AppColors.textSecondary, size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.access_time, size: 16),
-                      label: Text('To: ${availableTo.format(context)}'),
-                      onPressed: () async {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: availableTo,
-                        );
-                        if (time != null)
-                          setModalState(() => availableTo = time);
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'AVAILABLE TO',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: availableTo,
+                            );
+                            if (time != null) {
+                              setModalState(() => availableTo = time);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  availableTo.format(context),
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const Icon(Icons.access_time_rounded,
+                                    color: AppColors.textSecondary, size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               PrimaryButton(
-                label: 'Submit for Approval',
+                label: 'Save Parking Slot',
                 onPressed: () async {
-                  if (slotNumCtrl.text.isEmpty || rateCtrl.text.isEmpty) return;
-                  final rate = double.tryParse(rateCtrl.text) ?? 0.0;
+                  if (slotNumCtrl.text.isEmpty ||
+                      rateCtrl.text.isEmpty ||
+                      floorCtrl.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please fill all fields'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                    return;
+                  }
 
-                  final formatTime = (TimeOfDay time) =>
-                      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
+                  String formatTime(TimeOfDay t) {
+                    final h = t.hour.toString().padLeft(2, '0');
+                    final m = t.minute.toString().padLeft(2, '0');
+                    return '$h:$m:00';
+                  }
+
+                  Navigator.pop(context);
+                  setState(() => _loading = true);
 
                   try {
                     await ApiService.addSlot(
-                      societyId: _profile!['society'],
+                      societyId: _profile!['society'].toString(),
                       slotNumber: slotNumCtrl.text.trim(),
                       floor: floorCtrl.text.trim(),
                       slotType: slotType,
-                      hourlyRate: rate,
+                      hourlyRate: double.parse(rateCtrl.text.trim()),
                       availableFrom: formatTime(availableFrom),
                       availableTo: formatTime(availableTo),
                     );
-                    if (!mounted) return;
-                    Navigator.pop(context);
                     _loadData();
                   } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    setState(() {
+                      _error = 'Failed to add slot: $e';
+                      _loading = false;
+                    });
                   }
                 },
               ),
@@ -225,136 +408,200 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator(color: primary)),
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
+
     if (_error != null) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: 56,
-                color: Colors.red.shade300,
+              const Icon(Icons.error_outline,
+                  color: AppColors.error, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                _error!,
+                style: const TextStyle(color: AppColors.textPrimary),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 16),
-              ElevatedButton(
+              PrimaryButton(
+                label: 'Retry',
                 onPressed: _loadData,
-                style: ElevatedButton.styleFrom(backgroundColor: primary),
-                child: const Text(
-                  'Retry',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
+              )
             ],
           ),
         ),
       );
     }
 
-    final isApproved = _profile?['society'] != null;
+    final isApproved = _profile?['approval_status'] == 'approved';
+    final approvedSlots =
+        _slots.where((s) => s['approval_status'] == 'approved').length;
+    final pendingSlots =
+        _slots.where((s) => s['approval_status'] == 'pending').length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
-          color: primary,
-          child: Column(
+          color: AppColors.primary,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
               // ── Header ──
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryDark,
-                      AppColors.primary,
-                      AppColors.primaryLight,
-                    ],
+              PremiumHeader(
+                title: 'Hello, ${_profile?['full_name']?.split(' ')[0] ?? 'User'}',
+                subtitle: '${_profile?['society_name'] ?? 'Society'} • Flat ${_profile?['flat_number'] ?? '-'}',
+                actions: [
+                  ListenableBuilder(
+                    listenable: GetIt.I<ThemeNotifier>(),
+                    builder: (context, _) {
+                      final isDark = GetIt.I<ThemeNotifier>().isDark;
+                      return GestureDetector(
+                        onTap: GetIt.I<ThemeNotifier>().toggle,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Icon(
+                            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(28),
-                    bottomRight: Radius.circular(28),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const QRScannerPage()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(14),
+                        color: AppColors.primary.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.divider),
                       ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                      child: const Icon(Icons.qr_code_scanner_rounded,
+                          color: AppColors.textPrimary, size: 20),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _logout,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: const Icon(Icons.logout_rounded,
+                          color: AppColors.textPrimary, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+
+              // ── Body ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isApproved) ...[
+                      _buildPendingState(),
+                    ] else ...[
+                      Row(
                         children: [
-                          Text(
-                            'Resident Panel',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 12,
-                              letterSpacing: 0.5,
+                          Expanded(
+                            child: PremiumMetricTile(
+                              label: 'My Slots',
+                              value: '${_slots.length}',
+                              icon: Icons.local_parking_rounded,
                             ),
                           ),
-                          Text(
-                            _profile?['full_name'] ?? 'User',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: PremiumMetricTile(
+                              label: 'Approved',
+                              value: '$approvedSlots',
+                              icon: Icons.check_circle_outline_rounded,
+                              valueColor: AppColors.success,
+                            ),
+                          ),
+                          if (pendingSlots > 0) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: PremiumMetricTile(
+                                label: 'Pending',
+                                value: '$pendingSlots',
+                                icon: Icons.hourglass_top_rounded,
+                                valueColor: AppColors.warning,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'MY PARKING SLOTS',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.0,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _showAddSlotModal,
+                            child: const Text(
+                              '+ Add slot',
+                              style: TextStyle(
+                                color: AppColors.primaryLight,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Inter',
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: _logout,
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.logout_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ),
+                      const SizedBox(height: 12),
+                      if (_slots.isEmpty)
+                        _buildEmptySlots()
+                      else
+                        ..._slots.map((slot) => _SlotCard(
+                              slot: slot as Map<String, dynamic>,
+                              onToggleActive: _toggleSlotActive,
+                            )),
+                      const SizedBox(height: 40),
+                    ],
                   ],
                 ),
-              ),
-
-              // ── Main Content ──
-              Expanded(
-                child: !isApproved ? _buildPendingState() : _buildSlotsList(),
               ),
             ],
           ),
@@ -363,14 +610,13 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
       floatingActionButton: isApproved
           ? FloatingActionButton.extended(
               onPressed: _showAddSlotModal,
-              backgroundColor: primary,
-              icon: const Icon(Icons.add, color: Colors.white),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
               label: const Text(
                 'Add Slot',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontWeight: FontWeight.w700, fontFamily: 'Inter'),
               ),
             )
           : null,
@@ -378,213 +624,304 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
   }
 
   Widget _buildPendingState() {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            Icon(
-              Icons.hourglass_empty_rounded,
-              size: 80,
-              color: textGrey.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Pending Approval',
-              style: TextStyle(
-                color: textDark,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Your society membership request is pending. Once the society admin approves your request, you will be able to manage your parking slots here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: textGrey, fontSize: 15, height: 1.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlotsList() {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.local_parking_rounded, color: primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'My Parking Slots',
-                style: TextStyle(
-                  color: textDark,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_slots.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.directions_car_filled_outlined,
-                      size: 60,
-                      color: textGrey.withOpacity(0.3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No slots added yet',
-                      style: TextStyle(color: textGrey),
-                    ),
-                  ],
-                ),
-              ),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-          ..._slots.map((slot) => _buildSlotCard(slot)).toList(),
+            child: const Icon(Icons.hourglass_empty_rounded,
+                size: 40, color: AppColors.warning),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Pending Approval',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Your society membership request is pending. Once the admin approves your request, you can manage your slots here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              height: 1.5,
+              fontFamily: 'Inter',
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSlotCard(Map<String, dynamic> slot) {
-    final status = slot['approval_status'] ?? 'pending';
-    final state = slot['state'] ?? 'blocked';
+  Widget _buildEmptySlots() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: const EmptyStateWidget(
+        icon: Icons.local_parking_outlined,
+        title: 'No slots added yet',
+        subtitle: 'Tap "Add slot" to list your first parking space',
+      ),
+    );
+  }
+}
 
-    Color statusColor = Colors.orange;
-    IconData statusIcon = Icons.hourglass_bottom_rounded;
-    if (status == 'approved') {
+class _SlotCard extends StatelessWidget {
+  final Map<String, dynamic> slot;
+  final void Function(String slotId, bool isActive) onToggleActive;
+
+  const _SlotCard({required this.slot, required this.onToggleActive});
+
+  @override
+  Widget build(BuildContext context) {
+    final approvalStatus = slot['approval_status'] ?? 'pending';
+    final slotState = slot['state'] ?? 'blocked';
+    final isActive = slot['is_active'] ?? true;
+    final nextFreeAtRaw = slot['next_free_at'];
+    final freeingNote = slot['freeing_up_note'] as String?;
+    final currentBookingNumber = slot['current_booking_number'] as String?;
+    final currentBookingStatus = slot['current_booking_status'] as String?;
+    final currentBookingEndTimeRaw =
+        slot['current_booking_end_time'] as String?;
+    final bookings = (slot['bookings'] as List<dynamic>?) ?? const [];
+    final timeLabel = DateFormat('MMM d, hh:mm a');
+
+    DateTime? nextFreeAt;
+    DateTime? currentBookingEndTime;
+    try {
+      if (nextFreeAtRaw is String && nextFreeAtRaw.isNotEmpty) {
+        nextFreeAt = DateTime.parse(nextFreeAtRaw).toLocal();
+      }
+      if (currentBookingEndTimeRaw != null &&
+          currentBookingEndTimeRaw.isNotEmpty) {
+        currentBookingEndTime =
+            DateTime.parse(currentBookingEndTimeRaw).toLocal();
+      }
+    } catch (_) {}
+
+    Color statusColor = AppColors.warning;
+    IconData statusIcon = Icons.hourglass_top_rounded;
+    if (approvalStatus == 'approved') {
       statusColor = AppColors.success;
-      statusIcon = Icons.check_circle_rounded;
-    } else if (status == 'rejected') {
+      statusIcon = Icons.check_circle_outline_rounded;
+    } else if (approvalStatus == 'rejected') {
       statusColor = AppColors.error;
-      statusIcon = Icons.cancel_rounded;
+      statusIcon = Icons.cancel_outlined;
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: AppColors.divider),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      slot['slot_type'] == 'bike'
-                          ? Icons.pedal_bike_rounded
-                          : Icons.directions_car_rounded,
-                      color: primary,
-                    ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 14),
-                  Column(
+                  child: Icon(
+                    slot['slot_type'] == 'bike'
+                        ? Icons.pedal_bike_rounded
+                        : Icons.directions_car_rounded,
+                    color: AppColors.primaryLight,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         slot['slot_number'] ?? 'Slot',
-                        style: TextStyle(
-                          color: textDark,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Inter',
                         ),
                       ),
-                      const SizedBox(height: 4),
                       Text(
-                        'Floor: ${slot['floor'] ?? '-'}',
-                        style: TextStyle(color: textGrey, fontSize: 13),
+                        'Floor ${slot['floor'] ?? '-'} · ₹${slot['hourly_rate']}/hr',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                        ),
                       ),
                     ],
                   ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(statusIcon, color: statusColor, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          status.toString().toUpperCase(),
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '₹${slot['hourly_rate']}/hr',
-                    style: TextStyle(
-                      color: primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          if (status == 'approved') ...[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Text('Current State: ', style: TextStyle(fontSize: 12)),
-                Text(
-                  state.toString().toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: state == 'available'
-                        ? AppColors.success
-                        : Colors.orange,
-                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (approvalStatus == 'approved')
+                      Switch(
+                        value: isActive,
+                        onChanged: (val) => onToggleActive(slot['id'], isActive),
+                        activeColor: AppColors.primaryLight,
+                      ),
+                  ],
                 ),
               ],
+            ),
+          ),
+          Container(height: 1, color: AppColors.divider),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                        color: statusColor.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, color: statusColor, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        approvalStatus.toUpperCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (approvalStatus == 'approved')
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: slotState == 'available'
+                          ? AppColors.success
+                          : AppColors.warning,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (approvalStatus == 'approved' && bookings.isNotEmpty) ...[
+            Container(height: 1, color: AppColors.divider),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'UPCOMING BOOKINGS',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...bookings.map((b) {
+                    final bStatus = b['status'] ?? '';
+                    final bStartStr = b['start_time'] ?? '';
+                    final bEndStr = b['end_time'] ?? '';
+                    String displayTime = '';
+                    try {
+                      if (bStartStr.isNotEmpty && bEndStr.isNotEmpty) {
+                        final st = DateTime.parse(bStartStr).toLocal();
+                        final en = DateTime.parse(bEndStr).toLocal();
+                        displayTime =
+                            '${timeLabel.format(st)} - ${DateFormat('hh:mm a').format(en)}';
+                      }
+                    } catch (_) {}
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                b['booking_number'] ?? 'Booking',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                displayTime,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.outline.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              bStatus.toUpperCase(),
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
           ],
         ],

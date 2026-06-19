@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
+import 'package:latlong2/latlong.dart';
+
+import 'society_location_picker_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,11 +25,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
   final _pincodeController = TextEditingController();
-  final _latitudeController = TextEditingController();
-  final _longitudeController = TextEditingController();
+
+  LocationSuggestionModel? _selectedLocation;
+  bool _isPickingLocation = false;
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  void _applyLocationDetails(LocationSuggestionModel location) {
+    _societyAddressController.text =
+        location.address.isNotEmpty ? location.address : location.label;
+    _cityController.text = location.city;
+    _stateController.text = location.state;
+    _pincodeController.text = location.pincode;
+  }
 
   @override
   void dispose() {
@@ -40,22 +52,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _cityController.dispose();
     _stateController.dispose();
     _pincodeController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLocationOnMap() async {
+    setState(() {
+      _isPickingLocation = true;
+    });
+
+    try {
+      final pickedPoint = await Navigator.of(context).push<LatLng>(
+        MaterialPageRoute(
+          builder: (_) => SocietyLocationPickerScreen(
+            initialLocation: _selectedLocation,
+          ),
+        ),
+      );
+
+      if (!mounted || pickedPoint == null) {
+        return;
+      }
+
+      setState(() => _selectedLocation = null);
+
+      try {
+        final response = await context.read<ApiClient>().get(
+          ApiEndpoints.destinationReverseGeocode,
+          queryParameters: {
+            'latitude': pickedPoint.latitude,
+            'longitude': pickedPoint.longitude,
+          },
+        );
+        if (!mounted) {
+          return;
+        }
+
+        final location = LocationSuggestionModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+        setState(() {
+          _selectedLocation = location;
+          _applyLocationDetails(location);
+        });
+      } catch (_) {
+        if (!mounted) {
+          return;
+        }
+
+        final fallbackLocation = LocationSuggestionModel(
+          placeId: '',
+          latitude: pickedPoint.latitude,
+          longitude: pickedPoint.longitude,
+          label:
+              '${pickedPoint.latitude.toStringAsFixed(6)}, ${pickedPoint.longitude.toStringAsFixed(6)}',
+          title: 'Pinned Society Location',
+          subtitle:
+              'Lat ${pickedPoint.latitude.toStringAsFixed(6)} | Lng ${pickedPoint.longitude.toStringAsFixed(6)}',
+        );
+        setState(() {
+          _selectedLocation = fallbackLocation;
+          _applyLocationDetails(fallbackLocation);
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingLocation = false;
+        });
+      }
+    }
   }
 
   void _onRegister() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final latitude = double.tryParse(_latitudeController.text.trim());
-    final longitude = double.tryParse(_longitudeController.text.trim());
-
-    if (latitude == null || longitude == null) {
+    if (_selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter valid latitude and longitude.'),
-          backgroundColor: AppColors.error,
+        SnackBar(
+          content: Text('Pin the society location on the map.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -73,8 +148,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         societyCity: _cityController.text.trim(),
         societyState: _stateController.text.trim(),
         societyPincode: _pincodeController.text.trim(),
-        societyLatitude: latitude,
-        societyLongitude: longitude,
+        societyLatitude: _selectedLocation!.latitude,
+        societyLongitude: _selectedLocation!.longitude,
       ),
     );
   }
@@ -89,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -110,9 +185,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Society location coordinates decide exact map pin placement.',
+                    'Pin the society on the map to set its exact coordinates.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -239,8 +314,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   AppTextField(
                     controller: _societyAddressController,
                     label: 'Society Address',
-                    hint: 'Enter complete society address',
+                    hint: 'Auto-filled from the pin, edit if needed',
                     prefixIcon: Icons.location_on_outlined,
+                    maxLines: 2,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Society address is required';
@@ -252,7 +328,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   AppTextField(
                     controller: _cityController,
                     label: 'City',
-                    hint: 'Enter city',
+                    hint: 'Auto-filled from the pin, edit if needed',
                     prefixIcon: Icons.location_city,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -265,7 +341,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   AppTextField(
                     controller: _stateController,
                     label: 'State',
-                    hint: 'Enter state',
+                    hint: 'Auto-filled from the pin, edit if needed',
                     prefixIcon: Icons.map_outlined,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -278,7 +354,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   AppTextField(
                     controller: _pincodeController,
                     label: 'Pincode',
-                    hint: 'Enter pincode',
+                    hint: 'Auto-filled from the pin, edit if needed',
                     prefixIcon: Icons.pin_drop_outlined,
                     keyboardType: TextInputType.number,
                     validator: (value) {
@@ -289,43 +365,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  AppTextField(
-                    controller: _latitudeController,
-                    label: 'Latitude',
-                    hint: 'e.g. 19.076000',
-                    prefixIcon: Icons.my_location,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Latitude is required';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
-                        return 'Enter valid latitude';
-                      }
-                      return null;
-                    },
-                  ),
                   const SizedBox(height: 12),
-                  AppTextField(
-                    controller: _longitudeController,
-                    label: 'Longitude',
-                    hint: 'e.g. 72.877700',
-                    prefixIcon: Icons.explore,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Longitude is required';
-                      }
-                      if (double.tryParse(value.trim()) == null) {
-                        return 'Enter valid longitude';
-                      }
-                      return null;
-                    },
+                  OutlinedButton.icon(
+                    onPressed: _isPickingLocation ? null : _pickLocationOnMap,
+                    icon: _isPickingLocation
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.map_outlined),
+                    label: const Text('Pin Society on Map'),
                   ),
+                  if (_selectedLocation != null) ...[
+                    const SizedBox(height: 12),
+                    _LocationSummaryCard(location: _selectedLocation!),
+                  ],
                   const SizedBox(height: 24),
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
@@ -346,6 +401,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationSummaryCard extends StatelessWidget {
+  final LocationSuggestionModel location;
+
+  const _LocationSummaryCard({required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.tertiary,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              location.title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(location.subtitle),
+            const SizedBox(height: 4),
+            Text(
+              'Coordinates: ${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ],
         ),
       ),
     );

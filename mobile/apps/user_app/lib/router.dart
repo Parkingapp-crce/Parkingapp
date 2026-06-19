@@ -11,7 +11,6 @@ import 'screens/booking_list_screen.dart';
 import 'screens/booking_detail_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/vehicles_screen.dart';
-import 'screens/pending_approval_screen.dart';
 import 'screens/scaffold_with_nav.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -37,9 +36,11 @@ GoRouter createRouter(AuthBloc authBloc) {
         return '/login';
       }
 
-
-
       if (isAuth && isAuthRoute) {
+        return '/home';
+      }
+
+      if (isAuth && state.matchedLocation == '/pending-approval') {
         return '/home';
       }
 
@@ -50,10 +51,6 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/pending-approval',
-        builder: (context, state) => const PendingApprovalScreen(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,

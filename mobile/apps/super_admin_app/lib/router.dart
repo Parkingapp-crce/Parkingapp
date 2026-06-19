@@ -97,30 +97,38 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
         BlocProvider(create: (_) => SocietiesCubit(widget.apiClient)),
       ],
       child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: widget.child,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) {
-            setState(() => _currentIndex = index);
-            switch (index) {
-              case 0:
-                context.go('/dashboard');
-              case 1:
-                context.go('/societies');
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.apartment_outlined),
-              selectedIcon: Icon(Icons.apartment),
-              label: 'Societies',
-            ),
-          ],
+          ),
+          child: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() => _currentIndex = index);
+              switch (index) {
+                case 0:
+                  context.go('/dashboard');
+                case 1:
+                  context.go('/societies');
+              }
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard_rounded),
+                label: 'Dashboard',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.apartment_outlined),
+                selectedIcon: Icon(Icons.apartment_rounded),
+                label: 'Societies',
+              ),
+            ],
+          ),
         ),
       ),
     );

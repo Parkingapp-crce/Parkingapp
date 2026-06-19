@@ -35,6 +35,8 @@ class ApiEndpoints {
       '/api/v1/societies/$societyId/slots/$slotId/block/';
   static String slotUnblock(String societyId, String slotId) =>
       '/api/v1/societies/$societyId/slots/$slotId/unblock/';
+  static String slotToggleActive(String societyId, String slotId) =>
+      '/api/v1/societies/$societyId/slots/$slotId/toggle-active/';
   static String slotAvailability(String societyId, String slotId) =>
       '/api/v1/societies/$societyId/slots/$slotId/availability/';
   static String societyJoinRequests(String societyId) =>
@@ -50,6 +52,8 @@ class ApiEndpoints {
   static String booking(String id) => '/api/v1/bookings/$id/';
   static String bookingCancel(String id) => '/api/v1/bookings/$id/cancel/';
   static String bookingQr(String id) => '/api/v1/bookings/$id/qr/';
+  static String bookingOvertime(String id) => '/api/v1/bookings/$id/overtime/';
+
 
   // Payments
   static const paymentInitiate = '/api/v1/payments/initiate/';

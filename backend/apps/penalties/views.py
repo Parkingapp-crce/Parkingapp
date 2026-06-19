@@ -34,12 +34,38 @@ class PenaltyPayView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        payment, checkout_url = create_stripe_penalty_checkout_session(
-            penalty,
-            request,
+        gateway = request.data.get("gateway", "stripe")
+        embedded = request.data.get("embedded", False)
+        
+        from django.conf import settings
+        allow_bypass = getattr(
+            settings,
+            "PAYMENT_BYPASS",
+            getattr(settings, "DEBUG", False),
         )
-        serializer = PaymentSerializer(
-            payment,
-            context={"checkout_url": checkout_url},
-        )
+        if allow_bypass:
+            from apps.payments.services import create_bypass_penalty_payment
+            payment = create_bypass_penalty_payment(penalty, request)
+            serializer = PaymentSerializer(payment)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if gateway == "stripe":
+            payment, checkout_url, checkout_client_secret = create_stripe_penalty_checkout_session(
+                penalty,
+                request,
+                embedded=embedded,
+            )
+            serializer = PaymentSerializer(
+                payment,
+                context={
+                    "checkout_url": checkout_url,
+                    "checkout_client_secret": checkout_client_secret,
+                    "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY if embedded else None,
+                },
+            )
+        else:
+            from apps.payments.services import create_razorpay_penalty_order
+            payment, razorpay_order_id = create_razorpay_penalty_order(penalty, request)
+            serializer = PaymentSerializer(payment)
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)

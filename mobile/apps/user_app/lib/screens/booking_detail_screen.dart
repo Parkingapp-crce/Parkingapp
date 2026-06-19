@@ -11,6 +11,7 @@ import 'package:core/core.dart';
 
 import '../cubits/bookings_cubit.dart';
 import '../widgets/embedded_checkout.dart';
+import 'mock_payment_screen.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final String bookingId;
@@ -52,8 +53,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     super.dispose();
   }
 
-  void _handleRazorpaySuccess(PaymentSuccessResponse response) {
+  void _handleRazorpaySuccess(PaymentSuccessResponse response) async {
     final cubit = context.read<BookingDetailCubit>();
+    
+    if (response.orderId == null || response.orderId!.isEmpty) {
+       // Bypass payment successful on Razorpay SDK side
+       if (!mounted) return;
+       await cubit.loadBooking(widget.bookingId);
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(
+           content: Text('Payment successful!'),
+           backgroundColor: AppColors.success,
+         ),
+       );
+       return;
+    }
+    
     _verifyRazorpayPayment(
       cubit,
       response.orderId ?? '',
@@ -158,12 +173,39 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
     if (payment == null) return;
 
+    if (gateway == 'stripe' && payment.status == 'captured' && payment.stripeCheckoutSessionId?.startsWith('bypass') == true) {
+      if (!mounted) return;
+      
+      final success = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => MockPaymentScreen(
+            amount: booking.amount,
+            gateway: gateway,
+          ),
+        ),
+      );
+      
+      if (success == true) {
+        await cubit.loadBooking(widget.bookingId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment successful! Booking confirmed.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+      return;
+    }
+
     if (gateway == 'razorpay') {
-      final options = {
-        'key': payment.razorpayKeyId,
+      final isBypass = payment.status == 'captured' && payment.razorpayOrderId?.startsWith('bypass') == true;
+      final key = isBypass ? 'rzp_test_Si0o1H1Ewco24k' : payment.razorpayKeyId;
+
+      final options = <String, dynamic>{
+        'key': key,
         'amount': (double.parse(booking.amount) * 100).toInt(),
         'name': 'ParkWise',
-        'order_id': payment.razorpayOrderId,
         'description': 'Booking #${booking.bookingNumber}',
         'prefill': {
           'contact': '', // Could add user phone here if available
@@ -173,10 +215,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           'wallets': ['paytm'],
         },
       };
+      
+      if (!isBypass && payment.razorpayOrderId != null) {
+        options['order_id'] = payment.razorpayOrderId;
+      }
 
       try {
         _razorpay.open(options);
-        cubit.startPolling(booking.id);
+        if (!isBypass) {
+          cubit.startPolling(booking.id);
+        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -126,6 +126,25 @@ class ApiService {
     return [];
   }
 
+  /// 🔹 TOGGLE SLOT ACTIVE
+  static Future<Map<String, dynamic>> toggleSlotActive(
+      String societyId, String slotId, bool isActive) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse("$baseUrl/api/v1/societies/$societyId/slots/$slotId/toggle-active/"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({"is_active": isActive}),
+    );
+    final data = jsonDecode(response.body);
+    if (response.statusCode >= 400) {
+      throw Exception(data['error'] ?? 'Failed to toggle slot state.');
+    }
+    return data;
+  }
+
   /// 🔹 ADD SLOT
   static Future<Map<String, dynamic>> addSlot({
     required String societyId,

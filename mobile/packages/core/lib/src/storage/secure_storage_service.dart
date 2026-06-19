@@ -6,6 +6,8 @@ class SecureStorageService {
   static const _refreshTokenKey = 'refresh_token';
   static const _emailKey = 'saved_email';
   static const _passwordKey = 'saved_password';
+  static const _guardEmailKey = 'saved_guard_email';
+  static const _guardPasswordKey = 'saved_guard_password';
 
   final TokenStore _store;
 
@@ -16,6 +18,8 @@ class SecureStorageService {
   Future<String?> getRefreshToken() => _safeRead(_refreshTokenKey);
   Future<String?> getEmail() => _safeRead(_emailKey);
   Future<String?> getPassword() => _safeRead(_passwordKey);
+  Future<String?> getGuardEmail() => _safeRead(_guardEmailKey);
+  Future<String?> getGuardPassword() => _safeRead(_guardPasswordKey);
 
   Future<void> saveTokens({
     required String access,
@@ -37,6 +41,16 @@ class SecureStorageService {
     ]);
   }
 
+  Future<void> saveGuardCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await Future.wait([
+      _safeWrite(_guardEmailKey, email),
+      _safeWrite(_guardPasswordKey, password),
+    ]);
+  }
+
   Future<void> clearTokens() async {
     await Future.wait([
       _safeDelete(_accessTokenKey),
@@ -46,6 +60,13 @@ class SecureStorageService {
 
   Future<void> clearCredentials() async {
     await Future.wait([_safeDelete(_emailKey), _safeDelete(_passwordKey)]);
+  }
+
+  Future<void> clearGuardCredentials() async {
+    await Future.wait([
+      _safeDelete(_guardEmailKey),
+      _safeDelete(_guardPasswordKey),
+    ]);
   }
 
   Future<bool> hasTokens() async {

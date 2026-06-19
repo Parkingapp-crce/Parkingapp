@@ -30,12 +30,16 @@ def detect_no_shows():
             Booking.objects.select_for_update()
             .filter(
                 status=Booking.Status.CONFIRMED,
-                end_time__lte=now,
                 actual_entry__isnull=True,
+                start_time__lte=now,
             )
         )
 
         for booking in expired_bookings:
+            halfway_point = booking.start_time + (booking.end_time - booking.start_time) / 2
+            if now < halfway_point:
+                continue
+
             booking.status = Booking.Status.NO_SHOW
             booking.save(update_fields=["status", "updated_at"])
 

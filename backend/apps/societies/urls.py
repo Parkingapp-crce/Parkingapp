@@ -40,6 +40,11 @@ urlpatterns = [
         name="slot-unblock",
     ),
     path(
+        "<uuid:society_id>/slots/<uuid:pk>/toggle-active/",
+        views.SlotToggleActiveView.as_view(),
+        name="slot-toggle-active",
+    ),
+    path(
         "<uuid:society_id>/slots/<uuid:pk>/availability/",
         views.SlotAvailabilityWindowListCreateView.as_view(),
         name="slot-availability",

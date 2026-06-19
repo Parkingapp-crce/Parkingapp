@@ -3,6 +3,10 @@ class LocationSuggestionModel {
   final String title;
   final String subtitle;
   final String label;
+  final String address;
+  final String city;
+  final String state;
+  final String pincode;
   final double latitude;
   final double longitude;
 
@@ -11,6 +15,10 @@ class LocationSuggestionModel {
     required this.title,
     required this.subtitle,
     required this.label,
+    this.address = '',
+    this.city = '',
+    this.state = '',
+    this.pincode = '',
     required this.latitude,
     required this.longitude,
   });
@@ -21,6 +29,10 @@ class LocationSuggestionModel {
       title: json['title'] as String? ?? '',
       subtitle: json['subtitle'] as String? ?? '',
       label: json['label'] as String? ?? '',
+      address: json['address'] as String? ?? '',
+      city: json['city'] as String? ?? '',
+      state: json['state'] as String? ?? '',
+      pincode: json['pincode']?.toString() ?? '',
       latitude: _asDouble(json['latitude']),
       longitude: _asDouble(json['longitude']),
     );

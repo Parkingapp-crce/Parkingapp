@@ -104,10 +104,10 @@ class _OwnerDetailScreenState extends State<OwnerDetailScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 24,
-                                backgroundColor: AppColors.primaryLight,
+                                backgroundColor: Theme.of(context).colorScheme.tertiary,
                                 child: Icon(
                                   Icons.person,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                   size: 28,
                                 ),
                               ),
@@ -196,14 +196,14 @@ class _OwnerDetailScreenState extends State<OwnerDetailScreen> {
                             width: 48,
                             height: 48,
                             decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
+                              color: Theme.of(context).colorScheme.tertiary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               slot.slotType == 'bike'
                                   ? Icons.two_wheeler
                                   : Icons.directions_car,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           title: Text(
@@ -222,7 +222,7 @@ class _OwnerDetailScreenState extends State<OwnerDetailScreen> {
                                   color: slot.approvalStatus == 'approved'
                                       ? AppColors.success
                                       : slot.approvalStatus == 'rejected'
-                                      ? AppColors.error
+                                      ? Theme.of(context).colorScheme.error
                                       : AppColors.warning,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -258,14 +258,14 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.textSecondary),
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
             ),
             Text(
               value.isNotEmpty ? value : '-',

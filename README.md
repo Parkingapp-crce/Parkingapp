@@ -108,33 +108,11 @@ The current backend uses versioned endpoints under `/api/v1/*`.
 
 ---
 
-## ✅ Demo Login Setup (mobile/apps/*)
+## ✅ Backend/API Notes
 
-For the new app family under `mobile/apps/*`, use the `backend/` service with `/api/v1/*` endpoints.
+For the app family under `mobile/apps/*`, use the `backend/` service with `/api/v1/*` endpoints.
 
-From `backend/`, create/reset demo users:
-
-```
-python manage.py seed_demo_users
-```
-
-Default password for all demo users:
-
-```
-Password@123
-```
-
-Demo accounts:
-
-- `user@parking.com` (user app)
-- `user2@parking.com` (user app)
-- `user3@parking.com` (user app)
-- `admin@parking.com` (admin app)
-- `admin2@parking.com` (admin app)
-- `admin3@parking.com` (admin app)
-- `guard@parking.com` (guard app)
-- `guard2@parking.com` (guard app)
-- `superadmin@parking.com` (super admin app)
+All runtime data should come from the database and authenticated API responses.
 
 ---
 

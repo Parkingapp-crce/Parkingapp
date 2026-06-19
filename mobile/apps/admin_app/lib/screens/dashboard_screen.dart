@@ -2,6 +2,7 @@ import 'package:core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import '../cubits/dashboard_cubit.dart';
@@ -22,14 +23,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadJoinCodeFromProfile();
+      }
+    });
     context.read<DashboardCubit>().startPolling();
   }
 
   void _loadData() {
     context.read<DashboardCubit>().loadDashboard();
-    final authState = context.read<AuthBloc>().state;
-    if (authState is Authenticated && authState.user.society != null) {
-      _loadJoinCode(authState.user.society!);
+  }
+
+  Future<void> _loadJoinCodeFromProfile() async {
+    setState(() => _isJoinCodeLoading = true);
+    try {
+      final response = await context.read<ApiClient>().get(ApiEndpoints.profile);
+      final data = response.data;
+      final societyId = data is Map<String, dynamic> ? data['society'] as String? : null;
+      if (societyId == null || societyId.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _joinCode = null;
+          _isJoinCodeLoading = false;
+        });
+        return;
+      }
+
+      await _loadJoinCode(societyId);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _joinCode = null;
+        _isJoinCodeLoading = false;
+      });
     }
   }
 
@@ -57,91 +84,110 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Society Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () => context.go('/notifications'),
-          ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              context.read<AuthBloc>().add(const AuthLoggedOut());
-            },
-          ),
-        ],
-      ),
-      body: BlocBuilder<DashboardCubit, DashboardState>(
-        builder: (context, state) {
-          if (state.isLoading && state.dashboard == null) {
-            return const LoadingWidget(message: 'Loading dashboard...');
-          }
+      body: SafeArea(
+        child: BlocBuilder<DashboardCubit, DashboardState>(
+          builder: (context, state) {
+            if (state.isLoading && state.dashboard == null) {
+              return const LoadingWidget(message: 'Loading dashboard...');
+            }
 
-          if (state.error != null && state.dashboard == null) {
-            return AppErrorWidget(message: state.error!, onRetry: _loadData);
-          }
+            if (state.error != null && state.dashboard == null) {
+              return AppErrorWidget(message: state.error!, onRetry: _loadData);
+            }
 
-          final dashboard = state.dashboard;
-          if (dashboard == null) {
-            return const EmptyStateWidget(
-              title: 'No dashboard data',
-              subtitle: 'Society activity will appear here.',
+            final dashboard = state.dashboard;
+            if (dashboard == null) {
+              return const EmptyStateWidget(
+                title: 'No dashboard data',
+                subtitle: 'Society activity will appear here.',
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async => _loadData(),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                children: [
+                  PremiumHeader(
+                    title: 'Society Dashboard',
+                    subtitle: 'Operational control and metrics center',
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none_rounded),
+                        onPressed: () => context.go('/notifications'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded),
+                        onPressed: _loadData,
+                      ),
+                      ListenableBuilder(
+                        listenable: GetIt.I<ThemeNotifier>(),
+                        builder: (context, _) {
+                          final isDark = GetIt.I<ThemeNotifier>().isDark;
+                          return IconButton(
+                            icon: Icon(isDark
+                                ? Icons.light_mode_rounded
+                                : Icons.dark_mode_rounded),
+                            onPressed: GetIt.I<ThemeNotifier>().toggle,
+                            tooltip: isDark ? 'Light mode' : 'Dark mode',
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.logout_rounded),
+                        onPressed: () {
+                          context.read<AuthBloc>().add(const AuthLoggedOut());
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _AdminActionsCard(
+                    joinCode: dashboard.joinCode.isNotEmpty ? dashboard.joinCode : _joinCode,
+                    isJoinCodeLoading: _isJoinCodeLoading,
+                  ),
+                  const SizedBox(height: 24),
+                  _SectionHeader(
+                    title: 'Today at a glance',
+                    subtitle: 'Current operational metrics and status summary',
+                  ),
+                  const SizedBox(height: 16),
+                  _SummaryGrid(dashboard: dashboard),
+                  const SizedBox(height: 28),
+                  _SectionHeader(
+                    title: 'Currently Parked',
+                    subtitle:
+                        '${dashboard.currentlyParked.length} active vehicle(s) inside the society',
+                  ),
+                  const SizedBox(height: 12),
+                  if (dashboard.currentlyParked.isEmpty)
+                    const _EmptyCard(
+                      'No vehicles are currently marked as parked.',
+                    )
+                  else
+                    ...dashboard.currentlyParked.map(
+                      (booking) => _ParkedVehicleCard(booking: booking),
+                    ),
+                  const SizedBox(height: 28),
+                  _SectionHeader(
+                    title: 'Recent Gate Activity',
+                    subtitle: 'Latest entry and exit scans from guards',
+                  ),
+                  const SizedBox(height: 12),
+                  if (dashboard.recentGateActivity.isEmpty)
+                    const _EmptyCard('No gate activity has been recorded yet.')
+                  else
+                    ...dashboard.recentGateActivity.map(
+                      (activity) => _GateActivityCard(activity: activity),
+                    ),
+                ],
+              ),
             );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => _loadData(),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _AdminActionsCard(
-                  joinCode: _joinCode,
-                  isJoinCodeLoading: _isJoinCodeLoading,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Today at a glance',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                _SummaryGrid(dashboard: dashboard),
-                const SizedBox(height: 24),
-                _SectionHeader(
-                  title: 'Currently Parked',
-                  subtitle:
-                      '${dashboard.currentlyParked.length} active vehicle(s) inside the society',
-                ),
-                const SizedBox(height: 12),
-                if (dashboard.currentlyParked.isEmpty)
-                  const _EmptyCard(
-                    'No vehicles are currently marked as parked.',
-                  )
-                else
-                  ...dashboard.currentlyParked.map(
-                    (booking) => _ParkedVehicleCard(booking: booking),
-                  ),
-                const SizedBox(height: 24),
-                _SectionHeader(
-                  title: 'Recent Gate Activity',
-                  subtitle: 'Latest entry and exit scans from guards',
-                ),
-                const SizedBox(height: 12),
-                if (dashboard.recentGateActivity.isEmpty)
-                  const _EmptyCard('No gate activity has been recorded yet.')
-                else
-                  ...dashboard.recentGateActivity.map(
-                    (activity) => _GateActivityCard(activity: activity),
-                  ),
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -162,78 +208,90 @@ class _AdminActionsCard extends StatelessWidget {
         ? 'Loading...'
         : (joinCode?.isNotEmpty == true ? joinCode! : 'Unavailable');
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.vpn_key, color: AppColors.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Society Join Code',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        displayCode,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ],
-                  ),
+    return PremiumCard(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                IconButton(
-                  tooltip: 'Copy code',
-                  onPressed: joinCode?.isNotEmpty == true
-                      ? () async {
-                          await Clipboard.setData(
-                            ClipboardData(text: joinCode!),
-                          );
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Join code copied')),
-                          );
-                        }
-                      : null,
-                  icon: const Icon(Icons.copy),
+                child: Icon(Icons.vpn_key_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Society Join Code',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      displayCode,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const Divider(height: 28),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              ),
+              IconButton(
+                tooltip: 'Copy code',
+                onPressed: joinCode?.isNotEmpty == true
+                    ? () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: joinCode!),
+                        );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Join code copied')),
+                        );
+                      }
+                    : null,
+                icon: const Icon(Icons.copy_rounded, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Divider(height: 1, thickness: 1.0, color: Theme.of(context).colorScheme.outlineVariant),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _ActionButton(
-                  icon: Icons.how_to_reg,
+                  icon: Icons.how_to_reg_rounded,
                   label: 'Join Requests',
                   onPressed: () => context.go('/join-requests'),
                 ),
                 _ActionButton(
-                  icon: Icons.security,
+                  icon: Icons.security_rounded,
                   label: 'Manage Guards',
                   onPressed: () => context.go('/guards'),
                 ),
                 _ActionButton(
-                  icon: Icons.people_alt,
+                  icon: Icons.people_alt_rounded,
                   label: 'Owners',
                   onPressed: () => context.go('/owners'),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -254,8 +312,12 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon),
+      icon: Icon(icon, size: 16),
       label: Text(label),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(120, 42),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      ),
     );
   }
 }
@@ -267,105 +329,45 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      _SummaryItem(
-        title: 'Total Slots',
-        value: dashboard.totalSlots.toString(),
-        icon: Icons.local_parking,
-        color: AppColors.primary,
-      ),
-      _SummaryItem(
-        title: 'Occupied',
-        value: dashboard.occupiedSlots.toString(),
-        icon: Icons.directions_car,
-        color: AppColors.slotOccupied,
-      ),
-      _SummaryItem(
-        title: 'Reserved',
-        value: dashboard.reservedSlots.toString(),
-        icon: Icons.schedule,
-        color: AppColors.slotReserved,
-      ),
-      _SummaryItem(
-        title: 'Active Bookings',
-        value: dashboard.activeBookings.toString(),
-        icon: Icons.book_online,
-        color: AppColors.success,
-      ),
-      _SummaryItem(
-        title: 'Guard Requests',
-        value: dashboard.pendingGuardRequests.toString(),
-        icon: Icons.security,
-        color: AppColors.warning,
-      ),
-      _SummaryItem(
-        title: 'Completed Today',
-        value: dashboard.completedToday.toString(),
-        icon: Icons.task_alt,
-        color: AppColors.textSecondary,
-      ),
-    ];
-
-    return GridView.builder(
-      itemCount: items.length,
+    return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.55,
-      ),
-      itemBuilder: (context, index) => _SummaryCard(item: items[index]),
-    );
-  }
-}
-
-class _SummaryItem {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _SummaryItem({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-}
-
-class _SummaryCard extends StatelessWidget {
-  final _SummaryItem item;
-
-  const _SummaryCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(item.icon, color: item.color, size: 28),
-            Text(
-              item.value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: item.color,
-              ),
-            ),
-            Text(
-              item.title,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.5,
+      children: [
+        PremiumMetricTile(
+          label: 'Total Slots',
+          value: dashboard.totalSlots.toString(),
+          icon: Icons.local_parking_rounded,
         ),
-      ),
+        PremiumMetricTile(
+          label: 'Occupied Slots',
+          value: dashboard.occupiedSlots.toString(),
+          icon: Icons.directions_car_rounded,
+        ),
+        PremiumMetricTile(
+          label: 'Reserved Slots',
+          value: dashboard.reservedSlots.toString(),
+          icon: Icons.schedule_rounded,
+        ),
+        PremiumMetricTile(
+          label: 'Active Bookings',
+          value: dashboard.activeBookings.toString(),
+          icon: Icons.book_online_rounded,
+        ),
+        PremiumMetricTile(
+          label: 'Guard Requests',
+          value: dashboard.pendingGuardRequests.toString(),
+          icon: Icons.security_rounded,
+        ),
+        PremiumMetricTile(
+          label: 'Completed Today',
+          value: dashboard.completedToday.toString(),
+          icon: Icons.task_alt_rounded,
+        ),
+      ],
     );
   }
 }
@@ -383,16 +385,21 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         Text(
           subtitle,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -406,8 +413,17 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(padding: const EdgeInsets.all(16), child: Text(message)),
+    return PremiumCard(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            message,
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -419,57 +435,58 @@ class _ParkedVehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return PremiumCard(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    booking.vehicle?.registrationNo ?? 'Unknown vehicle',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  booking.vehicle?.registrationNo ?? 'Unknown vehicle',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                _StatusChip(
-                  label: booking.paymentStatusLabel,
-                  color: _paymentStatusColor(booking.paymentStatus),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _InfoRow(
-              icon: Icons.person_outline,
-              label: 'Owner',
-              value: booking.ownerName ?? '-',
-            ),
-            _InfoRow(
-              icon: Icons.phone_outlined,
-              label: 'Contact',
-              value: booking.ownerPhone ?? '-',
-            ),
-            _InfoRow(
-              icon: Icons.local_parking_outlined,
-              label: 'Slot',
-              value: booking.slotNumber ?? '-',
-            ),
-            _InfoRow(
-              icon: Icons.login,
-              label: 'Entry Time',
-              value: _formatDateTime(booking.actualEntry ?? booking.startTime),
-            ),
-            _InfoRow(
-              icon: Icons.confirmation_number_outlined,
-              label: 'Booking',
-              value: booking.bookingNumber,
-            ),
-          ],
-        ),
+              ),
+              PremiumBadge(
+                label: booking.paymentStatusLabel,
+                status: booking.paymentStatus,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, thickness: 1.0, color: Theme.of(context).colorScheme.outlineVariant),
+          const SizedBox(height: 14),
+          _InfoRow(
+            icon: Icons.person_outline_rounded,
+            label: 'Owner',
+            value: booking.ownerName ?? '-',
+          ),
+          _InfoRow(
+            icon: Icons.phone_outlined,
+            label: 'Contact',
+            value: booking.ownerPhone ?? '-',
+          ),
+          _InfoRow(
+            icon: Icons.local_parking_outlined,
+            label: 'Slot',
+            value: booking.slotNumber ?? '-',
+          ),
+          _InfoRow(
+            icon: Icons.login_rounded,
+            label: 'Entry Time',
+            value: _formatDateTime(booking.actualEntry ?? booking.startTime),
+          ),
+          _InfoRow(
+            icon: Icons.confirmation_number_outlined,
+            label: 'Booking',
+            value: booking.bookingNumber,
+          ),
+        ],
       ),
     );
   }
@@ -483,73 +500,75 @@ class _GateActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isApproved = activity.result == 'approved';
-    final badgeColor = isApproved ? AppColors.success : AppColors.error;
+    final badgeStatus = isApproved ? 'approved' : 'rejected';
 
-    return Card(
+    return PremiumCard(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${activity.eventType.toUpperCase()} scan by ${activity.guardName}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                _StatusChip(
-                  label: activity.result.toUpperCase(),
-                  color: badgeColor,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (activity.vehicleNumber.isNotEmpty)
-              _InfoRow(
-                icon: Icons.directions_car_outlined,
-                label: 'Vehicle',
-                value: activity.vehicleNumber,
-              ),
-            if (activity.ownerName.isNotEmpty)
-              _InfoRow(
-                icon: Icons.person_outline,
-                label: 'Owner',
-                value: activity.ownerName,
-              ),
-            if (activity.slotNumber.isNotEmpty)
-              _InfoRow(
-                icon: Icons.local_parking_outlined,
-                label: 'Slot',
-                value: activity.slotNumber,
-              ),
-            _InfoRow(
-              icon: Icons.access_time,
-              label: 'Scanned At',
-              value: _formatDateTime(activity.scannedAt),
-            ),
-            _InfoRow(
-              icon: Icons.currency_rupee,
-              label: 'Payment',
-              value: _paymentStatusLabel(activity.paymentStatus),
-            ),
-            if (activity.errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
                 child: Text(
-                  activity.errorMessage,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.w600,
+                  '${activity.eventType.toUpperCase()} scan by ${activity.guardName}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-          ],
-        ),
+              PremiumBadge(
+                label: activity.result.toUpperCase(),
+                status: badgeStatus,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(height: 1, thickness: 1.0, color: Theme.of(context).colorScheme.outlineVariant),
+          const SizedBox(height: 14),
+          if (activity.vehicleNumber.isNotEmpty)
+            _InfoRow(
+              icon: Icons.directions_car_outlined,
+              label: 'Vehicle',
+              value: activity.vehicleNumber,
+            ),
+          if (activity.ownerName.isNotEmpty)
+            _InfoRow(
+              icon: Icons.person_outline_rounded,
+              label: 'Owner',
+              value: activity.ownerName,
+            ),
+          if (activity.slotNumber.isNotEmpty)
+            _InfoRow(
+              icon: Icons.local_parking_outlined,
+              label: 'Slot',
+              value: activity.slotNumber,
+            ),
+          _InfoRow(
+            icon: Icons.access_time_rounded,
+            label: 'Scanned At',
+            value: _formatDateTime(activity.scannedAt),
+          ),
+          _InfoRow(
+            icon: Icons.currency_rupee_rounded,
+            label: 'Payment',
+            value: _paymentStatusLabel(activity.paymentStatus),
+          ),
+          if (activity.errorMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                activity.errorMessage,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -573,7 +592,7 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -582,32 +601,6 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StatusChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
       ),
     );
   }
@@ -623,20 +616,6 @@ String _formatDateTime(String value) {
     return '$day/$month/${dateTime.year} $hour:$minute';
   } catch (_) {
     return value;
-  }
-}
-
-Color _paymentStatusColor(String? status) {
-  switch (status) {
-    case 'captured':
-      return AppColors.success;
-    case 'created':
-    case 'unpaid':
-      return AppColors.warning;
-    case 'failed':
-      return AppColors.error;
-    default:
-      return AppColors.textSecondary;
   }
 }
 

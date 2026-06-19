@@ -59,7 +59,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
         _isLoadingSocieties = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.message), backgroundColor: Theme.of(context).colorScheme.error),
       );
     } catch (e) {
       if (!mounted) return;
@@ -67,7 +67,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
         _isLoadingSocieties = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error),
       );
     }
   }
@@ -76,9 +76,9 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSocietyId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please choose a society.'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -101,7 +101,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Request Submitted'),
           content: const Text(
-            'Your guard access request has been sent to the society admin. You can log in after approval.',
+            'Your gate access request has been sent to the society admin. You can log in after approval.',
           ),
           actions: [
             TextButton(
@@ -116,12 +116,12 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.message), backgroundColor: Theme.of(context).colorScheme.error),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        SnackBar(content: Text(e.toString()), backgroundColor: Theme.of(context).colorScheme.error),
       );
     } finally {
       if (mounted) {
@@ -136,7 +136,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(title: const Text('Apply as Guard')),
+      appBar: AppBar(title: const Text('Apply for Gate Access')),
       body: _isLoadingSocieties
           ? const LoadingWidget(message: 'Loading societies...')
           : SafeArea(
@@ -148,20 +148,20 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Request access for the society you work with.',
+                        'Request access for the society gate you manage.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 24),
                       AppTextField(
                         controller: _fullNameController,
-                        label: 'Full Name',
-                        hint: 'Enter your full name',
+                        label: 'Device Name',
+                        hint: 'Enter the gate device name',
                         prefixIcon: Icons.person_outline,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Full name is required';
+                            return 'Device name is required';
                           }
                           return null;
                         },
@@ -186,13 +186,13 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
                       const SizedBox(height: 16),
                       AppTextField(
                         controller: _phoneController,
-                        label: 'Phone',
-                        hint: 'Enter your phone number',
+                        label: 'Device ID',
+                        hint: 'Enter the gate device ID',
                         keyboardType: TextInputType.phone,
                         prefixIcon: Icons.phone_outlined,
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Phone is required';
+                            return 'Device ID is required';
                           }
                           return null;
                         },
@@ -214,7 +214,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                         validator: (value) {
@@ -229,7 +229,7 @@ class _GuardApplicationScreenState extends State<GuardApplicationScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: _selectedSocietyId,
+                        initialValue: _selectedSocietyId,
                         decoration: const InputDecoration(
                           labelText: 'Society',
                           border: OutlineInputBorder(),

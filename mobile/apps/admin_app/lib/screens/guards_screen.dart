@@ -1,5 +1,6 @@
 import 'package:core/core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../cubits/guards_cubit.dart';
@@ -23,7 +24,9 @@ class _GuardsScreenState extends State<GuardsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<GuardsCubit>().loadGuards();
+        final cubit = context.read<GuardsCubit>();
+        cubit.loadGuards();
+        cubit.loadSavedGuardCredentials();
       }
     });
   }
@@ -40,15 +43,15 @@ class _GuardsScreenState extends State<GuardsScreen> {
 
     try {
       final result = await context.read<GuardsCubit>().createGuard(
-        fullName: _fullNameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        canScanEntry: _canScanEntry,
-        canScanExit: _canScanExit,
-      );
-      
+            fullName: _fullNameController.text.trim(),
+            phone: _phoneController.text.trim(),
+            canScanEntry: _canScanEntry,
+            canScanExit: _canScanExit,
+          );
+
       if (result != null && mounted) {
         await _showCredentialsDialog(
-          result['guard'] as UserModel,
+          result['device'] as UserModel,
           result['password'] as String,
         );
       }
@@ -60,18 +63,18 @@ class _GuardsScreenState extends State<GuardsScreen> {
         _canScanExit = true;
       });
     } catch (_) {
-      // Error handled by listener
+      // Error handled by listener.
     }
   }
 
-  Future<void> _showCredentialsDialog(UserModel guard, String password) {
+  Future<void> _showCredentialsDialog(UserModel device, String password) {
     return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.vpn_key, color: AppColors.primary),
+            Icon(Icons.vpn_key, color: Theme.of(context).colorScheme.primary),
             SizedBox(width: 8),
             Text('Guard Credentials'),
           ],
@@ -80,26 +83,204 @@ class _GuardsScreenState extends State<GuardsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Temporary credentials generated successfully:'),
+            const Text('Credentials generated successfully for this gate device:'),
             const SizedBox(height: 16),
-            _CredentialField(label: 'Email', value: guard.email),
+            _CredentialField(label: 'Email', value: device.email),
             const SizedBox(height: 12),
             _CredentialField(label: 'Password', value: password),
             const SizedBox(height: 16),
-            const Text(
-              'Please share these with the guard. This password is only shown once.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            Text(
+              'Share these credentials securely with the gate operator or device setup team.',
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK, I HAVE COPIED IT'),
+            child: const Text('OK'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openPermissionEditor(UserModel guard) async {
+    bool canScanEntry = guard.canScanEntry;
+    bool canScanExit = guard.canScanExit;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            return AlertDialog(
+              title: Text('Edit Access: ${guard.fullName}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Can scan entry QR codes'),
+                    value: canScanEntry,
+                    onChanged: (value) => setState(() => canScanEntry = value),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Can scan exit QR codes'),
+                    value: canScanExit,
+                    onChanged: (value) => setState(() => canScanExit = value),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (!canScanEntry && !canScanExit) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Enable at least one scan permission.'),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.of(ctx).pop(true);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (saved != true || !mounted) return;
+
+    try {
+      await context.read<GuardsCubit>().updateGuardPermissions(
+            guardId: guard.id,
+            canScanEntry: canScanEntry,
+            canScanExit: canScanExit,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Guard scan access updated.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update scan access.')),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete(UserModel guard) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Device?'),
+        content: Text(
+          'This will deactivate ${guard.fullName} and remove access for this device. You can create fresh credentials later if needed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true || !mounted) return;
+
+    try {
+      await context.read<GuardsCubit>().deleteGuard(guard.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Device deactivated.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete device.')),
+      );
+    }
+  }
+
+  Future<void> _copyText({required String label, required String text}) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label copied to clipboard.')),
+    );
+  }
+
+  Future<void> _showGuardCredentialsDialog(UserModel guard) async {
+    final password = guard.temporaryPassword;
+    if (password == null || password.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No credentials available for this guard.')),
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.vpn_key, color: Theme.of(context).colorScheme.primary),
+            SizedBox(width: 8),
+            Text('Guard Credentials'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Device: ${guard.fullName}'),
+            const SizedBox(height: 8),
+            _CredentialField(label: 'Email', value: guard.email),
+            const SizedBox(height: 12),
+            _CredentialField(label: 'Password', value: password),
+            const SizedBox(height: 16),
+            Text(
+              'These credentials belong to the selected guard card. Copy them now or later from this same card.',
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: () => _copyText(
+              label: 'Credentials',
+              text: _buildShareText(email: guard.email, password: password),
+            ),
+            icon: const Icon(Icons.copy_all_outlined),
+            label: const Text('Copy Credentials'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _buildShareText({required String email, required String password}) {
+    return '''Guard credentials\n\nEmail: $email\nPassword: $password\n\nUse these credentials on the assigned gate device only. If the device changes, regenerate credentials from the admin app.''';
   }
 
   void _loadGuards() {
@@ -110,7 +291,7 @@ class _GuardsScreenState extends State<GuardsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Guards'),
+        title: const Text('Gate Devices'),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadGuards),
         ],
@@ -121,7 +302,7 @@ class _GuardsScreenState extends State<GuardsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.error!),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -139,22 +320,10 @@ class _GuardsScreenState extends State<GuardsScreen> {
                   canScanEntry: _canScanEntry,
                   canScanExit: _canScanExit,
                   isSubmitting: state.isSubmitting,
-                  onEntryChanged: (value) {
-                    setState(() => _canScanEntry = value);
-                  },
-                  onExitChanged: (value) {
-                    setState(() => _canScanExit = value);
-                  },
+                  onEntryChanged: (value) => setState(() => _canScanEntry = value),
+                  onExitChanged: (value) => setState(() => _canScanExit = value),
                   onSubmit: _submit,
                 ),
-                if (state.latestGuard != null &&
-                    state.temporaryPassword != null) ...[
-                  const SizedBox(height: 16),
-                  _CredentialsCard(
-                    guard: state.latestGuard!,
-                    password: state.temporaryPassword!,
-                  ),
-                ],
                 const SizedBox(height: 24),
                 if (state.isLoading && state.guards.isEmpty)
                   const LoadingWidget(message: 'Loading guards...')
@@ -164,12 +333,16 @@ class _GuardsScreenState extends State<GuardsScreen> {
                   _GuardSection(
                     title: 'Pending Approval',
                     subtitle:
-                        '${state.pendingGuards.length} guard request(s) waiting for review',
-                    emptyText: 'No pending guard requests.',
+                        '${state.pendingGuards.length} gate request(s) waiting for review',
+                    emptyText: 'No pending gate requests.',
                     guards: state.pendingGuards,
                     builder: (guard) => _GuardApprovalCard(
                       guard: guard,
                       isSubmitting: state.isSubmitting,
+                      onViewCredentials: guard.temporaryPassword != null &&
+                          guard.temporaryPassword!.isNotEmpty
+                        ? () => _showGuardCredentialsDialog(guard)
+                        : null,
                       onApprove: () =>
                           context.read<GuardsCubit>().approveGuard(guard.id),
                       onReject: () =>
@@ -178,12 +351,20 @@ class _GuardsScreenState extends State<GuardsScreen> {
                   ),
                   const SizedBox(height: 24),
                   _GuardSection(
-                    title: 'Approved Guards',
+                    title: 'Approved Gate Devices',
                     subtitle:
-                        '${state.approvedGuards.length} approved guard(s) linked to this society',
-                    emptyText: 'No approved guards yet.',
+                        '${state.approvedGuards.length} approved gate device(s) linked to this society',
+                    emptyText: 'No approved gate devices yet.',
                     guards: state.approvedGuards,
-                    builder: (guard) => _GuardInfoCard(guard: guard),
+                    builder: (guard) => _GuardInfoCard(
+                      guard: guard,
+                      onViewCredentials: guard.temporaryPassword != null &&
+                              guard.temporaryPassword!.isNotEmpty
+                          ? () => _showGuardCredentialsDialog(guard)
+                          : null,
+                      onEdit: () => _openPermissionEditor(guard),
+                      onDelete: () => _confirmDelete(guard),
+                    ),
                   ),
                   if (state.rejectedGuards.isNotEmpty) ...[
                     const SizedBox(height: 24),
@@ -191,9 +372,17 @@ class _GuardsScreenState extends State<GuardsScreen> {
                       title: 'Rejected Requests',
                       subtitle:
                           '${state.rejectedGuards.length} rejected application(s)',
-                      emptyText: 'No rejected guard requests.',
+                      emptyText: 'No rejected gate requests.',
                       guards: state.rejectedGuards,
-                      builder: (guard) => _GuardInfoCard(guard: guard),
+                      builder: (guard) => _GuardInfoCard(
+                        guard: guard,
+                        onViewCredentials: guard.temporaryPassword != null &&
+                                guard.temporaryPassword!.isNotEmpty
+                            ? () => _showGuardCredentialsDialog(guard)
+                            : null,
+                        onEdit: () => _openPermissionEditor(guard),
+                        onDelete: () => _confirmDelete(guard),
+                      ),
                     ),
                   ],
                 ],
@@ -240,20 +429,20 @@ class _CreateGuardCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Create New Guard',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                'Create New Gate Device',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 12),
               AppTextField(
                 controller: fullNameController,
-                label: 'Full Name',
-                hint: 'Enter guard name',
+                label: 'Device Name',
+                hint: 'Enter gate device name',
                 prefixIcon: Icons.badge_outlined,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Guard name is required';
+                    return 'Device name is required';
                   }
                   return null;
                 },
@@ -261,16 +450,16 @@ class _CreateGuardCard extends StatelessWidget {
               const SizedBox(height: 12),
               AppTextField(
                 controller: phoneController,
-                label: 'Phone',
-                hint: 'Enter guard phone number',
+                label: 'Device ID',
+                hint: 'Enter gate device ID',
                 prefixIcon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Phone is required';
+                    return 'Device ID is required';
                   }
                   if (value.trim().length < 10) {
-                    return 'Enter a valid phone number';
+                    return 'Enter a valid device ID';
                   }
                   return null;
                 },
@@ -290,52 +479,13 @@ class _CreateGuardCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               PrimaryButton(
-                label: 'Generate Guard Credentials',
+                label: 'Generate Gate Credentials',
                 icon: Icons.vpn_key_outlined,
                 isLoading: isSubmitting,
                 onPressed: onSubmit,
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CredentialsCard extends StatelessWidget {
-  final UserModel guard;
-  final String password;
-
-  const _CredentialsCard({required this.guard, required this.password});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.primaryLight,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Temporary credentials generated',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            SelectableText('Email: ${guard.email}'),
-            const SizedBox(height: 4),
-            SelectableText('Temporary Password: $password'),
-            const SizedBox(height: 8),
-            Text(
-              'Share these credentials securely with the guard.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
         ),
       ),
     );
@@ -364,16 +514,16 @@ class _GuardSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
         const SizedBox(height: 12),
         if (guards.isEmpty)
@@ -393,12 +543,14 @@ class _GuardSection extends StatelessWidget {
 class _GuardApprovalCard extends StatelessWidget {
   final UserModel guard;
   final bool isSubmitting;
+  final VoidCallback? onViewCredentials;
   final VoidCallback onApprove;
   final VoidCallback onReject;
 
   const _GuardApprovalCard({
     required this.guard,
     required this.isSubmitting,
+    required this.onViewCredentials,
     required this.onApprove,
     required this.onReject,
   });
@@ -414,9 +566,9 @@ class _GuardApprovalCard extends StatelessWidget {
           children: [
             Text(
               guard.fullName,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(guard.email),
@@ -447,13 +599,24 @@ class _GuardApprovalCard extends StatelessWidget {
                     icon: const Icon(Icons.cancel_outlined),
                     label: const Text('Reject'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                      side: BorderSide(color: Theme.of(context).colorScheme.error),
                     ),
                   ),
                 ),
               ],
             ),
+            if (onViewCredentials != null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onViewCredentials,
+                  icon: const Icon(Icons.vpn_key_outlined),
+                  label: const Text('View Credentials'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -463,8 +626,16 @@ class _GuardApprovalCard extends StatelessWidget {
 
 class _GuardInfoCard extends StatelessWidget {
   final UserModel guard;
+  final VoidCallback? onViewCredentials;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const _GuardInfoCard({required this.guard});
+  const _GuardInfoCard({
+    required this.guard,
+    required this.onViewCredentials,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -484,8 +655,8 @@ class _GuardInfoCard extends StatelessWidget {
                   child: Text(
                     guard.fullName,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ),
                 _StatusChip(label: statusLabel, color: color),
@@ -508,104 +679,43 @@ class _GuardInfoCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 guard.approvalNotes,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
             ],
-            if (guard.isApproved) ...[
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: () => _openPermissionEditor(context),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                if (onViewCredentials != null)
+                  OutlinedButton.icon(
+                    onPressed: onViewCredentials,
+                    icon: const Icon(Icons.vpn_key_outlined),
+                    label: const Text('View Credentials'),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: onEdit,
                   icon: const Icon(Icons.tune),
                   label: const Text('Edit Scan Access'),
                 ),
-              ),
-            ],
+                OutlinedButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete Device'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _openPermissionEditor(BuildContext context) async {
-    bool canScanEntry = guard.canScanEntry;
-    bool canScanExit = guard.canScanExit;
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            return AlertDialog(
-              title: Text('Edit Access: ${guard.fullName}'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Can scan entry QR codes'),
-                    value: canScanEntry,
-                    onChanged: (value) {
-                      setState(() => canScanEntry = value);
-                    },
-                  ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Can scan exit QR codes'),
-                    value: canScanExit,
-                    onChanged: (value) {
-                      setState(() => canScanExit = value);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (!canScanEntry && !canScanExit) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Enable at least one scan permission.'),
-                        ),
-                      );
-                      return;
-                    }
-                    Navigator.of(ctx).pop(true);
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (saved != true || !context.mounted) return;
-
-    try {
-      await context.read<GuardsCubit>().updateGuardPermissions(
-        guardId: guard.id,
-        canScanEntry: canScanEntry,
-        canScanExit: canScanExit,
-      );
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Guard scan access updated.')),
-      );
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update scan access.')),
-      );
-    }
   }
 }
 
@@ -617,7 +727,7 @@ class _PermissionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? AppColors.success : AppColors.error;
+    final color = enabled ? AppColors.success : const Color(0xFFEF4444);
     return _StatusChip(
       label: '$label: ${enabled ? 'Allowed' : 'Blocked'}',
       color: color,
@@ -642,9 +752,9 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }
@@ -657,9 +767,9 @@ Color _approvalColor(String status) {
     case 'pending':
       return AppColors.warning;
     case 'rejected':
-      return AppColors.error;
+      return const Color(0xFFEF4444);
     default:
-      return AppColors.textSecondary;
+      return const Color(0xFF64748B);
   }
 }
 
@@ -676,19 +786,19 @@ class _CredentialField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Row(
             children: [
@@ -696,7 +806,10 @@ class _CredentialField extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.copy, size: 18),
                 onPressed: () {
-                  // Optional: Add clipboard logic
+                  Clipboard.setData(ClipboardData(text: value));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('$label copied to clipboard.')),
+                  );
                 },
               ),
             ],

@@ -105,12 +105,12 @@ class _FilterTabs extends StatelessWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : AppColors.surface,
+                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
-                            ? AppColors.primary
-                            : AppColors.divider,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                     child: Text(
@@ -119,7 +119,7 @@ class _FilterTabs extends StatelessWidget {
                         fontSize: 13,
                         color: isSelected
                             ? Colors.white
-                            : AppColors.textSecondary,
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -144,15 +144,15 @@ class _BookingCard extends StatelessWidget {
       case 'captured':
         return AppColors.success;
       case 'failed':
-        return AppColors.error;
+        return const Color(0xFFEF4444);
       case 'refunded':
-        return AppColors.textSecondary;
+        return const Color(0xFF64748B);
       case 'created':
       case 'unpaid':
       case null:
         return AppColors.warning;
       default:
-        return AppColors.textSecondary;
+        return const Color(0xFF64748B);
     }
   }
 
@@ -198,7 +198,7 @@ class _BookingCard extends StatelessWidget {
               Text(
                 'Booking ${booking.status.replaceAll('_', ' ').toUpperCase()}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -226,16 +226,16 @@ class _BookingCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '\u20B9${booking.amount}',
+                    '\u20B9${booking.amountPaid ?? booking.amount}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios,
                     size: 14,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ],
               ),
@@ -285,13 +285,13 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
             text,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ),
