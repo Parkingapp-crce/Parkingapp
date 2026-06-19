@@ -55,18 +55,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   void _handleRazorpaySuccess(PaymentSuccessResponse response) async {
     final cubit = context.read<BookingDetailCubit>();
     
-    if (response.orderId == null || response.orderId!.isEmpty) {
-       // Bypass payment successful on Razorpay SDK side
-       if (!mounted) return;
-       await cubit.loadBooking(widget.bookingId);
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(
-           content: Text('Payment successful!'),
-           backgroundColor: AppColors.success,
-         ),
-       );
-       return;
-    }
+
     
     _verifyRazorpayPayment(
       cubit,
@@ -832,6 +821,34 @@ class _BookingInfoCard extends StatelessWidget {
               label: 'Slot',
               value: booking.slotNumber!,
             ),
+          const Divider(height: 24),
+          Text(
+            'Invoice Breakdown',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Inter',
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: 8),
+          if (booking.baseAmount != null)
+            _DetailTile(
+              icon: Icons.currency_rupee_rounded,
+              label: 'Base Amount',
+              value: '₹${booking.baseAmount}',
+            ),
+          if (booking.surgeAmount != null && double.tryParse(booking.surgeAmount!) != 0)
+            _DetailTile(
+              icon: Icons.trending_up_rounded,
+              label: 'Surge Amount',
+              value: '+₹${booking.surgeAmount} (x${booking.surgeMultiplier})',
+            ),
+          const Divider(height: 20),
+          _DetailTile(
+            icon: Icons.account_balance_wallet_rounded,
+            label: 'Total Amount',
+            value: '₹${booking.amount}',
+          ),
         ],
       ),
     );

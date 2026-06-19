@@ -596,7 +596,6 @@ class _AmountDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amount = state.estimatedAmount;
-
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
@@ -609,16 +608,34 @@ class _AmountDisplay extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Estimated Amount',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontFamily: 'Inter',
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Estimated Amount',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Inter',
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  '*Dynamic surge pricing may apply at checkout based on society occupancy and location.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                        fontSize: 10,
+                        fontFamily: 'Inter',
+                      ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 16),
           Text(
-            amount != null ? '₹${amount.toStringAsFixed(2)}' : '--',
+            amount != null ? '₹${amount.toStringAsFixed(2)}*' : '--',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                   fontFamily: 'Inter',

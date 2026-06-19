@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from apps.societies.models import ParkingSlot, SlotAvailabilityWindow
+from apps.societies.models import ParkingSlot, SlotAvailabilityWindow, Society
 from utils.qr import generate_qr_token
 
 from .models import Booking
@@ -169,7 +169,63 @@ def get_available_slots(*, society_id, vehicle_type, start_time, end_time, for_u
 def _build_pending_booking(user, slot, vehicle, start_time, end_time):
     duration = end_time - start_time
     duration_hours = math.ceil(duration.total_seconds() / 3600)
-    amount = slot.hourly_rate * duration_hours
+    
+    # Calculate occupancy-based surge
+    total_slots = ParkingSlot.objects.filter(society_id=slot.society_id, is_active=True).count()
+    active_bookings = Booking.objects.filter(
+        slot__society_id=slot.society_id, 
+        status__in=ACTIVE_BOOKING_STATUSES,
+        end_time__gt=start_time,
+        start_time__lt=end_time
+    ).count()
+    occupancy_rate = active_bookings / max(total_slots, 1)
+    
+    surge_multiplier = 1.0
+    if occupancy_rate > 0.8:
+        surge_multiplier += 0.5
+    elif occupancy_rate > 0.5:
+        surge_multiplier += 0.2
+        
+    # Nearby area demand based on actual nearby societies (within ~5km radius)
+    area_demand = 0.0
+    from decimal import Decimal
+    if slot.society.latitude and slot.society.longitude:
+        lat_diff = Decimal("0.045")
+        lon_diff = Decimal("0.045")
+        nearby_societies = Society.objects.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+            latitude__range=(slot.society.latitude - lat_diff, slot.society.latitude + lat_diff),
+            longitude__range=(slot.society.longitude - lon_diff, slot.society.longitude + lon_diff)
+        ).exclude(id=slot.society_id)
+        
+        if nearby_societies.exists():
+            nearby_society_ids = nearby_societies.values_list('id', flat=True)
+            nearby_slots = ParkingSlot.objects.filter(society_id__in=nearby_society_ids, is_active=True).count()
+            nearby_active_bookings = Booking.objects.filter(
+                slot__society_id__in=nearby_society_ids,
+                status__in=ACTIVE_BOOKING_STATUSES,
+                end_time__gt=start_time,
+                start_time__lt=end_time
+            ).count()
+            
+            if nearby_slots > 0:
+                nearby_occupancy_rate = nearby_active_bookings / nearby_slots
+                if nearby_occupancy_rate > 0.8:
+                    area_demand = 0.4
+                elif nearby_occupancy_rate > 0.5:
+                    area_demand = 0.2
+                elif nearby_occupancy_rate > 0.3:
+                    area_demand = 0.1
+
+    surge_multiplier += area_demand
+
+    from decimal import Decimal
+    surge_multiplier_dec = Decimal(str(surge_multiplier)).quantize(Decimal("0.01"))
+    base_amount = slot.hourly_rate * Decimal(str(duration_hours))
+    surge_amount = base_amount * (surge_multiplier_dec - Decimal("1.00"))
+    amount = base_amount + surge_amount
+    
     booking_number = _generate_booking_number()
     now = timezone.now()
 
@@ -181,6 +237,9 @@ def _build_pending_booking(user, slot, vehicle, start_time, end_time):
         start_time=start_time,
         end_time=end_time,
         status=Booking.Status.PENDING_PAYMENT,
+        base_amount=base_amount,
+        surge_amount=surge_amount,
+        surge_multiplier=surge_multiplier_dec,
         amount=amount,
         qr_code_token=booking_number,
         lock_expires_at=now + timedelta(seconds=LOCK_DURATION_SECONDS),

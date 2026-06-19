@@ -44,7 +44,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "slot_number", "society_name", "owner_name", "owner_email",
             "owner_phone", "society_address", "society_city", "society_state",
             "society_latitude", "society_longitude", "start_time", "end_time",
-            "actual_entry", "actual_exit", "status", "amount", "amount_paid",
+            "actual_entry", "actual_exit", "status", "base_amount", "surge_amount", "surge_multiplier", "amount", "amount_paid",
             "payment_status", "lock_expires_at", "created_at",
         ]
         read_only_fields = fields
