@@ -36,19 +36,6 @@ class PenaltyPayView(APIView):
 
         gateway = request.data.get("gateway", "stripe")
         embedded = request.data.get("embedded", False)
-        
-        from django.conf import settings
-        allow_bypass = getattr(
-            settings,
-            "PAYMENT_BYPASS",
-            getattr(settings, "DEBUG", False),
-        )
-        if allow_bypass:
-            from apps.payments.services import create_bypass_penalty_payment
-            payment = create_bypass_penalty_payment(penalty, request)
-            serializer = PaymentSerializer(payment)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         if gateway == "stripe":
             payment, checkout_url, checkout_client_secret = create_stripe_penalty_checkout_session(
                 penalty,

@@ -238,53 +238,6 @@ def create_razorpay_order(booking, request=None):
     return payment, razorpay_order["id"]
 
 
-def create_bypass_payment(booking, request=None, gateway='stripe'):
-    """Create a test payment that bypasses external gateways and marks booking confirmed.
-
-    This is intended for local/dev setups where payment gateway credentials are not
-    yet configured. It creates a Payment with status CAPTURED and runs the same
-    confirmation logic so the booking and slot become reserved and a QR token exists.
-    """
-    with transaction.atomic():
-        provider = Payment.Provider.RAZORPAY if gateway == 'razorpay' else Payment.Provider.STRIPE
-        payment = Payment.objects.create(
-            booking=booking,
-            payment_type=Payment.PaymentType.BOOKING,
-            amount=booking.amount,
-            currency=(booking.amount and "INR") or "INR",
-            provider=provider,
-            stripe_checkout_session_id=f"bypass-{booking.booking_number}" if provider == Payment.Provider.STRIPE else None,
-            stripe_payment_intent_id=f"bypass-{booking.booking_number}" if provider == Payment.Provider.STRIPE else None,
-            razorpay_order_id=f"bypass-rzp-{booking.booking_number}" if provider == Payment.Provider.RAZORPAY else None,
-            status=Payment.Status.CAPTURED,
-        )
-
-        # Reuse existing confirmation logic to reserve slot and set booking status
-        _mark_booking_as_confirmed(payment)
-
-    return payment
-
-
-def create_bypass_penalty_payment(penalty, request=None, gateway='stripe'):
-    """Create a test payment that bypasses external gateways and marks penalty as paid.
-    """
-    with transaction.atomic():
-        payment = Payment.objects.create(
-            penalty=penalty,
-            payment_type=Payment.PaymentType.PENALTY,
-            amount=penalty.amount,
-            currency=(penalty.amount and "INR") or "INR",
-            provider=Payment.Provider.STRIPE,
-            stripe_checkout_session_id=f"bypass-pen-{penalty.id}",
-            stripe_payment_intent_id=f"bypass-pen-{penalty.id}",
-            status=Payment.Status.CAPTURED,
-        )
-
-        _mark_penalty_as_paid(payment)
-
-    return payment
-
-
 def create_stripe_penalty_checkout_session(penalty, request=None, embedded=False):
     stripe_client = _get_stripe_client()
     frontend_base_url = _resolve_frontend_base_url(request)

@@ -55,18 +55,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   void _handleRazorpaySuccess(PaymentSuccessResponse response) async {
     final cubit = context.read<BookingDetailCubit>();
     
-    if (response.orderId == null || response.orderId!.isEmpty) {
-       // Bypass payment successful on Razorpay SDK side
-       if (!mounted) return;
-       await cubit.loadBooking(widget.bookingId);
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(
-           content: Text('Payment successful!'),
-           backgroundColor: AppColors.success,
-         ),
-       );
-       return;
-    }
+
     
     _verifyRazorpayPayment(
       cubit,

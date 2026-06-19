@@ -251,7 +251,6 @@ class BookingDetailCubit extends Cubit<BookingDetailState> {
           'booking_id': bookingId,
           'embedded': embedded,
           'gateway': gateway,
-          'bypass': true,
         },
       );
       emit(state.copyWith(isInitiatingPayment: false));
