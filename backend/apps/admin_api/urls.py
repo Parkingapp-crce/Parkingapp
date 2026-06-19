@@ -29,4 +29,15 @@ urlpatterns = [
         views.SocietyStatsView.as_view(),
         name="admin-society-stats",
     ),
+    # ----- Refund / Rollback (Super Admin only) -----
+    path(
+        "refunds/",
+        views.RefundView.as_view(),
+        name="admin-refunds",
+    ),
+    path(
+        "refunds/lookup/",
+        views.RefundLookupView.as_view(),
+        name="admin-refund-lookup",
+    ),
 ]

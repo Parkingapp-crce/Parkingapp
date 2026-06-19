@@ -6,12 +6,13 @@ import stripe
 import razorpay
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.bookings.models import Booking
 from apps.societies.models import ParkingSlot
 
-from .models import Payment
+from .models import Payment, Refund
 
 
 MONEY_MULTIPLIER = Decimal("100")
@@ -485,3 +486,161 @@ def handle_stripe_webhook(request_body, signature):
 
 def serialize_stripe_event(request_body):
     return json.loads(request_body)
+
+
+def process_refund(booking_id, refund_amount, reason, admin_user):
+    """
+    Super-admin only: issue a partial or full refund for a booking.
+
+    Steps:
+      1. Fetch the booking and its latest CAPTURED payment.
+      2. Validate refund_amount <= payment.amount.
+      3. Call Stripe or Razorpay to issue the refund.
+      4. Create a Refund record in the DB.
+      5. Update Payment status (REFUNDED or PARTIALLY_REFUNDED).
+      6. Update Booking status (CANCELLED for full; PARTIALLY_REFUNDED for partial).
+      7. Free the parking slot if the booking was fully refunded and slot is still reserved/occupied.
+    """
+    refund_amount = Decimal(str(refund_amount))
+
+    # ------------------------------------------------------------------
+    # 1. Load the booking
+    # ------------------------------------------------------------------
+    try:
+        booking = Booking.objects.select_related("slot").get(id=booking_id)
+    except Booking.DoesNotExist as exc:
+        raise ValidationError("Booking not found.") from exc
+
+    # ------------------------------------------------------------------
+    # 2. Find the latest captured payment for this booking
+    # ------------------------------------------------------------------
+    payment = (
+        Payment.objects.filter(
+            booking=booking,
+            status=Payment.Status.CAPTURED,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if payment is None:
+        raise ValidationError(
+            "No captured payment found for this booking. Refund is not possible."
+        )
+
+    # ------------------------------------------------------------------
+    # 3. Validate amount
+    # ------------------------------------------------------------------
+    if refund_amount <= Decimal("0"):
+        raise ValidationError("Refund amount must be greater than zero.")
+
+    if refund_amount > payment.amount:
+        raise ValidationError(
+            f"Refund amount (₹{refund_amount}) exceeds the captured payment "
+            f"amount (₹{payment.amount})."
+        )
+
+    is_full_refund = refund_amount == payment.amount
+
+    # ------------------------------------------------------------------
+    # 4. Call the payment gateway
+    # ------------------------------------------------------------------
+    provider_refund_id = ""
+
+    if payment.provider == Payment.Provider.STRIPE:
+        stripe_client = _get_stripe_client()
+        if not payment.stripe_payment_intent_id:
+            raise ValidationError(
+                "Stripe payment intent ID is missing – cannot process refund."
+            )
+        stripe_refund = stripe_client.Refund.create(
+            payment_intent=payment.stripe_payment_intent_id,
+            amount=_amount_in_smallest_unit(refund_amount),  # paise
+            reason="requested_by_customer",
+            metadata={
+                "booking_id": str(booking.id),
+                "booking_number": booking.booking_number,
+                "admin_user": str(admin_user.id),
+                "admin_email": admin_user.email,
+                "reason": reason[:200],
+            },
+        )
+        provider_refund_id = stripe_refund.id
+
+    elif payment.provider == Payment.Provider.RAZORPAY:
+        rz_client = _get_razorpay_client()
+        if not payment.razorpay_payment_id:
+            raise ValidationError(
+                "Razorpay payment ID is missing – cannot process refund."
+            )
+        rz_refund = rz_client.payment.refund(
+            payment.razorpay_payment_id,
+            {
+                "amount": _amount_in_smallest_unit(refund_amount),
+                "notes": {
+                    "booking_id": str(booking.id),
+                    "booking_number": booking.booking_number,
+                    "admin_user": str(admin_user.id),
+                    "reason": reason[:200],
+                },
+            },
+        )
+        provider_refund_id = rz_refund.get("id", "")
+
+    else:
+        raise ValidationError(
+            f"Unknown payment provider '{payment.provider}'. Cannot process refund."
+        )
+
+    # ------------------------------------------------------------------
+    # 5. Persist everything atomically
+    # ------------------------------------------------------------------
+    with transaction.atomic():
+        # Create Refund record
+        refund_record = Refund.objects.create(
+            payment=payment,
+            booking=booking,
+            initiated_by=admin_user,
+            refund_amount=refund_amount,
+            reason=reason,
+            provider_refund_id=provider_refund_id,
+            status=Refund.Status.SUCCEEDED,
+            is_full_refund=is_full_refund,
+        )
+
+        # Update payment status
+        if is_full_refund:
+            payment.status = Payment.Status.REFUNDED
+        else:
+            payment.status = Payment.Status.PARTIALLY_REFUNDED
+        payment.save(update_fields=["status", "updated_at"])
+
+        # Update booking status
+        booking_obj = Booking.objects.select_for_update().get(id=booking.id)
+        if is_full_refund:
+            booking_obj.status = Booking.Status.CANCELLED
+        else:
+            booking_obj.status = Booking.Status.PARTIALLY_REFUNDED
+        booking_obj.save(update_fields=["status", "updated_at"])
+
+        # Release the slot if:
+        #   (a) it is a full refund, OR
+        #   (b) the refund is issued BEFORE the booking's start time —
+        #       the driver hasn't parked yet, so the slot can go back to
+        #       available regardless of whether the refund is partial.
+        refund_before_start = (
+            booking_obj.start_time is not None
+            and timezone.now() < booking_obj.start_time
+        )
+        should_release_slot = is_full_refund or refund_before_start
+
+        if should_release_slot and booking_obj.slot_id:
+            slot = ParkingSlot.objects.select_for_update().get(id=booking_obj.slot_id)
+            if slot.state in (
+                ParkingSlot.SlotState.RESERVED,
+                ParkingSlot.SlotState.OCCUPIED,
+            ):
+                slot.state = ParkingSlot.SlotState.AVAILABLE
+                slot.save(update_fields=["state", "updated_at"])
+
+    return refund_record
+

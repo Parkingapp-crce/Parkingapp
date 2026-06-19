@@ -78,4 +78,8 @@ class ApiEndpoints {
       '/api/v1/admin/society/guards/$guardId/reject/';
   static String adminSocietyStats(String id) =>
       '/api/v1/admin/societies/$id/stats/';
+
+  // Refunds (super admin only)
+  static const adminRefunds = '/api/v1/admin/refunds/';
+  static const adminRefundLookup = '/api/v1/admin/refunds/lookup/';
 }

@@ -77,13 +77,13 @@ class _SocietyDetailScreenState extends State<SocietyDetailScreen> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: society.isActive
-                      ? AppColors.success.withOpacity(0.1)
-                      : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: society.isActive
-                        ? AppColors.success.withOpacity(0.3)
-                        : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+                        ? AppColors.success.withValues(alpha: 0.3)
+                        : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(

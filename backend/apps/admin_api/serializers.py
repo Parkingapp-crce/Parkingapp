@@ -1,7 +1,11 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.accounts.serializers import UserProfileSerializer
 from apps.bookings.serializers import BookingSerializer
+from apps.payments.models import Payment
+from apps.payments.serializers import RefundSerializer
 from apps.qr_validation.models import ScanEvent
 
 
@@ -95,3 +99,46 @@ class SocietyAdminDashboardSerializer(serializers.Serializer):
 class GuardAccountSerializer(UserProfileSerializer):
     class Meta(UserProfileSerializer.Meta):
         fields = UserProfileSerializer.Meta.fields + ["temporary_password"]
+
+
+class RefundInitiateSerializer(serializers.Serializer):
+    booking_id = serializers.UUIDField()
+    refund_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=Decimal("0.01")
+    )
+    reason = serializers.CharField(required=False, allow_blank=True, default="", max_length=500)
+
+
+class BookingRefundLookupSerializer(serializers.Serializer):
+    """Returned when super admin looks up a booking before issuing a refund."""
+    booking_id = serializers.UUIDField()
+    booking_number = serializers.CharField()
+    user_name = serializers.CharField()
+    user_email = serializers.CharField()
+    booking_status = serializers.CharField()
+    booking_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    start_time = serializers.DateTimeField()
+    end_time = serializers.DateTimeField()
+    slot_number = serializers.CharField()
+    society_name = serializers.CharField()
+    # Payment info
+    payment_id = serializers.UUIDField(allow_null=True)
+    payment_status = serializers.CharField(allow_null=True)
+    payment_provider = serializers.CharField(allow_null=True)
+    amount_paid = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
+    max_refundable = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
+    already_refunded = serializers.DecimalField(max_digits=10, decimal_places=2)
+    # Past refunds on this booking
+    past_refunds = RefundSerializer(many=True)
+
+
+# Re-export RefundSerializer for convenience in views
+__all__ = [
+    "GuardDecisionSerializer",
+    "ScanEventSerializer",
+    "SocietyAdminDashboardSerializer",
+    "GuardAccountSerializer",
+    "RefundInitiateSerializer",
+    "BookingRefundLookupSerializer",
+    "RefundSerializer",
+]

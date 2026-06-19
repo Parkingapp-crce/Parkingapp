@@ -12,6 +12,7 @@ class Booking(models.Model):
         CANCELLED = "cancelled", "Cancelled"
         NO_SHOW = "no_show", "No Show"
         EXPIRED = "expired", "Expired"
+        PARTIALLY_REFUNDED = "partially_refunded", "Partially Refunded"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     booking_number = models.CharField(max_length=20, unique=True, db_index=True)

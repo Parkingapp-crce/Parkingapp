@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:core/core.dart';
 
 import 'cubits/societies_cubit.dart';
+import 'cubits/refund_cubit.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/society_list_screen.dart';
 import 'screens/society_form_screen.dart';
 import 'screens/society_detail_screen.dart';
+import 'screens/refund_screen.dart';
 
 GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
   return GoRouter(
@@ -67,6 +69,10 @@ GoRouter createRouter(AuthBloc authBloc, ApiClient apiClient) {
               ),
             ],
           ),
+          GoRoute(
+            path: '/refunds',
+            builder: (context, state) => const RefundScreen(),
+          ),
         ],
       ),
     ],
@@ -95,6 +101,7 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => SocietiesCubit(widget.apiClient)),
+        BlocProvider(create: (_) => RefundCubit(widget.apiClient)),
       ],
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -114,6 +121,8 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
                   context.go('/dashboard');
                 case 1:
                   context.go('/societies');
+                case 2:
+                  context.go('/refunds');
               }
             },
             destinations: const [
@@ -126,6 +135,11 @@ class _SuperAdminShellState extends State<SuperAdminShell> {
                 icon: Icon(Icons.apartment_outlined),
                 selectedIcon: Icon(Icons.apartment_rounded),
                 label: 'Societies',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.undo_outlined),
+                selectedIcon: Icon(Icons.undo_rounded),
+                label: 'Refunds',
               ),
             ],
           ),

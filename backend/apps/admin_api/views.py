@@ -3,20 +3,24 @@ from decimal import Decimal
 from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.accounts.permissions import IsSocietyAdmin, IsSuperAdmin
 from apps.bookings.models import Booking
-from apps.payments.models import Payment
+from apps.payments.models import Payment, Refund
+from apps.payments.services import process_refund
 from apps.qr_validation.models import ScanEvent
 from apps.societies.models import ParkingSlot, Society
 
 from .serializers import (
+    BookingRefundLookupSerializer,
     GuardAccountSerializer,
     GuardDecisionSerializer,
+    RefundInitiateSerializer,
+    RefundSerializer,
     SocietyAdminDashboardSerializer,
 )
 
@@ -262,3 +266,120 @@ class SocietyGuardRejectView(APIView):
         guard.approved_at = None
         guard.save(update_fields=["approval_status", "approval_notes", "approved_at"])
         return Response(GuardAccountSerializer(guard).data)
+
+
+# ---------------------------------------------------------------------------
+# Refund / Rollback Views  (Super Admin only)
+# ---------------------------------------------------------------------------
+
+class RefundLookupView(APIView):
+    """
+    GET /api/v1/admin/refunds/lookup/?booking_id=<uuid>
+
+    Returns a snapshot of the booking and its latest captured payment so
+    the super admin can review the details before issuing a refund.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request):
+        booking_id = request.query_params.get("booking_id")
+        if not booking_id:
+            return Response(
+                {"error": "booking_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            booking = (
+                Booking.objects
+                .select_related("user", "slot", "slot__society")
+                .get(id=booking_id)
+            )
+        except (Booking.DoesNotExist, Exception):
+            return Response(
+                {"error": "Booking not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        payment = (
+            Payment.objects
+            .filter(booking=booking, status=Payment.Status.CAPTURED)
+            .order_by("-created_at")
+            .first()
+        )
+
+        past_refunds = list(
+            Refund.objects
+            .filter(booking=booking)
+            .select_related("initiated_by", "payment")
+            .order_by("-created_at")
+        )
+        already_refunded = sum(r.refund_amount for r in past_refunds)
+
+        payload = {
+            "booking_id": booking.id,
+            "booking_number": booking.booking_number,
+            "user_name": booking.user.full_name,
+            "user_email": booking.user.email,
+            "booking_status": booking.status,
+            "booking_amount": booking.amount,
+            "start_time": booking.start_time,
+            "end_time": booking.end_time,
+            "slot_number": booking.slot.slot_number,
+            "society_name": booking.slot.society.name,
+            "payment_id": payment.id if payment else None,
+            "payment_status": payment.status if payment else None,
+            "payment_provider": payment.provider if payment else None,
+            "amount_paid": payment.amount if payment else None,
+            "max_refundable": payment.amount if payment else None,
+            "already_refunded": already_refunded,
+            "past_refunds": past_refunds,
+        }
+        serializer = BookingRefundLookupSerializer(payload)
+        return Response(serializer.data)
+
+
+class RefundView(APIView):
+    """
+    GET  /api/v1/admin/refunds/        – list all refunds (audit trail)
+    POST /api/v1/admin/refunds/        – initiate a refund for a booking
+    """
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request):
+        refunds = (
+            Refund.objects
+            .select_related("booking", "initiated_by", "payment")
+            .order_by("-created_at")[:100]  # last 100 refunds
+        )
+        return Response(RefundSerializer(refunds, many=True).data)
+
+    def post(self, request):
+        serializer = RefundInitiateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        booking_id = serializer.validated_data["booking_id"]
+        refund_amount = serializer.validated_data["refund_amount"]
+        reason = serializer.validated_data.get("reason", "")
+
+        try:
+            refund_record = process_refund(
+                booking_id=booking_id,
+                refund_amount=refund_amount,
+                reason=reason,
+                admin_user=request.user,
+            )
+        except Exception as exc:
+            # Return the validation/gateway error message to the admin
+            detail = getattr(exc, "detail", None) or str(exc)
+            if isinstance(detail, list):
+                detail = detail[0]
+            return Response(
+                {"error": str(detail)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            RefundSerializer(refund_record).data,
+            status=status.HTTP_201_CREATED,
+        )

@@ -175,4 +175,69 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  // ─────────────────────────────────────────────
+  // SUPER ADMIN – REFUND / ROLLBACK
+  // ─────────────────────────────────────────────
+
+  /// Look up a booking by ID so the admin can preview it before refunding.
+  static Future<Map<String, dynamic>> lookupBookingForRefund(
+    String bookingId,
+  ) async {
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/api/v1/admin/refunds/lookup/?booking_id=$bookingId"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Lookup failed (${response.statusCode})');
+  }
+
+  /// Initiate a refund for a booking. [refundAmount] must be ≤ the paid amount.
+  static Future<Map<String, dynamic>> initiateRefund({
+    required String bookingId,
+    required double refundAmount,
+    required String reason,
+  }) async {
+    final token = await _getToken();
+    final response = await http.post(
+      Uri.parse("$baseUrl/api/v1/admin/refunds/"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "booking_id": bookingId,
+        "refund_amount": refundAmount,
+        "reason": reason,
+      }),
+    );
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Refund failed (${response.statusCode})');
+  }
+
+  /// Fetch the full refund history (audit trail).
+  static Future<List<dynamic>> getRefundHistory() async {
+    final token = await _getToken();
+    final response = await http.get(
+      Uri.parse("$baseUrl/api/v1/admin/refunds/"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to load refund history (${response.statusCode})');
+  }
 }

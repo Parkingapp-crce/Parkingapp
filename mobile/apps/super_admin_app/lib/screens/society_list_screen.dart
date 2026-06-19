@@ -131,8 +131,8 @@ class _SocietyCard extends StatelessWidget {
         onTap: onTap,
         leading: CircleAvatar(
           backgroundColor: society.isActive
-              ? AppColors.success.withOpacity(0.1)
-              : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
+              ? AppColors.success.withValues(alpha: 0.1)
+              : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
           child: Icon(
             Icons.apartment,
             color: society.isActive
@@ -190,8 +190,8 @@ class _SocietyCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: society.isActive
-                ? AppColors.success.withOpacity(0.1)
-                : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
+                ? AppColors.success.withValues(alpha: 0.1)
+                : Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
