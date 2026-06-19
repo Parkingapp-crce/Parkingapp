@@ -210,21 +210,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                             ),
                           ),
                         ] else ...[
-                          Text(
-                            'Search nearby societies',
-                            style:
-                                Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Choose a destination from suggestions or map, then search by booking window and vehicle type.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                          _buildWelcomeGreeting(context),
                           _buildSearchCard(context, state),
                           const SizedBox(height: 16),
                           _buildResultsSection(context, state),
@@ -284,134 +270,191 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   Widget _buildSearchCard(BuildContext context, SocietiesState state) {
     final dateFormat = DateFormat('EEE, MMM d, yyyy');
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Destination',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _destinationController,
-              textInputAction: TextInputAction.search,
-              onChanged: _onDestinationChanged,
-              decoration: InputDecoration(
-                hintText: 'Where do you need parking?',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: state.selectedDestination != null
-                    ? IconButton(
-                        tooltip: 'Clear destination',
-                        onPressed: () {
-                          _destinationController.clear();
-                          context
-                              .read<SocietiesCubit>()
-                              .clearDestinationSelection();
-                        },
-                        icon: const Icon(Icons.close),
-                      )
-                    : null,
-              ),
-            ),
-            if (state.isLoadingSuggestions) ...[
-              const SizedBox(height: 8),
-              const LinearProgressIndicator(minHeight: 2),
-            ],
-            if (state.destinationSuggestions.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+    return PremiumCard(
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Destination',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-                child: Column(
-                  children: state.destinationSuggestions
-                      .map(
-                        (suggestion) => ListTile(
-                          leading: Icon(
-                            Icons.location_on_outlined,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          title: Text(suggestion.title),
-                          subtitle: suggestion.subtitle.isNotEmpty
-                              ? Text(
-                                  suggestion.subtitle,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                )
-                              : null,
-                          onTap: () => _selectSuggestion(context, suggestion),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _destinationController,
+            textInputAction: TextInputAction.search,
+            onChanged: _onDestinationChanged,
+            decoration: InputDecoration(
+              hintText: 'Where do you need parking?',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: state.selectedDestination != null
+                  ? IconButton(
+                      tooltip: 'Clear destination',
+                      onPressed: () {
+                        _destinationController.clear();
+                        context
+                            .read<SocietiesCubit>()
+                            .clearDestinationSelection();
+                      },
+                      icon: const Icon(Icons.close),
+                    )
+                  : null,
+            ),
+          ),
+          if (state.isLoadingSuggestions) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(minHeight: 2),
+          ],
+          if (state.destinationSuggestions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              ),
+              child: Column(
+                children: state.destinationSuggestions
+                    .map(
+                      (suggestion) => ListTile(
+                        leading: Icon(
+                          Icons.location_on_outlined,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
+                        title: Text(suggestion.title),
+                        subtitle: suggestion.subtitle.isNotEmpty
+                            ? Text(
+                                suggestion.subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            : null,
+                        onTap: () => _selectSuggestion(context, suggestion),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: state.isResolvingLocation
+                    ? null
+                    : () => _useCurrentLocation(context),
+                icon: state.isResolvingLocation
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                      .toList(),
+                    : const Icon(Icons.my_location_outlined),
+                label: const Text('Use Current Location'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _pickOnMap(context, state),
+                icon: const Icon(Icons.map_outlined),
+                label: const Text('Pick on Map'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
+          ),
+          if (state.selectedDestination != null) ...[
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: state.isResolvingLocation
-                      ? null
-                      : () => _useCurrentLocation(context),
-                  icon: state.isResolvingLocation
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location_outlined),
-                  label: const Text('Use Current Location'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _pickOnMap(context, state),
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Pick on Map'),
-                ),
-              ],
+            _LocationSummaryCard(
+              title: 'Selected Destination',
+              location: state.selectedDestination!,
+              icon: Icons.place_outlined,
             ),
-            if (state.selectedDestination != null) ...[
-              const SizedBox(height: 12),
-              _LocationSummaryCard(
-                title: 'Selected Destination',
-                location: state.selectedDestination!,
-                icon: Icons.place_outlined,
-              ),
-            ],
-            if (state.currentLocation != null &&
-                state.currentLocation?.label !=
-                    state.selectedDestination?.label) ...[
-              const SizedBox(height: 12),
-              _LocationSummaryCard(
-                title: 'Current Location Helper',
-                location: state.currentLocation!,
-                icon: Icons.my_location_outlined,
-              ),
-            ],
-            const SizedBox(height: 20),
-            Text(
-              'Booking Filters',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
+          ],
+          if (state.currentLocation != null &&
+              state.currentLocation?.label !=
+                  state.selectedDestination?.label) ...[
             const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.calendar_today,
-                color: Theme.of(context).colorScheme.primary,
+            _LocationSummaryCard(
+              title: 'Current Location Helper',
+              location: state.currentLocation!,
+              icon: Icons.my_location_outlined,
+            ),
+          ],
+          const SizedBox(height: 24),
+          Text(
+            'Booking Filters',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: 16),
+
+          // Booking Date selector tile
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.calendar_today_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 20,
+                ),
               ),
-              title: const Text('Booking Date'),
-              subtitle: Text(dateFormat.format(_bookingDate)),
+              title: Text(
+                'BOOKING DATE',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+              subtitle: Text(
+                dateFormat.format(_bookingDate),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+              ),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
@@ -430,12 +473,49 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 }
               },
             ),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.schedule, color: Theme.of(context).colorScheme.primary),
-              title: const Text('Start Time'),
-              subtitle: Text(_startTime.format(context)),
+          ),
+
+          // Start Time selector tile
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.schedule_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                'START TIME',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+              subtitle: Text(
+                _startTime.format(context),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+              ),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               onTap: () async {
                 final picked = await showTimePicker(
                   context: context,
@@ -451,66 +531,113 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                 }
               },
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Use Duration'),
-                  selected: _useDuration,
-                  onSelected: (_) {
-                    setState(() {
-                      _useDuration = true;
-                      _endTime = _addMinutes(_startTime, _durationMinutes);
-                    });
-                  },
+          ),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Use Duration'),
+                selected: _useDuration,
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: _useDuration 
+                      ? Theme.of(context).colorScheme.primary 
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: _useDuration ? FontWeight.bold : FontWeight.normal,
                 ),
-                ChoiceChip(
-                  label: const Text('Use End Time'),
-                  selected: !_useDuration,
-                  onSelected: (_) {
-                    setState(() {
-                      _useDuration = false;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (_useDuration)
-              DropdownButtonFormField<int>(
-                initialValue: _durationMinutes,
-                decoration: const InputDecoration(
-                  labelText: 'Duration',
-                  prefixIcon: Icon(Icons.timer_outlined),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 30, child: Text('30 minutes')),
-                  DropdownMenuItem(value: 60, child: Text('1 hour')),
-                  DropdownMenuItem(value: 120, child: Text('2 hours')),
-                  DropdownMenuItem(value: 180, child: Text('3 hours')),
-                  DropdownMenuItem(value: 240, child: Text('4 hours')),
-                ],
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
+                onSelected: (_) {
                   setState(() {
-                    _durationMinutes = value;
+                    _useDuration = true;
                     _endTime = _addMinutes(_startTime, _durationMinutes);
                   });
                 },
-              )
-            else
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  Icons.access_time_filled,
-                  color: Theme.of(context).colorScheme.primary,
+              ),
+              ChoiceChip(
+                label: const Text('Use End Time'),
+                selected: !_useDuration,
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: !_useDuration 
+                      ? Theme.of(context).colorScheme.primary 
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: !_useDuration ? FontWeight.bold : FontWeight.normal,
                 ),
-                title: const Text('End Time'),
-                subtitle: Text(_endTime?.format(context) ?? 'Select end time'),
+                onSelected: (_) {
+                  setState(() {
+                    _useDuration = false;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_useDuration)
+            DropdownButtonFormField<int>(
+              initialValue: _durationMinutes,
+              decoration: const InputDecoration(
+                labelText: 'Duration',
+                prefixIcon: Icon(Icons.timer_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(value: 30, child: Text('30 minutes')),
+                DropdownMenuItem(value: 60, child: Text('1 hour')),
+                DropdownMenuItem(value: 120, child: Text('2 hours')),
+                DropdownMenuItem(value: 180, child: Text('3 hours')),
+                DropdownMenuItem(value: 240, child: Text('4 hours')),
+              ],
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() {
+                  _durationMinutes = value;
+                  _endTime = _addMinutes(_startTime, _durationMinutes);
+                });
+              },
+            )
+          else
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.access_time_filled_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  'END TIME',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                ),
+                subtitle: Text(
+                  _endTime?.format(context) ?? 'Select end time',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 onTap: () async {
                   final picked = await showTimePicker(
                     context: context,
@@ -523,38 +650,53 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                   }
                 },
               ),
-            const SizedBox(height: 16),
-            Text(
-              'Vehicle Type',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Car'),
-                  selected: _vehicleType == 'car',
-                  onSelected: (_) => setState(() => _vehicleType = 'car'),
+          const SizedBox(height: 20),
+          Text(
+            'Vehicle Type',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-                ChoiceChip(
-                  label: const Text('Bike'),
-                  selected: _vehicleType == 'bike',
-                  onSelected: (_) => setState(() => _vehicleType = 'bike'),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Car'),
+                selected: _vehicleType == 'car',
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: _vehicleType == 'car'
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: _vehicleType == 'car' ? FontWeight.bold : FontWeight.normal,
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            PrimaryButton(
-              label: 'Find Available Parking',
-              isLoading: state.isLoading,
-              icon: Icons.search,
-              onPressed: () => _submitSearch(context),
-            ),
-          ],
-        ),
+                onSelected: (_) => setState(() => _vehicleType = 'car'),
+              ),
+              ChoiceChip(
+                label: const Text('Bike'),
+                selected: _vehicleType == 'bike',
+                selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                labelStyle: TextStyle(
+                  color: _vehicleType == 'bike'
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: _vehicleType == 'bike' ? FontWeight.bold : FontWeight.normal,
+                ),
+                onSelected: (_) => setState(() => _vehicleType = 'bike'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _HomeScreenGradientButton(
+            label: 'Find Available Parking',
+            isLoading: state.isLoading,
+            icon: Icons.search_rounded,
+            onPressed: () => _submitSearch(context),
+          ),
+        ],
       ),
     );
   }
@@ -1039,6 +1181,49 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  Widget _buildWelcomeGreeting(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final name = state is Authenticated ? state.user.fullName : 'Guest';
+        final hour = DateTime.now().hour;
+        String greeting = 'Good morning';
+        if (hour >= 12 && hour < 17) {
+          greeting = 'Good afternoon';
+        } else if (hour >= 17 || hour < 4) {
+          greeting = 'Good evening';
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$greeting,',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$name 👋',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _LocationSummaryCard extends StatelessWidget {
@@ -1106,96 +1291,125 @@ class _SocietyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          final uri = Uri(
-            path: '/societies/${society.id}',
-            queryParameters: {
-              'bookingDate': request.bookingDate,
-              'startTime': request.startTime,
-              'endTime': request.endTime,
-              'vehicleType': request.vehicleType,
-            },
-          );
-          context.push(uri.toString());
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.tertiary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.apartment,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+    return PremiumCard(
+      padding: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      onTap: () {
+        final uri = Uri(
+          path: '/societies/${society.id}',
+          queryParameters: {
+            'bookingDate': request.bookingDate,
+            'startTime': request.startTime,
+            'endTime': request.endTime,
+            'vehicleType': request.vehicleType,
+          },
+        );
+        context.push(uri.toString());
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          society.name,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${society.address}, ${society.city}',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${society.distanceKm.toStringAsFixed(1)} km',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _InfoPill(
-                    icon: Icons.local_parking_outlined,
-                    label: '${society.availableSlots} matching slots',
-                    color: AppColors.success,
-                  ),
-                  _InfoPill(
-                    icon: Icons.currency_rupee,
-                    label: 'From ${society.startingHourlyRate}/hr',
+                  child: Icon(
+                    Icons.apartment_rounded,
                     color: Theme.of(context).colorScheme.primary,
                   ),
-                  _InfoPill(
-                    icon: society.vehicleType == 'bike'
-                        ? Icons.two_wheeler
-                        : Icons.directions_car,
-                    label: society.vehicleType.toUpperCase(),
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        society.name,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'Inter',
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${society.address}, ${society.city}',
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontFamily: 'Inter',
+                            ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${society.distanceKm.toStringAsFixed(1)} km',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.primary,
+                            letterSpacing: -0.2,
+                            fontFamily: 'Inter',
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _InfoPill(
+                  icon: Icons.local_parking_outlined,
+                  label: '${society.availableSlots} matching slots',
+                  color: AppColors.success,
+                ),
+                _InfoPill(
+                  icon: Icons.currency_rupee,
+                  label: 'From ${society.startingHourlyRate}/hr',
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                _InfoPill(
+                  icon: society.vehicleType == 'bike'
+                      ? Icons.two_wheeler
+                      : Icons.directions_car,
+                  label: society.vehicleType.toUpperCase(),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1709,24 +1923,101 @@ class _InfoPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
+          Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeScreenGradientButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+  final IconData? icon;
+
+  const _HomeScreenGradientButton({
+    required this.label,
+    this.onPressed,
+    this.isLoading = false,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCallback = onPressed != null && !isLoading;
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: hasCallback ? AppColors.gradPrimary : null,
+        color: hasCallback ? null : Theme.of(context).colorScheme.outlineVariant,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: hasCallback ? [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ] : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: hasCallback ? onPressed : null,
+          borderRadius: BorderRadius.circular(14),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 20, color: Colors.white),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }

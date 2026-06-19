@@ -45,11 +45,13 @@ class PaymentInitiateView(APIView):
         gateway = serializer.validated_data.get("gateway", "stripe")
         embedded = serializer.validated_data.get("embedded", False)
         # Allow bypass when explicitly requested and server allows bypassing
-        allow_bypass = getattr(
+        bypass_requested = serializer.validated_data.get("bypass", False)
+        bypass_allowed = getattr(
             settings,
             "PAYMENT_BYPASS",
             getattr(settings, "DEBUG", False),
         )
+        allow_bypass = bypass_requested and bypass_allowed
         if allow_bypass:
             payment = create_bypass_payment(booking, request, gateway=gateway)
             serializer = PaymentSerializer(payment)

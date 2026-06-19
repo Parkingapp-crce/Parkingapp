@@ -525,11 +525,11 @@ class _StatusHeader extends StatelessWidget {
       case 'pending_payment':
         return AppColors.warning;
       case 'completed':
-        return AppColors.textSecondary;
+        return AppColors.textDisabled;
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textDisabled;
     }
   }
 
@@ -543,13 +543,13 @@ class _StatusHeader extends StatelessWidget {
       case 'failed':
         return AppColors.error;
       case 'refunded':
-        return AppColors.textSecondary;
+        return AppColors.textDisabled;
       case 'created':
       case 'unpaid':
       case null:
         return AppColors.warning;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textDisabled;
     }
   }
 
@@ -567,57 +567,72 @@ class _StatusHeader extends StatelessWidget {
     final paymentColor = _paymentStatusColor(booking);
     final bookingColor = _bookingStatusColor(booking.status);
 
-    return Card(
-      color: paymentColor.withValues(alpha: 0.1),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
+    return PremiumCard(
+      color: paymentColor.withValues(alpha: 0.08),
+      border: Border.all(color: paymentColor.withValues(alpha: 0.2)),
+      borderRadius: 16,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.02),
+          blurRadius: 10,
+          offset: const Offset(0, 2),
+        ),
+      ],
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: paymentColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
               _paymentStatusIcon(booking.paymentStatus),
               color: paymentColor,
-              size: 32,
+              size: 28,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '#${booking.bookingNumber}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '#${booking.bookingNumber}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Inter',
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _HeaderChip(
+                      label: booking.paymentStatusLabel,
+                      color: paymentColor,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _HeaderChip(
-                        label: booking.paymentStatusLabel,
-                        color: paymentColor,
-                      ),
-                      _HeaderChip(
-                        label: _bookingStatusLabel(booking.status),
-                        color: bookingColor,
-                        filled: false,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    _HeaderChip(
+                      label: _bookingStatusLabel(booking.status),
+                      color: bookingColor,
+                      filled: false,
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Text(
-              '\u20B9${booking.amount}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
+          ),
+          Text(
+            '₹${booking.amount}',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Inter',
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -625,13 +640,13 @@ class _StatusHeader extends StatelessWidget {
   IconData _paymentStatusIcon(String? status) {
     switch (status) {
       case 'captured':
-        return Icons.check_circle;
+        return Icons.check_circle_rounded;
       case 'failed':
-        return Icons.error;
+        return Icons.error_rounded;
       case 'refunded':
-        return Icons.replay_circle_filled;
+        return Icons.replay_circle_filled_rounded;
       default:
-        return Icons.payment;
+        return Icons.payment_rounded;
     }
   }
 }
@@ -653,15 +668,17 @@ class _HeaderChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: filled ? color : color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: filled ? null : Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
           color: filled ? Colors.white : color,
+          fontFamily: 'Inter',
+          letterSpacing: 0.3,
         ),
       ),
     );
@@ -686,70 +703,85 @@ class _QrSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Text(
-              'Scan at Entry/Exit',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            if (isLoadingQr)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: CircularProgressIndicator(),
-              )
-            else if (qrImageBytes != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.memory(
-                  qrImageBytes!,
-                  width: 220,
-                  height: 220,
-                  fit: BoxFit.contain,
-                  gaplessPlayback: true,
+    return PremiumCard(
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Text(
+            'Scan at Entry/Exit',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
                 ),
-              )
-            else
-              Container(
+          ),
+          const SizedBox(height: 16),
+          if (isLoadingQr)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 48),
+              child: CircularProgressIndicator(),
+            )
+          else if (qrImageBytes != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.memory(
+                qrImageBytes!,
                 width: 220,
                 height: 220,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'QR is unavailable right now. Pull to refresh and try again.',
-                    textAlign: TextAlign.center,
-                  ),
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+              ),
+            )
+          else
+            Container(
+              width: 220,
+              height: 220,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'QR is unavailable right now. Pull to refresh and try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontFamily: 'Inter'),
                 ),
               ),
-            const SizedBox(height: 12),
-            Text(
-              booking.bookingNumber,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'This QR is generated by the server and matches the guard scanner validation.',
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
+          const SizedBox(height: 12),
+          Text(
+            booking.bookingNumber,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  fontFamily: 'Inter',
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'This QR is generated by the server and matches the guard scanner validation.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontFamily: 'Inter',
+                ),
+          ),
+        ],
       ),
     );
   }
@@ -762,33 +794,45 @@ class _BookingInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Booking Information',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            if (booking.societyName != null)
-              _DetailTile(
-                icon: Icons.apartment,
-                label: 'Society',
-                value: booking.societyName!,
-              ),
-            if (booking.slotNumber != null)
-              _DetailTile(
-                icon: Icons.grid_view,
-                label: 'Slot',
-                value: booking.slotNumber!,
-              ),
-          ],
+    return PremiumCard(
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
         ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Booking Information',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Inter',
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: 12),
+          if (booking.societyName != null)
+            _DetailTile(
+              icon: Icons.apartment_rounded,
+              label: 'Society',
+              value: booking.societyName!,
+            ),
+          if (booking.slotNumber != null)
+            _DetailTile(
+              icon: Icons.grid_view_rounded,
+              label: 'Slot',
+              value: booking.slotNumber!,
+            ),
+        ],
       ),
     );
   }
@@ -819,53 +863,63 @@ class _TimeCard extends StatelessWidget {
       }
     } catch (_) {}
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Schedule',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            if (startDt != null)
-              _DetailTile(
-                icon: Icons.calendar_today,
-                label: 'Date',
-                value: dateFormat.format(startDt),
-              ),
-            if (startDt != null)
-              _DetailTile(
-                icon: Icons.access_time,
-                label: 'Start',
-                value: timeFormat.format(startDt),
-              ),
-            if (endDt != null)
-              _DetailTile(
-                icon: Icons.access_time_filled,
-                label: 'End',
-                value: timeFormat.format(endDt),
-              ),
-            if (entryDt != null)
-              _DetailTile(
-                icon: Icons.login,
-                label: 'Actual Entry',
-                value:
-                    '${dateFormat.format(entryDt)} ${timeFormat.format(entryDt)}',
-              ),
-            if (exitDt != null)
-              _DetailTile(
-                icon: Icons.logout,
-                label: 'Actual Exit',
-                value:
-                    '${dateFormat.format(exitDt)} ${timeFormat.format(exitDt)}',
-              ),
-          ],
+    return PremiumCard(
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
         ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Schedule',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Inter',
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: 12),
+          if (startDt != null)
+            _DetailTile(
+              icon: Icons.calendar_today_rounded,
+              label: 'Date',
+              value: dateFormat.format(startDt),
+            ),
+          if (startDt != null)
+            _DetailTile(
+              icon: Icons.access_time_rounded,
+              label: 'Start',
+              value: timeFormat.format(startDt),
+            ),
+          if (endDt != null)
+            _DetailTile(
+              icon: Icons.access_time_filled_rounded,
+              label: 'End',
+              value: timeFormat.format(endDt),
+            ),
+          if (entryDt != null)
+            _DetailTile(
+              icon: Icons.login_rounded,
+              label: 'Actual Entry',
+              value: '${dateFormat.format(entryDt)} ${timeFormat.format(entryDt)}',
+            ),
+          if (exitDt != null)
+            _DetailTile(
+              icon: Icons.logout_rounded,
+              label: 'Actual Exit',
+              value: '${dateFormat.format(exitDt)} ${timeFormat.format(exitDt)}',
+            ),
+        ],
       ),
     );
   }
@@ -878,39 +932,51 @@ class _VehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Vehicle',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            _DetailTile(
-              icon: vehicle.vehicleType == 'bike'
-                  ? Icons.two_wheeler
-                  : Icons.directions_car,
-              label: 'Type',
-              value: vehicle.vehicleType.toUpperCase(),
-            ),
-            _DetailTile(
-              icon: Icons.confirmation_number,
-              label: 'Registration',
-              value: vehicle.registrationNo,
-            ),
-            if (vehicle.makeModel.isNotEmpty)
-              _DetailTile(
-                icon: Icons.info_outline,
-                label: 'Make/Model',
-                value: vehicle.makeModel,
-              ),
-          ],
+    return PremiumCard(
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
         ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Vehicle',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Inter',
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: 12),
+          _DetailTile(
+            icon: vehicle.vehicleType == 'bike'
+                ? Icons.two_wheeler_rounded
+                : Icons.directions_car_rounded,
+            label: 'Type',
+            value: vehicle.vehicleType.toUpperCase(),
+          ),
+          _DetailTile(
+            icon: Icons.confirmation_number_rounded,
+            label: 'Registration',
+            value: vehicle.registrationNo,
+          ),
+          if (vehicle.makeModel.isNotEmpty)
+            _DetailTile(
+              icon: Icons.info_outline_rounded,
+              label: 'Make/Model',
+              value: vehicle.makeModel,
+            ),
+        ],
       ),
     );
   }
@@ -930,23 +996,34 @@ class _DetailTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textSecondary),
-          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(width: 12),
           Text(
             '$label: ',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: 'Inter',
+                ),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontFamily: 'Inter',
+                  ),
             ),
           ),
         ],
@@ -974,27 +1051,25 @@ class _ActionButtons extends StatelessWidget {
     final canPay = booking.isPendingPayment;
     final isFinished = !canCancel && !canPay;
 
-    // No return here, allow the column to build so we can show 'Back to Home'
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (canPay)
-          PrimaryButton(
-            label: 'Pay Now',
-            isLoading: state.isInitiatingPayment,
-            onPressed: isCheckoutOpen ? null : onPay,
-            icon: Icons.payment,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ActionGradientButton(
+              label: 'Pay Now',
+              isLoading: state.isInitiatingPayment,
+              onPressed: isCheckoutOpen ? null : onPay,
+              icon: Icons.payment_rounded,
+            ),
           ),
-        if (canPay && canCancel) const SizedBox(height: 12),
         if (canCancel)
           SizedBox(
             width: double.infinity,
-            height: 48,
+            height: 50,
             child: OutlinedButton.icon(
-              onPressed: state.isCancelling
-                  ? null
-                  : () => _showCancelDialog(context),
+              onPressed: state.isCancelling ? null : () => _showCancelDialog(context),
               icon: state.isCancelling
                   ? const SizedBox(
                       width: 18,
@@ -1002,12 +1077,19 @@ class _ActionButtons extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.cancel_outlined),
-              label: const Text('Cancel Booking'),
+              label: const Text(
+                'Cancel Booking',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
+                side: BorderSide(color: AppColors.error.withValues(alpha: 0.5), width: 1.5),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
@@ -1015,10 +1097,10 @@ class _ActionButtons extends StatelessWidget {
         if (isFinished || booking.isConfirmed || booking.isActive)
           Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: PrimaryButton(
+            child: _ActionGradientButton(
               label: 'Back to Home',
               onPressed: () => context.go('/home'),
-              icon: Icons.home,
+              icon: Icons.home_rounded,
             ),
           ),
       ],
@@ -1052,6 +1134,79 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
+class _ActionGradientButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+  final IconData? icon;
+
+  const _ActionGradientButton({
+    required this.label,
+    this.onPressed,
+    this.isLoading = false,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCallback = onPressed != null && !isLoading;
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: hasCallback ? AppColors.gradPrimary : null,
+        color: hasCallback ? null : Theme.of(context).colorScheme.outlineVariant,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: hasCallback
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: hasCallback ? onPressed : null,
+          borderRadius: BorderRadius.circular(14),
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 20, color: Colors.white),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _EmbeddedCheckoutPanel extends StatelessWidget {
   final PaymentModel payment;
   final bool isCompleting;
@@ -1071,38 +1226,50 @@ class _EmbeddedCheckoutPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final sessionId = payment.stripeCheckoutSessionId!;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.lock_outline, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Secure Checkout',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+    return PremiumCard(
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.1),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
+      borderRadius: 16,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lock_outline_rounded, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Secure Checkout',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Inter',
+                      ),
                 ),
-                IconButton(
-                  tooltip: 'Close checkout',
-                  onPressed: onClose,
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            if (isCompleting) ...[
-              const SizedBox(height: 8),
-              const LinearProgressIndicator(),
+              ),
+              IconButton(
+                tooltip: 'Close checkout',
+                onPressed: onClose,
+                icon: const Icon(Icons.close_rounded),
+              ),
             ],
-            const SizedBox(height: 12),
-            EmbeddedCheckoutView(
+          ),
+          if (isCompleting) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(),
+          ],
+          const SizedBox(height: 12),
+          Expanded(
+            child: EmbeddedCheckoutView(
               key: ValueKey(sessionId),
               publishableKey: payment.stripePublishableKey!,
               clientSecret: payment.checkoutClientSecret!,
@@ -1110,8 +1277,8 @@ class _EmbeddedCheckoutPanel extends StatelessWidget {
               onComplete: onComplete,
               onError: onError,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1138,7 +1305,7 @@ class _GatewayTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.divider),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -1161,19 +1328,21 @@ class _GatewayTile extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      fontFamily: 'Inter',
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,
+                      fontFamily: 'Inter',
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Icon(Icons.chevron_right_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
       ),

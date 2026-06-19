@@ -152,7 +152,7 @@ class _SocietyDetailContent extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.15,
+          childAspectRatio: 1.05,
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
           return _SlotTile(
@@ -294,25 +294,35 @@ class _AvailabilitySummaryCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiary,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Showing slots for your selected booking window',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onTertiaryContainer,
+            ),
           ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _InfoChip(label: dateLabel, color: Theme.of(context).colorScheme.primary),
-              _InfoChip(label: timeLabel, color: Theme.of(context).colorScheme.primary),
+              _InfoChip(
+                label: dateLabel,
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
+              _InfoChip(
+                label: timeLabel,
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
               _InfoChip(
                 label: vehicleType.toUpperCase(),
                 color: AppColors.success,
@@ -476,8 +486,27 @@ class _SlotTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: slot.isAvailable
+    final isAvailable = slot.isAvailable;
+    final stateColor = _stateColor;
+
+    return PremiumCard(
+      padding: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.03),
+          blurRadius: 10,
+          offset: const Offset(0, 2),
+        ),
+      ],
+      border: Border.all(
+        color: isAvailable
+            ? stateColor.withValues(alpha: 0.6)
+            : Theme.of(context).colorScheme.outlineVariant,
+        width: isAvailable ? 2 : 1,
+      ),
+      borderRadius: 16,
+      onTap: isAvailable
           ? () {
               final uri = Uri(
                 path: '/booking/create',
@@ -492,74 +521,107 @@ class _SlotTile extends StatelessWidget {
               context.push(uri.toString());
             }
           : null,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _stateColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _stateColor, width: 1.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(_typeIcon, color: _stateColor, size: 26),
-            const SizedBox(height: 8),
-            Text(
-              slot.slotNumber,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: _stateColor,
+      child: Stack(
+        children: [
+          if (!isAvailable)
+            Positioned.fill(
+              child: Container(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              slot.state.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: _stateColor,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '\u20B9${slot.hourlyRate}/hr',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _stateColor,
-              ),
-            ),
-            if (slot.floor.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Floor ${slot.floor}',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: _stateColor.withValues(alpha: 0.7),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Icon(
+                      _typeIcon,
+                      color: isAvailable
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: stateColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        slot.state.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: stateColor,
+                          letterSpacing: 0.4,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-            if (slot.availableFrom != null && slot.availableTo != null) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _stateColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${slot.availableFrom} - ${slot.availableTo}',
+                const SizedBox(height: 12),
+                Text(
+                  slot.slotNumber,
                   style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                    color: _stateColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: isAvailable
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    fontFamily: 'Inter',
                   ),
                 ),
-              ),
-            ],
-          ],
-        ),
+                const SizedBox(height: 2),
+                Text(
+                  '₹${slot.hourlyRate}/hr',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isAvailable
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                if (slot.floor.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Floor ${slot.floor}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+                if (slot.availableFrom != null && slot.availableTo != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${slot.availableFrom} - ${slot.availableTo}',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

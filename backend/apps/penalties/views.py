@@ -38,11 +38,13 @@ class PenaltyPayView(APIView):
         embedded = request.data.get("embedded", False)
         
         from django.conf import settings
-        allow_bypass = getattr(
+        bypass_requested = request.data.get("bypass", False)
+        bypass_allowed = getattr(
             settings,
             "PAYMENT_BYPASS",
             getattr(settings, "DEBUG", False),
         )
+        allow_bypass = bypass_requested and bypass_allowed
         if allow_bypass:
             from apps.payments.services import create_bypass_penalty_payment
             payment = create_bypass_penalty_payment(penalty, request)

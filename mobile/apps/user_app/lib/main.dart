@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
+import 'package:go_router/go_router.dart';
+
 import 'router.dart';
 
 final getIt = GetIt.instance;
@@ -51,7 +53,7 @@ void main() async {
   runApp(ParkingApp(authBloc: authBloc, themeNotifier: themeNotifier));
 }
 
-class ParkingApp extends StatelessWidget {
+class ParkingApp extends StatefulWidget {
   final AuthBloc authBloc;
   final ThemeNotifier themeNotifier;
 
@@ -62,20 +64,37 @@ class ParkingApp extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final router = createRouter(authBloc);
+  State<ParkingApp> createState() => _ParkingAppState();
+}
 
+class _ParkingAppState extends State<ParkingApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = createRouter(widget.authBloc);
+  }
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: authBloc,
+      value: widget.authBloc,
       child: ListenableBuilder(
-        listenable: themeNotifier,
+        listenable: widget.themeNotifier,
         builder: (context, _) => MaterialApp.router(
           title: 'ParkEase',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: themeNotifier.themeMode,
-          routerConfig: router,
+          themeMode: widget.themeNotifier.themeMode,
+          routerConfig: _router,
         ),
       ),
     );

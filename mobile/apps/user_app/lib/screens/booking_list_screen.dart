@@ -169,78 +169,92 @@ class _BookingCard extends StatelessWidget {
     } catch (_) {}
     final paymentColor = _paymentStatusColor(booking.paymentStatus);
 
-    return Card(
+    return PremiumCard(
+      padding: EdgeInsets.zero,
+      color: Theme.of(context).colorScheme.surface,
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/bookings/${booking.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '#${booking.bookingNumber}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  _PaymentChip(
-                    label: booking.paymentStatusLabel,
-                    color: paymentColor,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Booking ${booking.status.replaceAll('_', ' ').toUpperCase()}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 16,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      border: Border.all(
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.8),
+      ),
+      borderRadius: 16,
+      onTap: () => context.push('/bookings/${booking.id}'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '#${booking.bookingNumber}',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Inter',
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              if (booking.societyName != null)
-                _DetailRow(icon: Icons.apartment, text: booking.societyName!),
-              if (booking.slotNumber != null)
-                _DetailRow(
-                  icon: Icons.grid_view,
-                  text: 'Slot ${booking.slotNumber}',
+                _PaymentChip(
+                  label: booking.paymentStatusLabel,
+                  color: paymentColor,
                 ),
-              if (startDt != null)
-                _DetailRow(
-                  icon: Icons.calendar_today,
-                  text: dateFormat.format(startDt),
-                ),
-              if (startDt != null && endDt != null)
-                _DetailRow(
-                  icon: Icons.access_time,
-                  text:
-                      '${timeFormat.format(startDt)} - ${timeFormat.format(endDt)}',
-                ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '\u20B9${booking.amountPaid ?? booking.amount}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 14,
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Booking ${booking.status.replaceAll('_', ' ').toUpperCase()}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    fontFamily: 'Inter',
                   ),
-                ],
+            ),
+            const SizedBox(height: 12),
+            if (booking.societyName != null)
+              _DetailRow(icon: Icons.apartment_rounded, text: booking.societyName!),
+            if (booking.slotNumber != null)
+              _DetailRow(
+                icon: Icons.grid_view_rounded,
+                text: 'Slot ${booking.slotNumber}',
               ),
-            ],
-          ),
+            if (startDt != null)
+              _DetailRow(
+                icon: Icons.calendar_today_rounded,
+                text: dateFormat.format(startDt),
+              ),
+            if (startDt != null && endDt != null)
+              _DetailRow(
+                icon: Icons.access_time_rounded,
+                text: '${timeFormat.format(startDt)} - ${timeFormat.format(endDt)}',
+              ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '₹${booking.amountPaid ?? booking.amount}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontFamily: 'Inter',
+                      ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -258,15 +272,17 @@ class _PaymentChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: color,
+          fontFamily: 'Inter',
         ),
       ),
     );
@@ -282,16 +298,19 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
           Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontFamily: 'Inter',
+                  ),
+            ),
           ),
         ],
       ),
