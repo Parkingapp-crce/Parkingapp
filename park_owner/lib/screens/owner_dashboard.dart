@@ -110,10 +110,12 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     TimeOfDay availableFrom = const TimeOfDay(hour: 9, minute: 0);
     TimeOfDay availableTo = const TimeOfDay(hour: 18, minute: 0);
 
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -134,7 +136,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.divider,
+                    color: theme.colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -151,10 +153,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'List your parking space',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: theme.colorScheme.onSurface,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   fontFamily: 'Inter',
@@ -173,10 +175,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                 controller: floorCtrl,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'VEHICLE TYPE',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: theme.colorScheme.onSurfaceVariant,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
@@ -194,11 +196,11 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                         decoration: BoxDecoration(
                           color: slotType == 'car'
                               ? AppColors.primary.withOpacity(0.1)
-                              : AppColors.surfaceVariant,
+                              : theme.colorScheme.surfaceContainerLow,
                           border: Border.all(
                             color: slotType == 'car'
-                                ? AppColors.primary
-                                : Colors.transparent,
+                              ? AppColors.primary
+                              : Colors.transparent,
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -206,7 +208,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                           Icons.directions_car_rounded,
                           color: slotType == 'car'
                               ? AppColors.primaryLight
-                              : AppColors.textSecondary,
+                              : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -220,7 +222,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                         decoration: BoxDecoration(
                           color: slotType == 'bike'
                               ? AppColors.primary.withOpacity(0.1)
-                              : AppColors.surfaceVariant,
+                              : theme.colorScheme.surfaceContainerLow,
                           border: Border.all(
                             color: slotType == 'bike'
                                 ? AppColors.primary
@@ -232,7 +234,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                           Icons.pedal_bike_rounded,
                           color: slotType == 'bike'
                               ? AppColors.primaryLight
-                              : AppColors.textSecondary,
+                              : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -253,10 +255,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'AVAILABLE FROM',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
@@ -278,7 +280,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                             padding: const EdgeInsets.symmetric(
                                 vertical: 14, horizontal: 16),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
+                              color: theme.colorScheme.surfaceContainerLow,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -286,13 +288,13 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                               children: [
                                 Text(
                                   availableFrom.format(context),
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
                                     fontSize: 16,
                                   ),
                                 ),
-                                const Icon(Icons.access_time_rounded,
-                                    color: AppColors.textSecondary, size: 20),
+                                Icon(Icons.access_time_rounded,
+                                    color: theme.colorScheme.onSurfaceVariant, size: 20),
                               ],
                             ),
                           ),
@@ -305,10 +307,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'AVAILABLE TO',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
@@ -330,7 +332,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                             padding: const EdgeInsets.symmetric(
                                 vertical: 14, horizontal: 16),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
+                              color: theme.colorScheme.surfaceContainerLow,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -338,13 +340,13 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                               children: [
                                 Text(
                                   availableTo.format(context),
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface,
                                     fontSize: 16,
                                   ),
                                 ),
-                                const Icon(Icons.access_time_rounded,
-                                    color: AppColors.textSecondary, size: 20),
+                                Icon(Icons.access_time_rounded,
+                                    color: theme.colorScheme.onSurfaceVariant, size: 20),
                               ],
                             ),
                           ),
@@ -407,10 +409,12 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
@@ -418,7 +422,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
 
     if (_error != null) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.colorScheme.surface,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -428,7 +432,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
               const SizedBox(height: 16),
               Text(
                 _error!,
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -443,13 +447,111 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     }
 
     final isApproved = _profile?['approval_status'] == 'approved';
+
+    if (!isApproved) {
+      final isRejected = _profile?['approval_status'] == 'rejected';
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surface,
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Status Icon
+                    Center(
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: (isRejected ? AppColors.error : AppColors.warning).withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isRejected ? Icons.block_flipped : Icons.hourglass_empty_rounded,
+                          size: 48,
+                          color: isRejected ? AppColors.error : AppColors.warning,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Title
+                    Text(
+                      isRejected ? 'Account Rejected' : 'Approval Pending',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'Inter',
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Subtitle
+                    Text(
+                      isRejected
+                          ? 'Your resident registration request has been rejected by the society admin.\nNotes: ${_profile?['approval_notes'] ?? "None"}'
+                          : 'Your resident account request for "${_profile?['society_name'] ?? 'Society'}" is pending approval. Please wait for your society admin to review and approve your registration.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        height: 1.5,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Actions
+                    PrimaryButton(
+                      label: 'Check Approval Status',
+                      icon: Icons.refresh_rounded,
+                      onPressed: _loadData,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 52,
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _logout,
+                        icon: Icon(Icons.logout_rounded, color: theme.colorScheme.error),
+                        label: Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: theme.colorScheme.error),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final approvedSlots =
         _slots.where((s) => s['approval_status'] == 'approved').length;
     final pendingSlots =
         _slots.where((s) => s['approval_status'] == 'pending').length;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
@@ -475,7 +577,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.04),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.divider),
+                            border: Border.all(color: theme.colorScheme.outlineVariant),
                           ),
                           child: Icon(
                             isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
@@ -499,10 +601,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.divider),
+                        border: Border.all(color: theme.colorScheme.outlineVariant),
                       ),
-                      child: const Icon(Icons.qr_code_scanner_rounded,
-                          color: AppColors.textPrimary, size: 20),
+                      child: Icon(Icons.qr_code_scanner_rounded,
+                          color: theme.colorScheme.onSurface, size: 20),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -513,10 +615,10 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.divider),
+                        border: Border.all(color: theme.colorScheme.outlineVariant),
                       ),
-                      child: const Icon(Icons.logout_rounded,
-                          color: AppColors.textPrimary, size: 20),
+                      child: Icon(Icons.logout_rounded,
+                          color: theme.colorScheme.onSurface, size: 20),
                     ),
                   ),
                 ],
@@ -528,78 +630,74 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (!isApproved) ...[
-                      _buildPendingState(),
-                    ] else ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: PremiumMetricTile(
-                              label: 'My Slots',
-                              value: '${_slots.length}',
-                              icon: Icons.local_parking_rounded,
-                            ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: PremiumMetricTile(
+                            label: 'My Slots',
+                            value: '${_slots.length}',
+                            icon: Icons.local_parking_rounded,
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: PremiumMetricTile(
+                            label: 'Approved',
+                            value: '$approvedSlots',
+                            icon: Icons.check_circle_outline_rounded,
+                            valueColor: AppColors.success,
+                          ),
+                        ),
+                        if (pendingSlots > 0) ...[
                           const SizedBox(width: 12),
                           Expanded(
                             child: PremiumMetricTile(
-                              label: 'Approved',
-                              value: '$approvedSlots',
-                              icon: Icons.check_circle_outline_rounded,
-                              valueColor: AppColors.success,
+                              label: 'Pending',
+                              value: '$pendingSlots',
+                              icon: Icons.hourglass_top_rounded,
+                              valueColor: AppColors.warning,
                             ),
                           ),
-                          if (pendingSlots > 0) ...[
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: PremiumMetricTile(
-                                label: 'Pending',
-                                value: '$pendingSlots',
-                                icon: Icons.hourglass_top_rounded,
-                                valueColor: AppColors.warning,
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
-                      const SizedBox(height: 28),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'MY PARKING SLOTS',
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'MY PARKING SLOTS',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.0,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _showAddSlotModal,
+                          child: const Text(
+                            '+ Add slot',
                             style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.0,
+                              color: AppColors.primaryLight,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                               fontFamily: 'Inter',
                             ),
                           ),
-                          GestureDetector(
-                            onTap: _showAddSlotModal,
-                            child: const Text(
-                              '+ Add slot',
-                              style: TextStyle(
-                                color: AppColors.primaryLight,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (_slots.isEmpty)
-                        _buildEmptySlots()
-                      else
-                        ..._slots.map((slot) => _SlotCard(
-                              slot: slot as Map<String, dynamic>,
-                              onToggleActive: _toggleSlotActive,
-                            )),
-                      const SizedBox(height: 40),
-                    ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_slots.isEmpty)
+                      _buildEmptySlots()
+                    else
+                      ..._slots.map((slot) => _SlotCard(
+                            slot: slot as Map<String, dynamic>,
+                            onToggleActive: _toggleSlotActive,
+                          )),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -623,54 +721,14 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     );
   }
 
-  Widget _buildPendingState() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Column(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.hourglass_empty_rounded,
-                size: 40, color: AppColors.warning),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Pending Approval',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              fontFamily: 'Inter',
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Your society membership request is pending. Once the admin approves your request, you can manage your slots here.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-              height: 1.5,
-              fontFamily: 'Inter',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildEmptySlots() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: const EmptyStateWidget(
         icon: Icons.local_parking_outlined,
@@ -692,27 +750,8 @@ class _SlotCard extends StatelessWidget {
     final approvalStatus = slot['approval_status'] ?? 'pending';
     final slotState = slot['state'] ?? 'blocked';
     final isActive = slot['is_active'] ?? true;
-    final nextFreeAtRaw = slot['next_free_at'];
-    final freeingNote = slot['freeing_up_note'] as String?;
-    final currentBookingNumber = slot['current_booking_number'] as String?;
-    final currentBookingStatus = slot['current_booking_status'] as String?;
-    final currentBookingEndTimeRaw =
-        slot['current_booking_end_time'] as String?;
     final bookings = (slot['bookings'] as List<dynamic>?) ?? const [];
     final timeLabel = DateFormat('MMM d, hh:mm a');
-
-    DateTime? nextFreeAt;
-    DateTime? currentBookingEndTime;
-    try {
-      if (nextFreeAtRaw is String && nextFreeAtRaw.isNotEmpty) {
-        nextFreeAt = DateTime.parse(nextFreeAtRaw).toLocal();
-      }
-      if (currentBookingEndTimeRaw != null &&
-          currentBookingEndTimeRaw.isNotEmpty) {
-        currentBookingEndTime =
-            DateTime.parse(currentBookingEndTimeRaw).toLocal();
-      }
-    } catch (_) {}
 
     Color statusColor = AppColors.warning;
     IconData statusIcon = Icons.hourglass_top_rounded;
@@ -724,12 +763,14 @@ class _SlotCard extends StatelessWidget {
       statusIcon = Icons.cancel_outlined;
     }
 
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -760,8 +801,8 @@ class _SlotCard extends StatelessWidget {
                     children: [
                       Text(
                         slot['slot_number'] ?? 'Slot',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Inter',
@@ -769,8 +810,8 @@ class _SlotCard extends StatelessWidget {
                       ),
                       Text(
                         'Floor ${slot['floor'] ?? '-'} · ₹${slot['hourly_rate']}/hr',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 12,
                           fontFamily: 'Inter',
                         ),
@@ -792,7 +833,7 @@ class _SlotCard extends StatelessWidget {
               ],
             ),
           ),
-          Container(height: 1, color: AppColors.divider),
+          Container(height: 1, color: theme.colorScheme.outlineVariant),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -839,16 +880,16 @@ class _SlotCard extends StatelessWidget {
             ),
           ),
           if (approvalStatus == 'approved' && bookings.isNotEmpty) ...[
-            Container(height: 1, color: AppColors.divider),
+            Container(height: 1, color: theme.colorScheme.outlineVariant),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'UPCOMING BOOKINGS',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
@@ -873,7 +914,7 @@ class _SlotCard extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
+                        color: theme.colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -884,8 +925,8 @@ class _SlotCard extends StatelessWidget {
                             children: [
                               Text(
                                 b['booking_number'] ?? 'Booking',
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                 ),
@@ -893,8 +934,8 @@ class _SlotCard extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 displayTime,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant,
                                   fontSize: 11,
                                 ),
                               ),
@@ -904,13 +945,13 @@ class _SlotCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.outline.withOpacity(0.2),
+                              color: theme.colorScheme.outlineVariant.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               bStatus.toUpperCase(),
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                               ),

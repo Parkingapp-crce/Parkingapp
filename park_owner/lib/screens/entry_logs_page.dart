@@ -43,20 +43,20 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: theme.colorScheme.onSurface, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Scan Logs',
           style: TextStyle(
-            color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
             fontSize: 18,
             fontFamily: 'Inter',
@@ -64,7 +64,7 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: AppColors.divider),
+          child: Container(height: 1, color: theme.colorScheme.outlineVariant),
         ),
       ),
       body: isLoading
@@ -78,7 +78,7 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
               : RefreshIndicator(
                   onRefresh: fetchLogs,
                   color: AppColors.primaryLight,
-                  backgroundColor: AppColors.surfaceContainerHigh,
+                  backgroundColor: theme.colorScheme.surfaceContainerHigh,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 24),
@@ -91,6 +91,7 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
   }
 
   Widget _buildLogCard(Map<String, dynamic> log) {
+    final theme = Theme.of(context);
     final isAllowed = log['entry_status'] == 'allowed';
     final statusColor =
         isAllowed ? AppColors.success : const Color(0xFFFF4444);
@@ -99,9 +100,9 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
@@ -143,8 +144,8 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
                     ),
                     Text(
                       '#${log['id']}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,
                         fontFamily: 'Inter',
                       ),
@@ -154,8 +155,8 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
                 const SizedBox(height: 6),
                 Text(
                   formatTime(log['scanned_at'] ?? ''),
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 12,
                     fontFamily: 'Inter',
                   ),
@@ -163,8 +164,8 @@ class _EntryLogsPageState extends State<EntryLogsPage> {
                 const SizedBox(height: 4),
                 Text(
                   'Scanned by: ${log['scanned_by_name'] ?? '-'}',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Inter',

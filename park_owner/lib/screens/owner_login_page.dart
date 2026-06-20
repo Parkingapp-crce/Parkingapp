@@ -65,8 +65,9 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -80,7 +81,7 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.divider),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Text(
@@ -98,10 +99,10 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                 const SizedBox(height: 32),
 
                 // ── Headline ─────────────────────────────────────────────────
-                const Text(
+                Text(
                   'Welcome back.',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: theme.colorScheme.onSurface,
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.8,
@@ -109,10 +110,10 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Sign in to manage your parking slots.',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontSize: 15,
                     fontFamily: 'Inter',
                   ),
@@ -161,7 +162,7 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
                       size: 20,
-                      color: AppColors.textSecondary,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
@@ -186,14 +187,14 @@ class _OwnerLoginPageState extends State<OwnerLoginPage> {
                           builder: (_) => const OwnerRegisterPage()),
                     ),
                     child: RichText(
-                      text: const TextSpan(
+                      text: TextSpan(
                         text: 'New resident? ',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 14,
                           fontFamily: 'Inter',
                         ),
-                        children: [
+                        children: const [
                           TextSpan(
                             text: 'Create account',
                             style: TextStyle(

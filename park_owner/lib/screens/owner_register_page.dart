@@ -80,20 +80,21 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: theme.colorScheme.onSurface, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Create Account',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: theme.colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.w700,
             fontFamily: 'Inter',
@@ -101,7 +102,7 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: AppColors.divider),
+          child: Container(height: 1, color: theme.colorScheme.outlineVariant),
         ),
       ),
       body: SingleChildScrollView(
@@ -163,7 +164,7 @@ class _OwnerRegisterPageState extends State<OwnerRegisterPage> {
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
                   size: 20,
-                  color: AppColors.textSecondary,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),

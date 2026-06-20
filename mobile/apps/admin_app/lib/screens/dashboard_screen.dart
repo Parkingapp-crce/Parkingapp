@@ -310,13 +310,29 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    final primary = Theme.of(context).colorScheme.primary;
+    return TextButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 16),
+      icon: Icon(icon, size: 16, color: primary),
       label: Text(label),
-      style: OutlinedButton.styleFrom(
+      style: TextButton.styleFrom(
+        foregroundColor: primary,
+        backgroundColor: primary.withOpacity(0.06),
         minimumSize: const Size(120, 42),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: primary.withOpacity(0.12),
+            width: 1,
+          ),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'Inter',
+          letterSpacing: 0.1,
+        ),
       ),
     );
   }
@@ -486,6 +502,11 @@ class _ParkedVehicleCard extends StatelessWidget {
             label: 'Booking',
             value: booking.bookingNumber,
           ),
+          _CopyableInfoRow(
+            icon: Icons.fingerprint_rounded,
+            label: 'Booking ID',
+            value: booking.id,
+          ),
         ],
       ),
     );
@@ -598,6 +619,69 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               '$label: $value',
               style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CopyableInfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _CopyableInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$label copied to clipboard'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      '$label: $value',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontFamily: 'monospace',
+                            decoration: TextDecoration.underline,
+                            decorationStyle: TextDecorationStyle.dashed,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.copy_rounded,
+                    size: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

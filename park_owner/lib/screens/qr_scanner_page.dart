@@ -166,8 +166,10 @@ class _QRScannerPageState extends State<QRScannerPage> {
         ? const Color(0xFFFF4444)
         : const Color(0xFF22C55E);
 
+    final theme = Theme.of(context);
+
     return Container(
-      color: AppColors.background,
+      color: theme.colorScheme.surface,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
         child: Column(
@@ -209,8 +211,8 @@ class _QRScannerPageState extends State<QRScannerPage> {
             Text(
               isAllowed ? message : reason,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 14,
                 fontFamily: 'Inter',
                 height: 1.4,
@@ -224,17 +226,17 @@ class _QRScannerPageState extends State<QRScannerPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
+                  color: theme.colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       isExit ? 'EXIT DETAILS' : 'ENTRY DETAILS',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
@@ -370,6 +372,7 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -378,8 +381,8 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
               fontSize: 13,
               fontFamily: 'Inter',
             ),
@@ -390,7 +393,7 @@ class _DetailRow extends StatelessWidget {
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: valueColor ?? AppColors.textPrimary,
+                color: valueColor ?? theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
                 fontFamily: 'Inter',

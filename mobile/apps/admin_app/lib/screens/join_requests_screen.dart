@@ -126,32 +126,37 @@ class _JoinRequestsScreenState extends State<JoinRequestsScreen> {
             ? AppErrorWidget(message: _error!, onRetry: _loadRequests)
             : RefreshIndicator(
                 onRefresh: _loadRequests,
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Text(
-                      'Approve residents before they can access parking features.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_requests.isEmpty)
-                      const EmptyStateWidget(
-                        icon: Icons.how_to_reg_outlined,
-                        title: 'No pending requests',
-                        subtitle:
-                            'New resident join requests will appear here.',
-                      )
-                    else
-                      ..._requests.map(
-                        (request) => _JoinRequestCard(
-                          request: request,
-                          onApprove: () => _decide(request, true),
-                          onReject: () => _decide(request, false),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        Text(
+                          'Approve residents before they can access parking features.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                  ],
+                        const SizedBox(height: 16),
+                        if (_requests.isEmpty)
+                          const EmptyStateWidget(
+                            icon: Icons.how_to_reg_outlined,
+                            title: 'No pending requests',
+                            subtitle:
+                                'New resident join requests will appear here.',
+                          )
+                        else
+                          ..._requests.map(
+                            (request) => _JoinRequestCard(
+                              request: request,
+                              onApprove: () => _decide(request, true),
+                              onReject: () => _decide(request, false),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
       ),
@@ -202,72 +207,160 @@ class _JoinRequestCard extends StatelessWidget {
     required this.onReject,
   });
 
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'R';
+    final parts = name.trim().split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
+        ),
+      ),
+      elevation: 0,
+      color: isDark ? AppColors.surfaceDark : AppColors.surfaceBright,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.person_outline, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 10),
-                Expanded(
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   child: Text(
-                    request.userName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    _getInitials(request.userName),
+                    style: const TextStyle(
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontFamily: 'Inter',
                     ),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    request.userName,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
+                    horizontal: 12,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.tertiary,
-                    borderRadius: BorderRadius.circular(999),
+                    color: AppColors.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     request.status.toUpperCase(),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.email_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    request.userEmail,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontFamily: 'Inter',
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(request.userEmail),
-            const SizedBox(height: 4),
-            Text(request.userPhone),
+            Row(
+              children: [
+                Icon(Icons.phone_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    request.userPhone,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ),
+              ],
+            ),
             if (request.notes != null && request.notes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                request.notes!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  request.notes!,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onReject,
-                    icon: Icon(Icons.close, color: Theme.of(context).colorScheme.error),
-                    label: Text(
-                      'Reject',
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Theme.of(context).colorScheme.error),
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: onReject,
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      label: const Text('Reject'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -275,7 +368,7 @@ class _JoinRequestCard extends StatelessWidget {
                 Expanded(
                   child: PrimaryButton(
                     label: 'Approve',
-                    icon: Icons.check_circle_outline,
+                    icon: Icons.check_circle_outline_rounded,
                     onPressed: onApprove,
                   ),
                 ),

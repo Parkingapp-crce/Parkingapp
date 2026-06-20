@@ -125,14 +125,18 @@ class RegisterSerializer(serializers.ModelSerializer):
                     contact_phone=validated_data["phone"],
                     is_active=True,
                 )
-            elif role == User.Role.USER and target_society is not None:
-                society = target_society
-
             user = User.objects.create_user(
                 **validated_data,
                 role=role,
-                society=society,
+                society=None,
             )
+
+            if role == User.Role.USER and target_society is not None:
+                SocietyMembershipRequest.objects.create(
+                    user=user,
+                    society=target_society,
+                    status=SocietyMembershipRequest.Status.PENDING,
+                )
 
             return user
 
@@ -171,7 +175,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["role"] = user.role
         token["full_name"] = user.full_name
-        token["approval_status"] = user.approval_status
+
+        approval_status = user.approval_status
+        if user.role == User.Role.USER:
+            if user.society_id is not None:
+                approval_status = "approved"
+            else:
+                latest_req = user.membership_requests.order_by("-created_at").first()
+                if latest_req:
+                    approval_status = latest_req.status
+                else:
+                    approval_status = "pending"
+        token["approval_status"] = approval_status
+
         if user.society_id:
             token["society_id"] = str(user.society_id)
         token["can_scan_entry"] = user.can_scan_entry
@@ -325,6 +341,8 @@ class GuardPermissionUpdateSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     society_name = serializers.CharField(source="society.name", read_only=True)
+    approval_status = serializers.SerializerMethodField()
+    approval_notes = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -349,8 +367,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "id",
             "email",
             "role",
-            "approval_status",
-            "approval_notes",
             "approved_at",
             "society",
             "society_name",
@@ -358,6 +374,26 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "can_scan_exit",
             "created_at",
         ]
+
+    def get_approval_status(self, obj):
+        if obj.role == User.Role.USER:
+            if obj.society_id is not None:
+                return "approved"
+            latest_req = obj.membership_requests.order_by("-created_at").first()
+            if latest_req:
+                return latest_req.status
+            return "pending"
+        return obj.approval_status
+
+    def get_approval_notes(self, obj):
+        if obj.role == User.Role.USER:
+            if obj.society_id is not None:
+                return ""
+            latest_req = obj.membership_requests.order_by("-created_at").first()
+            if latest_req:
+                return latest_req.notes or "Awaiting approval from society admin."
+            return "Awaiting approval from society admin."
+        return obj.approval_notes
 
 
 class VehicleSerializer(serializers.ModelSerializer):

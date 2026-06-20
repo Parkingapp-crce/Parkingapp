@@ -13,6 +13,8 @@ class SlotListScreen extends StatefulWidget {
 }
 
 class _SlotListScreenState extends State<SlotListScreen> {
+  bool _isGridView = true;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +42,11 @@ class _SlotListScreenState extends State<SlotListScreen> {
       appBar: AppBar(
         title: const Text('Parking Slots'),
         actions: [
+          IconButton(
+            icon: Icon(_isGridView ? Icons.list_rounded : Icons.grid_view_rounded),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+            tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
+          ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadSlots),
         ],
       ),
@@ -76,16 +83,18 @@ class _SlotListScreenState extends State<SlotListScreen> {
 
                 return RefreshIndicator(
                   onRefresh: () async => _loadSlots(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: slots.length,
-                    itemBuilder: (context, index) {
-                      return _SlotCard(
-                        slot: slots[index],
-                        onTap: () => context.go('/slots/${slots[index].id}'),
-                      );
-                    },
-                  ),
+                  child: _isGridView
+                      ? _buildGridView(slots)
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: slots.length,
+                          itemBuilder: (context, index) {
+                            return _SlotCard(
+                              slot: slots[index],
+                              onTap: () => context.go('/slots/${slots[index].id}'),
+                            );
+                          },
+                        ),
                 );
               },
             ),
@@ -189,6 +198,26 @@ class _SlotListScreenState extends State<SlotListScreen> {
       },
     );
   }
+
+  Widget _buildGridView(List<SlotModel> slots) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 140,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.15,
+      ),
+      itemCount: slots.length,
+      itemBuilder: (context, index) {
+        final slot = slots[index];
+        return _SlotGridTile(
+          slot: slot,
+          onTap: () => context.go('/slots/${slot.id}'),
+        );
+      },
+    );
+  }
 }
 
 class _FilterChip extends StatelessWidget {
@@ -206,12 +235,29 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeColor = color ?? Theme.of(context).colorScheme.primary;
     return FilterChip(
       label: Text(label),
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        color: selected ? activeColor : Theme.of(context).colorScheme.onSurfaceVariant,
+        fontFamily: 'Inter',
+      ),
       selected: selected,
       onSelected: (_) => onSelected(),
-      selectedColor: color?.withOpacity(0.2) ?? Theme.of(context).colorScheme.tertiary,
-      checkmarkColor: color ?? Theme.of(context).colorScheme.primary,
+      selectedColor: activeColor.withOpacity(0.12),
+      checkmarkColor: activeColor,
+      side: BorderSide(
+        color: selected
+            ? activeColor.withOpacity(0.4)
+            : Theme.of(context).colorScheme.outlineVariant,
+        width: 1,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      showCheckmark: true,
     );
   }
 }
@@ -327,6 +373,105 @@ class _SlotCard extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SlotGridTile extends StatelessWidget {
+  final SlotModel slot;
+  final VoidCallback onTap;
+
+  const _SlotGridTile({required this.slot, required this.onTap});
+
+  Color _stateColor() {
+    switch (slot.state) {
+      case 'available':
+        return AppColors.slotAvailable;
+      case 'reserved':
+        return AppColors.slotReserved;
+      case 'occupied':
+        return AppColors.slotOccupied;
+      case 'blocked':
+        return AppColors.slotBlocked;
+      default:
+        return const Color(0xFF64748B);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stateColor = _stateColor();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgTint = stateColor.withOpacity(isDark ? 0.12 : 0.08);
+    final borderTint = stateColor.withOpacity(isDark ? 0.3 : 0.2);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: bgTint,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderTint, width: 1.5),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: stateColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(
+                  slot.slotType == 'bike'
+                      ? Icons.two_wheeler_rounded
+                      : Icons.directions_car_rounded,
+                  size: 16,
+                  color: stateColor,
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      slot.slotNumber,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      slot.ownershipType.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: stateColor,
+                        fontFamily: 'Inter',
+                        letterSpacing: 0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
