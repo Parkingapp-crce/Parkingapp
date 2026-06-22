@@ -253,14 +253,14 @@ class _VehicleCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.tertiary,
+                color: Theme.of(context).colorScheme.tertiaryContainer,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 vehicle.vehicleType == 'bike'
                     ? Icons.two_wheeler
                     : Icons.directions_car,
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.onTertiaryContainer,
                 size: 24,
               ),
             ),
