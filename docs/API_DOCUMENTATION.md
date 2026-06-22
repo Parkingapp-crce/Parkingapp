@@ -511,6 +511,27 @@ Auth: `society_admin`
 
 Only available slots can be blocked. Only blocked slots can be unblocked.
 
+### Toggle Active Status
+
+`POST {{base_url}}/api/v1/societies/{{society_id}}/slots/{{slot_id}}/toggle-active/`
+
+Auth: authenticated user (must be slot owner)
+
+Allows a resident to temporarily activate or deactivate their slot.
+
+Request:
+
+```json
+{
+  "is_active": false
+}
+```
+
+Deactivation will fail (returning `400 Bad Request`) in the following cases:
+- A vehicle is currently parked in the slot.
+- A confirmed booking is scheduled to start within the next hour.
+- There are upcoming future confirmed bookings scheduled for this slot.
+
 ### Slot Availability Windows
 
 `GET {{base_url}}/api/v1/societies/{{society_id}}/slots/{{slot_id}}/availability/`
@@ -603,6 +624,36 @@ When a booking is still `pending_payment`, this endpoint attempts to auto-sync p
 Auth: booking owner
 
 Only `pending_payment` and `confirmed` bookings can be cancelled. Cancelling a confirmed booking frees a reserved slot.
+
+### Booking Overtime Status
+
+`GET {{base_url}}/api/v1/bookings/{{booking_id}}/overtime/`
+
+Auth: bearer token (booking owner)
+
+Returns the live overtime status and estimated penalty accrued for an active parking session. Note that this is a read-only estimate; the actual penalty is only applied to the user's account upon scanning the exit QR code.
+
+Response (for active booking in overtime):
+
+```json
+{
+  "is_overtime": true,
+  "overstay_minutes": 75,
+  "estimated_penalty_amount": "40.00",
+  "penalty_rate_per_hour": "20.00"
+}
+```
+
+Response (if booking is not in overtime or not active):
+
+```json
+{
+  "is_overtime": false,
+  "overstay_minutes": 0,
+  "estimated_penalty_amount": "0.00",
+  "penalty_rate_per_hour": "0.00"
+}
+```
 
 ### Booking QR Code
 
@@ -857,6 +908,108 @@ Auth: `society_admin`
 ```json
 {
   "notes": "Invalid details"
+}
+```
+
+### Refund Lookup (Super Admin only)
+
+`GET {{base_url}}/api/v1/admin/refunds/lookup/?booking_id={{booking_id}}`
+
+Auth: `super_admin`
+
+Returns a detailed snapshot of a booking and its latest captured payment, along with past refund history for audit, before initiating a refund.
+
+Response:
+
+```json
+{
+  "booking_id": "uuid",
+  "booking_number": "BK-20260518-ABC123",
+  "user_name": "Example User",
+  "user_email": "user@example.com",
+  "booking_status": "active",
+  "booking_amount": "100.00",
+  "start_time": "2026-05-18T14:00:00+05:30",
+  "end_time": "2026-05-18T16:00:00+05:30",
+  "slot_number": "A-101",
+  "society_name": "Green Heights",
+  "payment_id": "payment-uuid",
+  "payment_status": "captured",
+  "payment_provider": "stripe",
+  "amount_paid": "100.00",
+  "max_refundable": "100.00",
+  "already_refunded": "0.00",
+  "past_refunds": []
+}
+```
+
+### List Refunds (Super Admin only)
+
+`GET {{base_url}}/api/v1/admin/refunds/`
+
+Auth: `super_admin`
+
+Lists the audit trail of the last 100 refunds issued on the platform.
+
+Response:
+
+```json
+[
+  {
+    "id": "refund-uuid",
+    "payment": "payment-uuid",
+    "booking": "booking-uuid",
+    "booking_number": "BK-20260518-ABC123",
+    "initiated_by": "super-admin-uuid",
+    "initiated_by_name": "Super Admin",
+    "initiated_by_email": "superadmin@example.com",
+    "refund_amount": "50.00",
+    "reason": "Accidental overstay charge waived",
+    "provider_refund_id": "re_xxx",
+    "payment_provider": "stripe",
+    "status": "succeeded",
+    "is_full_refund": false,
+    "created_at": "2026-05-18T16:30:00+05:30"
+  }
+]
+```
+
+### Initiate Refund (Super Admin only)
+
+`POST {{base_url}}/api/v1/admin/refunds/`
+
+Auth: `super_admin`
+
+Initiates a partial or full refund for a captured booking payment.
+
+Request:
+
+```json
+{
+  "booking_id": "{{booking_id}}",
+  "refund_amount": "50.00",
+  "reason": "Customer cancelled before check-in"
+}
+```
+
+Response:
+
+```json
+{
+  "id": "refund-uuid",
+  "payment": "payment-uuid",
+  "booking": "booking-uuid",
+  "booking_number": "BK-20260518-ABC123",
+  "initiated_by": "super-admin-uuid",
+  "initiated_by_name": "Super Admin",
+  "initiated_by_email": "superadmin@example.com",
+  "refund_amount": "50.00",
+  "reason": "Customer cancelled before check-in",
+  "provider_refund_id": "re_xxx",
+  "payment_provider": "stripe",
+  "status": "succeeded",
+  "is_full_refund": false,
+  "created_at": "2026-05-18T16:30:00+05:30"
 }
 ```
 
