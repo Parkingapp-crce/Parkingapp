@@ -30,10 +30,10 @@ class _GuardHomeContent extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top bar ───────────────────────────────────────────────────────
+             // ── Top bar ───────────────────────────────────────────────────────
             Container(
               height: 64,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
@@ -42,8 +42,8 @@ class _GuardHomeContent extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(999),
@@ -51,48 +51,85 @@ class _GuardHomeContent extends StatelessWidget {
                     child: const Icon(
                       Icons.shield_rounded,
                       color: Colors.white,
-                      size: 18,
+                      size: 16,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'PARKWISE',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
-                      fontFamily: 'Inter',
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'PARKWISE',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        fontFamily: 'Inter',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   ListenableBuilder(
                     listenable: GetIt.I<ThemeNotifier>(),
                     builder: (context, _) {
                       final isDark = GetIt.I<ThemeNotifier>().isDark;
-                      return IconButton(
-                        icon: Icon(
-                          isDark
-                              ? Icons.light_mode_rounded
-                              : Icons.dark_mode_rounded,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      return Tooltip(
+                        message: isDark ? 'Light mode' : 'Dark mode',
+                        child: InkWell(
+                          onTap: GetIt.I<ThemeNotifier>().toggle,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              isDark
+                                  ? Icons.light_mode_rounded
+                                  : Icons.dark_mode_rounded,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              size: 20,
+                            ),
+                          ),
                         ),
-                        tooltip: isDark ? 'Light mode' : 'Dark mode',
-                        onPressed: GetIt.I<ThemeNotifier>().toggle,
                       );
                     },
                   ),
-                  IconButton(
-                    icon: Icon(Icons.notifications_none_rounded,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    tooltip: 'Notifications',
-                    onPressed: () => context.push('/notifications'),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Notifications',
+                    child: InkWell(
+                      onTap: () => context.push('/notifications'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.notifications_none_rounded,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.logout_rounded,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    tooltip: 'Logout',
-                    onPressed: () => _confirmLogout(context),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Logout',
+                    child: InkWell(
+                      onTap: () => _confirmLogout(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.logout_rounded,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -126,7 +163,7 @@ class _GuardHomeContent extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Welcome, $name',
+                              'Welcome, ${_capitalize(name)}',
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 26,
@@ -151,6 +188,7 @@ class _GuardHomeContent extends StatelessWidget {
                               child: _StatusTile(
                                 label: 'Society',
                                 value: user?.societyName ?? 'Unassigned',
+                                icon: Icons.apartment_rounded,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -158,7 +196,8 @@ class _GuardHomeContent extends StatelessWidget {
                               child: _StatusTile(
                                 label: 'Shift Status',
                                 value: user != null ? 'Active' : 'Inactive',
-                                valueColar: Theme.of(context).colorScheme.tertiary,
+                                icon: Icons.work_history_rounded,
+                                valueColor: Theme.of(context).colorScheme.tertiary,
                                 showPulse: user != null,
                               ),
                             ),
@@ -191,7 +230,7 @@ class _GuardHomeContent extends StatelessWidget {
                               children: [
                                 Icon(Icons.block_rounded,
                                     color: Theme.of(context).colorScheme.error, size: 36),
-                                SizedBox(height: 12),
+                                const SizedBox(height: 12),
                                 Text(
                                   'Scan access is disabled',
                                   style: TextStyle(
@@ -201,7 +240,7 @@ class _GuardHomeContent extends StatelessWidget {
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
-                                SizedBox(height: 6),
+                                const SizedBox(height: 6),
                                 Text(
                                   'Contact your admin to enable gate scanning.',
                                   style: TextStyle(
@@ -217,106 +256,153 @@ class _GuardHomeContent extends StatelessWidget {
 
                         return Column(
                           children: [
-                            if (canEntry) ...[
-                              _ScanButton(
-                                label: 'SCAN ENTRY',
-                                icon: Icons.qr_code_scanner_rounded,
-                                filled: true,
-                                onTap: () => context.push('/scan/entry'),
+                            if (canEntry && canExit) ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _ScanCard(
+                                      label: 'SCAN ENTRY',
+                                      icon: Icons.qr_code_scanner_rounded,
+                                      isEntry: true,
+                                      onTap: () => context.push('/scan/entry'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _ScanCard(
+                                      label: 'SCAN EXIT',
+                                      icon: Icons.logout_rounded,
+                                      isEntry: false,
+                                      onTap: () => context.push('/scan/exit'),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
+                            ] else ...[
+                              if (canEntry)
+                                _ScanCard(
+                                  label: 'SCAN ENTRY',
+                                  icon: Icons.qr_code_scanner_rounded,
+                                  isEntry: true,
+                                  onTap: () => context.push('/scan/entry'),
+                                ),
+                              if (canExit)
+                                _ScanCard(
+                                  label: 'SCAN EXIT',
+                                  icon: Icons.logout_rounded,
+                                  isEntry: false,
+                                  onTap: () => context.push('/scan/exit'),
+                                ),
                             ],
-                            if (canExit)
-                              _ScanButton(
-                                label: 'SCAN EXIT',
-                                icon: Icons.logout_rounded,
-                                filled: false,
-                                onTap: () => context.push('/scan/exit'),
-                              ),
                           ],
                         );
                       },
                     ),
                     const SizedBox(height: 24),
 
-                    // Recent activity placeholder
+                    // Recent activity card
                     Container(
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).colorScheme.surfaceContainerLow
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Stack(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'RECENT ACTIVITY',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.0,
-                                    fontFamily: 'Inter',
-                                  ),
-                                ),
-                                Text(
-                                  _timeNow(),
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                    fontSize: 11,
-                                    fontFamily: 'Inter',
-                                  ),
-                                ),
-                              ],
+                          Positioned(
+                            right: -10,
+                            bottom: -10,
+                            child: Icon(
+                              Icons.qr_code_2_rounded,
+                              size: 80,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
                             ),
                           ),
-                          Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 4,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.tertiary,
-                                    borderRadius: BorderRadius.circular(99),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Awaiting first scan',
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurface,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          fontFamily: 'Inter',
-                                        ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'RECENT ACTIVITY',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.0,
+                                        fontFamily: 'Inter',
                                       ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        'Use the scan buttons above to log gate activity.',
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                          fontSize: 12,
-                                          fontFamily: 'Inter',
-                                        ),
+                                    ),
+                                    Text(
+                                      _timeNow(),
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                        fontFamily: 'Inter',
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6)),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.tertiary,
+                                        borderRadius: BorderRadius.circular(99),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Awaiting first scan',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              fontFamily: 'Inter',
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Use the scan buttons above to log gate activity.',
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                              fontSize: 12,
+                                              fontFamily: 'Inter',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -329,6 +415,14 @@ class _GuardHomeContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
   }
 
   String _timeNow() {
@@ -366,60 +460,80 @@ class _GuardHomeContent extends StatelessWidget {
 class _StatusTile extends StatelessWidget {
   final String label;
   final String value;
-  final Color? valueColar;
+  final IconData icon;
+  final Color? valueColor;
   final bool showPulse;
 
   const _StatusTile({
     required this.label,
     required this.value,
-    this.valueColar,
+    required this.icon,
+    this.valueColor,
     this.showPulse = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        color: isDark 
+            ? Theme.of(context).colorScheme.surfaceContainerLow
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  fontFamily: 'Inter',
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              if (showPulse) ...[
-                const Spacer(),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.tertiary,
-                    shape: BoxShape.circle,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    fontFamily: 'Inter',
                   ),
                 ),
-              ],
+              ),
+              if (showPulse)
+                const _GlowingDot(),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(
-              color: valueColar ?? Theme.of(context).colorScheme.onSurface,
+              color: valueColor ?? Theme.of(context).colorScheme.onSurface,
               fontSize: 15,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontFamily: 'Inter',
             ),
             maxLines: 1,
@@ -431,76 +545,182 @@ class _StatusTile extends StatelessWidget {
   }
 }
 
-class _ScanButton extends StatelessWidget {
+class _GlowingDot extends StatefulWidget {
+  const _GlowingDot();
+
+  @override
+  State<_GlowingDot> createState() => _GlowingDotState();
+}
+
+class _GlowingDotState extends State<_GlowingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: AppColors.success,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.success.withValues(alpha: 0.6 * _animation.value),
+                blurRadius: 6,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ScanCard extends StatelessWidget {
   final String label;
   final IconData icon;
-  final bool filled;
+  final bool isEntry;
   final VoidCallback onTap;
 
-  const _ScanButton({
+  const _ScanCard({
     required this.label,
     required this.icon,
-    required this.filled,
+    required this.isEntry,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (filled) {
-      return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 28),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: Colors.white, size: 44),
-              const SizedBox(height: 10),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                  fontFamily: 'Inter',
-                ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    if (isEntry) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: AppColors.gradPrimary,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5,
+                      fontFamily: 'Inter',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Theme.of(context).colorScheme.tertiary, width: 1.5),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Theme.of(context).colorScheme.surfaceContainerLow : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.4),
+          width: 1.5,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.tertiary, size: 22),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.tertiary,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                fontFamily: 'Inter',
-              ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Theme.of(context).colorScheme.tertiary,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                    fontFamily: 'Inter',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
