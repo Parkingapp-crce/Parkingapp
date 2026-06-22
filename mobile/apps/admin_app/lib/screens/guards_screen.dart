@@ -452,14 +452,18 @@ class _CreateGuardCard extends StatelessWidget {
                 controller: phoneController,
                 label: 'Device ID',
                 hint: 'Enter gate device ID',
-                prefixIcon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
+                prefixIcon: Icons.qr_code_scanner_outlined,
+                keyboardType: TextInputType.text,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Device ID is required';
                   }
-                  if (value.trim().length < 10) {
-                    return 'Enter a valid device ID';
+                  final trimmed = value.trim();
+                  if (trimmed.length < 3) {
+                    return 'Enter a valid device ID (min 3 chars)';
+                  }
+                  if (trimmed.length > 15) {
+                    return 'Device ID cannot exceed 15 characters';
                   }
                   return null;
                 },
